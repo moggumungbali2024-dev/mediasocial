@@ -560,15 +560,56 @@ export const OmnipostSocialHub: React.FC = () => {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsConnectModalOpen(true)}
-                className="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-orange-500/20 cursor-pointer self-start sm:self-auto"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{isKo ? '+ 소셜 미디어 계정 연결' : '+ Connect Social Account'}</span>
-              </button>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <a
+                  href="https://my.omnipost.id/channels"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>{isKo ? 'Omnipost 계정 연동 열기' : 'Link via Omnipost'}</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setIsConnectModalOpen(true)}
+                  className="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-orange-500/20 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{isKo ? '+ 계정 등록' : '+ Link Handle'}</span>
+                </button>
+              </div>
             </div>
+
+            {/* Live API Notice if Omnipost channels are 0 */}
+            {accountInfo?.channelCount === 0 && (
+              <div className="p-3.5 bg-amber-50/80 dark:bg-amber-950/30 rounded-2xl border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">
+                      {isKo ? '실시간 인스타그램/틱톡 API 배포 안내:' : 'Live Social API Dispatch Notice:'}
+                    </span>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
+                      {isKo 
+                        ? '게시물이 워크스페이스에 정상 등록 및 스케줄링됩니다. 실제 인스타그램/틱톡 라이브 송출을 위해 my.omnipost.id/channels 에서 인스타그램 계정을 1회 연동해주세요.' 
+                        : 'Posts are queued & scheduled in your workspace. For direct live API broadcast to Instagram/TikTok, connect your official accounts once in my.omnipost.id/channels.'}
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href="https://my.omnipost.id/channels"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 flex items-center justify-center gap-1.5 transition"
+                >
+                  <span>{isKo ? '계정 연동하기' : 'Connect Account'}</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {channels.map((ch) => (
