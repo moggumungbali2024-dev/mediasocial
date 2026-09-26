@@ -1,0 +1,172 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ * 
+ * Supabase Client & Multi-Tenant Data Synchronization Service
+ */
+
+export interface SupabaseConfig {
+  url: string;
+  anonKey: string;
+  isConnected: boolean;
+  lastSyncedAt?: string;
+  autoSync: boolean;
+}
+
+export const DEFAULT_SUPABASE_CONFIG: SupabaseConfig = {
+  url: '',
+  anonKey: '',
+  isConnected: false,
+  autoSync: false
+};
+
+export const getSupabaseConfig = (): SupabaseConfig => {
+  if (typeof window === 'undefined') return DEFAULT_SUPABASE_CONFIG;
+  try {
+    const saved = localStorage.getItem('smp_supabase_config');
+    if (saved) {
+      return { ...DEFAULT_SUPABASE_CONFIG, ...JSON.parse(saved) };
+    }
+  } catch (e) {
+    console.warn('Failed to load Supabase config from storage', e);
+  }
+  return DEFAULT_SUPABASE_CONFIG;
+};
+
+export const saveSupabaseConfig = (config: Partial<SupabaseConfig>): SupabaseConfig => {
+  const current = getSupabaseConfig();
+  const updated = { ...current, ...config };
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('smp_supabase_config', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save Supabase config to storage', e);
+    }
+  }
+  return updated;
+};
+
+export class SupabaseService {
+  /**
+   * Test connection to Supabase Project
+   */
+  static async testConnection(url: string, key: string): Promise<{ success: boolean; message: string; status?: number }> {
+    const cleanUrl = url.trim().replace(/\/+$/, '');
+    const cleanKey = key.trim();
+
+    if (!cleanUrl || !cleanKey) {
+      return { success: false, message: 'URL Supabase dan API Anon Key tidak boleh kosong.' };
+    }
+
+    try {
+      // Ping Supabase REST API root endpoint
+      const response = await fetch(`${cleanUrl}/rest/v1/`, {
+        method: 'GET',
+        headers: {
+          'apikey': cleanKey,
+          'Authorization': `Bearer ${cleanKey}`
+        }
+      });
+
+      if (response.ok || response.status === 200) {
+        saveSupabaseConfig({ url: cleanUrl, anonKey: cleanKey, isConnected: true, lastSyncedAt: new Date().toISOString() });
+        return { success: true, message: 'Berhasil terhubung ke Supabase PostgreSQL!', status: response.status };
+      } else {
+        return { 
+          success: false, 
+          message: `Koneksi ditolak (HTTP ${response.status}). Periksa kembali Supabase URL & Anon Key.`,
+          status: response.status 
+        };
+      }
+    } catch (err: any) {
+      return { 
+        success: false, 
+        message: `Gagal menjangkau server Supabase: ${err.message || 'Network error'}` 
+      };
+    }
+  }
+
+  /**
+   * Export all active brand data to Supabase REST endpoints
+   */
+  static async exportDataToSupabase(
+    tableName: string, 
+    rows: any[], 
+    customUrl?: string, 
+    customKey?: string
+  ): Promise<{ success: boolean; count?: number; error?: string }> {
+    const config = getSupabaseConfig();
+    const url = customUrl || config.url;
+    const key = customKey || config.anonKey;
+
+    if (!url || !key) {
+      return { success: false, error: 'Supabase URL dan Anon Key belum dikonfigurasi.' };
+    }
+
+    const cleanUrl = url.trim().replace(/\/+$/, '');
+
+    try {
+      const response = await fetch(`${cleanUrl}/rest/v1/${tableName}`, {
+        method: 'POST',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(rows)
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        return { success: false, error: `HTTP ${response.status}: ${errText}` };
+      }
+
+      return { success: true, count: rows.length };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Export error' };
+    }
+  }
+
+  /**
+   * Fetch data from Supabase REST endpoint
+   */
+  static async fetchFromSupabase<T>(
+    tableName: string, 
+    query: string = '', 
+    customUrl?: string, 
+    customKey?: string
+  ): Promise<{ success: boolean; data?: T[]; error?: string }> {
+    const config = getSupabaseConfig();
+    const url = customUrl || config.url;
+    const key = customKey || config.anonKey;
+
+    if (!url || !key) {
+      return { success: false, error: 'Supabase URL dan Anon Key belum dikonfigurasi.' };
+    }
+
+    const cleanUrl = url.trim().replace(/\/+$/, '');
+    const q = query ? `?${query}` : '';
+
+    try {
+      const response = await fetch(`${cleanUrl}/rest/v1/${tableName}${q}`, {
+        method: 'GET',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        return { success: false, error: `HTTP ${response.status}: ${errText}` };
+      }
+
+      const json = await response.json();
+      return { success: true, data: json as T[] };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Fetch error' };
+    }
+  }
+}

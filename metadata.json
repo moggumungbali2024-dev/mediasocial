@@ -1,0 +1,6 @@
+{
+  "name": "Moggumung Social Media Portal",
+  "description": "Portal manajemen sosial media outsource Moggumung untuk pusat dan cabang: kuota request desain & promo, kalender rotasi exposure, dan penagihan otomatis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

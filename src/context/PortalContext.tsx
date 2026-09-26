@@ -1,0 +1,2874 @@
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import {
+  Branch,
+  UserProfile,
+  MonthlyQuota,
+  DesignRequest,
+  PromoRequest,
+  Invoice,
+  ExposureSlot,
+  Influencer,
+  RequestStatus,
+  ContentPillar,
+  UserRole,
+  ActivityItem,
+  CustomLineItem,
+  WhitelabelConfig,
+  AttendanceRecord,
+  AttendanceMode,
+  LanguageCode,
+  ThemeMode,
+  BudgetRequest,
+  BudgetCompletionReport,
+  ShootRequest,
+  InfluencerVoucherCampaign,
+  WalletTransaction,
+  HqReimbursementRequest,
+  HqReimbursementCategory,
+  HqTodoItem,
+  TeamChatMessage,
+  MeetingAgenda,
+  BrandSubscriptionPlan,
+  PlatformBrandTenant,
+  PlatformWalletWithdrawal,
+  SubscriptionReminderLog
+} from '../types.ts';
+import {
+  INITIAL_BRANCHES,
+  INITIAL_USERS,
+  INITIAL_QUOTAS,
+  INITIAL_DESIGN_REQUESTS,
+  INITIAL_PROMOS,
+  INITIAL_INVOICES,
+  INITIAL_EXPOSURE_SLOTS,
+  INITIAL_INFLUENCERS,
+  INITIAL_ACTIVITIES,
+  DEFAULT_WHITELABEL_CONFIG,
+  INITIAL_ATTENDANCE,
+  INITIAL_BUDGET_REQUESTS,
+  INITIAL_SHOOT_REQUESTS,
+  INITIAL_VOUCHER_CAMPAIGNS,
+  INITIAL_WALLET_TRANSACTIONS,
+  INITIAL_HQ_REIMBURSEMENTS,
+  INITIAL_HQ_TODOS,
+  INITIAL_TEAM_CHAT_MESSAGES,
+  INITIAL_MEETING_AGENDAS,
+  INITIAL_PLATFORM_PLANS,
+  INITIAL_PLATFORM_BRANDS,
+  INITIAL_PLATFORM_WITHDRAWALS,
+  INITIAL_REMINDER_LOGS,
+  getInitialBrandDataset
+} from '../data/initialData.ts';
+import { TRANSLATIONS } from '../data/translations.ts';
+import { ThemeColors, getThemeColors, applyThemeVariables } from '../utils/theme.ts';
+
+interface PortalContextType {
+  currentUser: UserProfile;
+  activeRole: UserRole;
+  isHQOwner: boolean;
+  isHQLeader: boolean;
+  isHQCreative: boolean;
+  isHQ: boolean;
+  isBranchOwner: boolean;
+  isBranchManager: boolean;
+  isBranchUser: boolean;
+  canAccessBilling: boolean;
+  canAccessUserManagement: boolean;
+  canAccessBranchManagement: boolean;
+  canAccessWhitelabel: boolean;
+  canAccessAttendance: boolean;
+
+  // SaaS Super-Admin Platform Level (mediasocial.team)
+  isPlatformOwner: boolean;
+  isPlatformFinance: boolean;
+  isPlatformAdmin: boolean;
+  isPlatformUser: boolean;
+  platformBrands: PlatformBrandTenant[];
+  activeTenantSlug: string;
+  currentPlatformBrand: PlatformBrandTenant | null;
+  subscriptionPlans: BrandSubscriptionPlan[];
+  platformWithdrawals: PlatformWalletWithdrawal[];
+  subscriptionReminders: SubscriptionReminderLog[];
+  platformWalletBalance: number;
+  totalPlatformMRR: number;
+  totalPlatformARR: number;
+  switchTenantBrand: (slug: string) => void;
+  addPlatformBrand: (brandData: Omit<PlatformBrandTenant, 'id' | 'created_at' | 'last_active_at'>) => { success: boolean; message: string; brand?: PlatformBrandTenant };
+  updatePlatformBrand: (id: string, updates: Partial<PlatformBrandTenant>) => void;
+  deletePlatformBrand: (id: string) => { success: boolean; message: string };
+  updateSubscriptionPlan: (id: string, updates: Partial<BrandSubscriptionPlan>) => void;
+  requestPlatformWithdrawal: (amount: number, bankName: string, accountNumber: string, accountHolder: string, notes?: string) => { success: boolean; message: string };
+  updateWithdrawalStatus: (id: string, status: PlatformWalletWithdrawal['status'], referenceNo?: string) => void;
+  sendSubscriptionReminder: (brandId: string, channel?: 'whatsapp' | 'email') => { success: boolean; message: string; waUrl?: string };
+  jumpToBrandAsHQOwner: (brandSlug: string) => void;
+
+  currentBranch: Branch | null;
+  selectedBranchFilter: string; // 'all' or branch.id
+  simulatedDate: string; // YYYY-MM-DD
+  branches: Branch[];
+  quotas: MonthlyQuota[];
+  designRequests: DesignRequest[];
+  promos: PromoRequest[];
+  invoices: Invoice[];
+  exposureSlots: ExposureSlot[];
+  influencers: Influencer[];
+  activities: ActivityItem[];
+  unreadNotificationsCount: number;
+  unreadChatCount: number;
+  markChatAsRead: (channel?: 'hq_internal' | 'branch_collab') => void;
+  isActivityVisibleForUser: (activity: ActivityItem) => boolean;
+
+  // Authentication
+  isAuthenticated: boolean;
+  login: (phone: string, password: string) => { success: boolean; message: string; user?: UserProfile };
+  logout: () => void;
+  changePassword: (userId: string, newPassword: string) => { success: boolean; message: string };
+
+  // Language & i18n
+  language: LanguageCode;
+  setLanguage: (lang: LanguageCode) => void;
+  t: (key: keyof typeof TRANSLATIONS.en) => string;
+
+  // Whitelabel Portal Settings & Theme Mode
+  whitelabelConfig: WhitelabelConfig;
+  themeColors: ThemeColors;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
+  toggleThemeMode: () => void;
+  updateWhitelabelConfig: (newConfig: Partial<WhitelabelConfig>) => void;
+  resetWhitelabelConfig: () => void;
+
+  // Voucher Campaigns & Influencer ROI
+  voucherCampaigns: InfluencerVoucherCampaign[];
+  redeemVoucherCode: (code: string, salesAmount: number) => { success: boolean; message: string };
+  addVoucherCampaign: (data: Omit<InfluencerVoucherCampaign, 'id' | 'redemption_count' | 'total_sales_driven'>) => void;
+
+  // User Management
+  users: UserProfile[];
+  addUser: (data: Omit<UserProfile, 'id' | 'joined_date'>) => { success: boolean; message: string };
+  updateUser: (id: string, updates: Partial<UserProfile>) => void;
+  switchUser: (userId: string) => void;
+
+  // Attendance Module (HQ Creative team)
+  attendances: AttendanceRecord[];
+  todayAttendance: AttendanceRecord | null;
+  clockIn: (mode: AttendanceMode, targetBranchId?: string) => { success: boolean; message: string };
+  clockOut: (workLog?: string) => { success: boolean; message: string };
+  updateWorkLog: (workLog: string) => void;
+
+  // Branch Management (HQ Owner & Leader)
+  addBranch: (data: Omit<Branch, 'id' | 'created_at' | 'wallet_balance'> & { initial_wallet_balance?: number }) => { success: boolean; message: string; branchId: string };
+  updateBranch: (id: string, updates: Partial<Branch>) => void;
+  deleteBranch: (id: string) => { success: boolean; message: string };
+
+  // Branch Wallet & Deposit System
+  walletTransactions: WalletTransaction[];
+  topUpBranchWallet: (branchId: string, amount: number, proofUrl: string, notes?: string) => { success: boolean; message: string };
+  verifyWalletTransaction: (transactionId: string, approve: boolean) => void;
+
+  // Budget Requests (HQ Creative, Leader & Owner)
+  budgetRequests: BudgetRequest[];
+  addBudgetRequest: (data: Omit<BudgetRequest, 'id' | 'created_at' | 'status' | 'approved_by'>) => { success: boolean; message: string };
+  approveBudgetRequest: (id: string) => void;
+  rejectBudgetRequest: (id: string) => void;
+  disburseBudgetRequest: (id: string, transferProofUrl: string, transferReference?: string, transferNote?: string) => { success: boolean; message: string };
+  acknowledgeBudgetDisbursement: (id: string) => void;
+  submitBudgetCompletionReport: (id: string, report: BudgetCompletionReport) => { success: boolean; message: string };
+
+  // HQ Operational Reimbursements & Expenses
+  hqReimbursements: HqReimbursementRequest[];
+  addHqReimbursement: (data: { category: HqReimbursementCategory; title: string; amount: number; description: string; receipt_proof_url: string }) => { success: boolean; message: string };
+  approveHqReimbursement: (id: string, adminNotes?: string) => void;
+  rejectHqReimbursement: (id: string, adminNotes?: string) => void;
+  disburseHqReimbursementBatch: (reimbursementIds: string[], transferProofUrl: string, transferReference?: string, adminNotes?: string) => { success: boolean; message: string };
+
+  // HQ To-Do List & Auto Work Log
+  hqTodos: HqTodoItem[];
+  addHqTodo: (title: string, category?: 'design' | 'promo' | 'shoot' | 'general', related_request_id?: string, target_date?: string) => void;
+  toggleHqTodo: (id: string) => void;
+  deleteHqTodo: (id: string) => void;
+  generateClockOutWhatsappReport: () => { reportText: string; waUrl: string };
+
+  // Team Chat & Collaboration Hub
+  teamChatMessages: TeamChatMessage[];
+  sendTeamChatMessage: (
+    channel: 'hq_internal' | 'branch_collab',
+    message: string,
+    taggedUserIds?: string[],
+    linkedRequestId?: string,
+    linkedRequestTitle?: string,
+    mediaUrl?: string,
+    mediaType?: 'image' | 'video'
+  ) => void;
+
+  // Calendar Meeting Agendas
+  meetingAgendas: MeetingAgenda[];
+  addMeetingAgenda: (data: Omit<MeetingAgenda, 'id' | 'created_at'>) => { success: boolean; message: string };
+  deleteMeetingAgenda: (id: string) => void;
+
+  // Branch Caption Settings
+  updateBranchCaptionSettings: (branchId: string, settings: { default_caption_template?: string; default_hashtags?: string }) => void;
+
+  // Shoot Requests (Branch Store Managers & Owners)
+  shootRequests: ShootRequest[];
+  addShootRequest: (data: Omit<ShootRequest, 'id' | 'created_at' | 'status'>) => { success: boolean; message: string };
+  updateShootRequestStatus: (id: string, status: ShootRequest['status'], assignedCreativeId?: string) => void;
+
+  // Navigation & Control Actions
+  setSelectedBranchFilter: (branchId: string) => void;
+  setSimulatedDate: (date: string) => void;
+
+  // Activity & Notifications
+  markActivityAsRead: (activityId: string) => void;
+  markAllActivitiesAsRead: () => void;
+  addActivity: (activity: Omit<ActivityItem, 'id' | 'timestamp' | 'read_by'>) => void;
+
+  // Quota & Request Engine
+  getBranchQuota: (branchId: string, periodMonth?: string) => MonthlyQuota;
+  calculateMinTargetDate: () => string; // H+N string
+  isTargetDateValid: (targetDate: string) => { valid: boolean; reason?: string };
+  isPromoSubmissionAllowed: (targetMonth: string) => { allowed: boolean; reason?: string };
+  addDesignRequest: (data: {
+    branch_id: string;
+    title: string;
+    description: string;
+    target_date: string;
+    category: ContentPillar;
+    brief_attachment_name?: string;
+  }) => { success: boolean; message: string };
+  updateDesignRequestStatus: (
+    requestId: string,
+    status: RequestStatus,
+    asset_result_url?: string,
+    feedback_notes?: string,
+    approval_mode?: 'self_approved' | 'leader_approved' | 'pending_leader'
+  ) => void;
+  assignDesignRequest: (requestId: string, userId: string) => void;
+  updateDesignRequestDeliverable: (
+    requestId: string,
+    urlOrPayload: string | {
+      asset_result_url?: string;
+      preview_media_url?: string;
+      preview_media_type?: 'image' | 'video';
+      canva_url?: string;
+      figma_url?: string;
+      drive_url?: string;
+      caption?: string;
+      creative_notes?: string;
+      status?: RequestStatus;
+      approval_mode?: 'self_approved' | 'leader_approved' | 'pending_leader';
+    },
+    notes?: string,
+    status?: RequestStatus,
+    approval_mode?: 'self_approved' | 'leader_approved' | 'pending_leader'
+  ) => void;
+  addDesignComment: (requestId: string, message: string, tag?: string) => void;
+  updateDesignCaption: (requestId: string, caption: string) => void;
+
+  // Promo Engine
+  addPromoRequest: (data: {
+    branch_id: string;
+    title: string;
+    mechanic: string;
+    target_month: string;
+    start_date: string;
+    end_date: string;
+    terms: string;
+  }) => { success: boolean; message: string };
+  updatePromoStatus: (promoId: string, status: PromoRequest['status']) => void;
+
+  // Invoicing & Custom Pricing
+  generateMonthlyInvoices: (periodMonth?: string) => { generatedCount: number; message: string };
+  updateBranchCustomPricing: (
+    branchId: string,
+    customRetainerFee: number,
+    packageTier: Branch['package_tier']
+  ) => void;
+  updateInvoiceCharges: (
+    invoiceId: string,
+    visit_fee: number,
+    ad_budget: number,
+    custom_items?: CustomLineItem[],
+    retainer_fee?: number,
+    additional_notes?: string
+  ) => void;
+  uploadPaymentProof: (invoiceId: string, proofUrl: string, proofNotes?: string) => void;
+  verifyPayment: (invoiceId: string, isPaid: boolean) => void;
+
+  // Exposure Rotator
+  addExposureSlot: (slot: Omit<ExposureSlot, 'id'>) => void;
+  updateExposureSlot: (id: string, updates: Partial<ExposureSlot>) => void;
+  deleteExposureSlot: (id: string) => void;
+
+  // Influencer Directory
+  addInfluencer: (inf: Omit<Influencer, 'id'>) => void;
+  updateInfluencer: (id: string, updates: Partial<Influencer>) => void;
+  deleteInfluencer: (id: string) => void;
+
+  // Reset
+  resetToDefaultData: () => void;
+}
+
+const PortalContext = createContext<PortalContextType | undefined>(undefined);
+
+const LOCAL_STORAGE_KEY_PREFIX = 'smp_v3_';
+
+function loadStorage<T>(key: string, fallback: T): T {
+  try {
+    const item = localStorage.getItem(LOCAL_STORAGE_KEY_PREFIX + key);
+    return item ? JSON.parse(item) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveStorage<T>(key: string, data: T) {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + key, JSON.stringify(data));
+  } catch (err) {
+    console.error('Failed to save to local storage', err);
+  }
+}
+
+function loadBrandStorage<T>(brandSlug: string, key: string, fallback: T): T {
+  try {
+    const item = localStorage.getItem(`smp_b_${brandSlug}_${key}`);
+    return item ? JSON.parse(item) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveBrandStorage<T>(brandSlug: string, key: string, data: T) {
+  try {
+    localStorage.setItem(`smp_b_${brandSlug}_${key}`, JSON.stringify(data));
+  } catch (err) {
+    console.error('Failed to save brand storage', err);
+  }
+}
+
+export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Language & i18n
+  const [language, setLanguageState] = useState<LanguageCode>(() =>
+    loadStorage<LanguageCode>('language', 'en')
+  );
+
+  const setLanguage = (lang: LanguageCode) => {
+    setLanguageState(lang);
+    saveStorage('language', lang);
+  };
+
+  const t = (key: keyof typeof TRANSLATIONS.en): string => {
+    const dict = TRANSLATIONS[language] || TRANSLATIONS.en;
+    return (dict as Record<string, string>)[key] || (TRANSLATIONS.en as Record<string, string>)[key] || String(key);
+  };
+
+  // Active Tenant Slug (Multi-Tenancy)
+  const [activeTenantSlug, setActiveTenantSlug] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.replace(/^\//, '').split('/')[0];
+      if (path && path !== '' && path !== 'login' && path !== 'platform' && path !== 'admin' && path !== 'home') {
+        return path;
+      }
+    }
+    return loadStorage('active_tenant_slug', 'moggumung');
+  });
+
+  const initialDataset = useMemo(() => getInitialBrandDataset(activeTenantSlug), [activeTenantSlug]);
+
+  // Whitelabel Configuration (Brand-specific)
+  const [whitelabelConfig, setWhitelabelConfig] = useState<WhitelabelConfig>(() =>
+    loadBrandStorage(activeTenantSlug, 'whitelabel', initialDataset.whitelabel)
+  );
+
+  // Theme Mode (Light / Obsidian Dark)
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() =>
+    loadStorage<ThemeMode>('theme_mode', 'light')
+  );
+
+  const setThemeMode = (mode: ThemeMode) => {
+    setThemeModeState(mode);
+    saveStorage('theme_mode', mode);
+  };
+
+  const toggleThemeMode = () => {
+    const next = themeMode === 'dark' ? 'light' : 'dark';
+    setThemeMode(next);
+  };
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (themeMode === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [themeMode]);
+
+  const themeColors = useMemo(() => getThemeColors(whitelabelConfig), [whitelabelConfig]);
+
+  useEffect(() => {
+    applyThemeVariables(whitelabelConfig);
+  }, [whitelabelConfig]);
+
+  const updateWhitelabelConfig = (newConfig: Partial<WhitelabelConfig>) => {
+    setWhitelabelConfig((prev) => {
+      const updated = { ...prev, ...newConfig };
+      saveBrandStorage(activeTenantSlug, 'whitelabel', updated);
+      return updated;
+    });
+  };
+
+  const resetWhitelabelConfig = () => {
+    setWhitelabelConfig(initialDataset.whitelabel);
+    saveBrandStorage(activeTenantSlug, 'whitelabel', initialDataset.whitelabel);
+  };
+
+  // User Management (Brand-specific)
+  const [users, setUsers] = useState<UserProfile[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'users', initialDataset.users)
+  );
+
+  // Authentication State (Brand-specific)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() =>
+    loadBrandStorage<boolean>(activeTenantSlug, 'is_authenticated', true)
+  );
+
+  const [currentUserId, setCurrentUserId] = useState<string>(() =>
+    loadBrandStorage<string>(activeTenantSlug, 'user_id', initialDataset.users[0]?.id || '')
+  );
+
+  const login = (phone: string, password: string): { success: boolean; message: string; user?: UserProfile } => {
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const user = users.find((u) => {
+      const uClean = (u.phone || '').replace(/[^0-9]/g, '');
+      return uClean === cleanPhone;
+    });
+
+    if (!user) {
+      return { 
+        success: false, 
+        message: language === 'ko' ? '등록되지 않은 전화번호입니다.' : 'Phone number is not registered in this brand.' 
+      };
+    }
+
+    const userPassword = user.password || '1';
+    if (password !== userPassword) {
+      return { 
+        success: false, 
+        message: language === 'ko' ? '비밀번호가 일치하지 않습니다. (기본 비밀번호: 1)' : 'Incorrect password. (Default password: 1)' 
+      };
+    }
+
+    setCurrentUserId(user.id);
+    setIsAuthenticated(true);
+    saveBrandStorage(activeTenantSlug, 'is_authenticated', true);
+    saveBrandStorage(activeTenantSlug, 'user_id', user.id);
+    if (user.branch_id) {
+      setSelectedBranchFilter(user.branch_id);
+    } else {
+      setSelectedBranchFilter('all');
+    }
+
+    return { 
+      success: true, 
+      message: language === 'ko' ? `환영합니다, ${user.full_name}님!` : `Welcome back, ${user.full_name}!`,
+      user 
+    };
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    saveBrandStorage(activeTenantSlug, 'is_authenticated', false);
+  };
+
+  const changePassword = (userId: string, newPassword: string): { success: boolean; message: string } => {
+    if (!newPassword.trim()) {
+      return { 
+        success: false, 
+        message: language === 'ko' ? '새 비밀번호를 입력해주세요.' : 'New password cannot be empty.' 
+      };
+    }
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, password: newPassword.trim() } : u))
+    );
+    return { 
+      success: true, 
+      message: language === 'ko' ? '비밀번호가 성공적으로 변경되었습니다.' : 'Password updated successfully!' 
+    };
+  };
+
+  // Simulated date: default to today (2026-09-21)
+  const [simulatedDate, setSimulatedDateState] = useState<string>(() =>
+    loadStorage<string>('simulated_date', '2026-09-21')
+  );
+
+  // Selected branch filter for Pusat Admin view
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('all');
+
+  // Main collections (Brand-specific)
+  const [branches, setBranches] = useState<Branch[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'branches', initialDataset.branches)
+  );
+  const [quotas, setQuotas] = useState<MonthlyQuota[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'quotas', INITIAL_QUOTAS)
+  );
+  const [designRequests, setDesignRequests] = useState<DesignRequest[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'design_requests', initialDataset.designRequests)
+  );
+  const [promos, setPromos] = useState<PromoRequest[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'promos', initialDataset.promos)
+  );
+  const [invoices, setInvoices] = useState<Invoice[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'invoices', initialDataset.invoices)
+  );
+  const [exposureSlots, setExposureSlots] = useState<ExposureSlot[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'exposure_slots', INITIAL_EXPOSURE_SLOTS)
+  );
+  const [influencers, setInfluencers] = useState<Influencer[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'influencers', initialDataset.influencers)
+  );
+  const [voucherCampaigns, setVoucherCampaigns] = useState<InfluencerVoucherCampaign[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'voucher_campaigns', INITIAL_VOUCHER_CAMPAIGNS)
+  );
+  const [activities, setActivities] = useState<ActivityItem[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'activities', INITIAL_ACTIVITIES)
+  );
+  const [attendances, setAttendances] = useState<AttendanceRecord[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'attendances', INITIAL_ATTENDANCE)
+  );
+  const [budgetRequests, setBudgetRequests] = useState<BudgetRequest[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'budget_requests', INITIAL_BUDGET_REQUESTS)
+  );
+  const [shootRequests, setShootRequests] = useState<ShootRequest[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'shoot_requests', INITIAL_SHOOT_REQUESTS)
+  );
+  const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'wallet_transactions', INITIAL_WALLET_TRANSACTIONS)
+  );
+  const [hqReimbursements, setHqReimbursements] = useState<HqReimbursementRequest[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'hq_reimbursements', INITIAL_HQ_REIMBURSEMENTS)
+  );
+  const [hqTodos, setHqTodos] = useState<HqTodoItem[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'hq_todos', INITIAL_HQ_TODOS)
+  );
+  const [teamChatMessages, setTeamChatMessages] = useState<TeamChatMessage[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'team_chat_messages', INITIAL_TEAM_CHAT_MESSAGES)
+  );
+  const [meetingAgendas, setMeetingAgendas] = useState<MeetingAgenda[]>(() =>
+    loadBrandStorage(activeTenantSlug, 'meeting_agendas', INITIAL_MEETING_AGENDAS)
+  );
+
+  // Platform Multi-Tenant & Super-Admin States
+  const [platformBrands, setPlatformBrands] = useState<PlatformBrandTenant[]>(() =>
+    loadStorage('platform_brands', INITIAL_PLATFORM_BRANDS)
+  );
+  const [subscriptionPlans, setSubscriptionPlans] = useState<BrandSubscriptionPlan[]>(() =>
+    loadStorage('platform_plans', INITIAL_PLATFORM_PLANS)
+  );
+  const [platformWithdrawals, setPlatformWithdrawals] = useState<PlatformWalletWithdrawal[]>(() =>
+    loadStorage('platform_withdrawals', INITIAL_PLATFORM_WITHDRAWALS)
+  );
+  const [subscriptionReminders, setSubscriptionReminders] = useState<SubscriptionReminderLog[]>(() =>
+    loadStorage('subscription_reminders', INITIAL_REMINDER_LOGS)
+  );
+
+  // Auto-sync to localStorage
+  useEffect(() => saveStorage('platform_brands', platformBrands), [platformBrands]);
+  useEffect(() => saveStorage('platform_plans', subscriptionPlans), [subscriptionPlans]);
+  useEffect(() => saveStorage('platform_withdrawals', platformWithdrawals), [platformWithdrawals]);
+  useEffect(() => saveStorage('subscription_reminders', subscriptionReminders), [subscriptionReminders]);
+  useEffect(() => saveStorage('active_tenant_slug', activeTenantSlug), [activeTenantSlug]);
+  useEffect(() => saveStorage('simulated_date', simulatedDate), [simulatedDate]);
+
+  // Brand-level Auto-sync
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'whitelabel', whitelabelConfig), [activeTenantSlug, whitelabelConfig]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'branches', branches), [activeTenantSlug, branches]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'users', users), [activeTenantSlug, users]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'design_requests', designRequests), [activeTenantSlug, designRequests]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'promos', promos), [activeTenantSlug, promos]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'invoices', invoices), [activeTenantSlug, invoices]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'exposure_slots', exposureSlots), [activeTenantSlug, exposureSlots]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'influencers', influencers), [activeTenantSlug, influencers]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'voucher_campaigns', voucherCampaigns), [activeTenantSlug, voucherCampaigns]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'activities', activities), [activeTenantSlug, activities]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'attendances', attendances), [activeTenantSlug, attendances]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'budget_requests', budgetRequests), [activeTenantSlug, budgetRequests]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'shoot_requests', shootRequests), [activeTenantSlug, shootRequests]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'wallet_transactions', walletTransactions), [activeTenantSlug, walletTransactions]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'hq_reimbursements', hqReimbursements), [activeTenantSlug, hqReimbursements]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'hq_todos', hqTodos), [activeTenantSlug, hqTodos]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'team_chat_messages', teamChatMessages), [activeTenantSlug, teamChatMessages]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'meeting_agendas', meetingAgendas), [activeTenantSlug, meetingAgendas]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'quotas', quotas), [activeTenantSlug, quotas]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'is_authenticated', isAuthenticated), [activeTenantSlug, isAuthenticated]);
+  useEffect(() => saveBrandStorage(activeTenantSlug, 'user_id', currentUserId), [activeTenantSlug, currentUserId]);
+
+  // Derived current user & role
+  const currentUser = useMemo(() => {
+    return users.find((u) => u.id === currentUserId) || users[0];
+  }, [users, currentUserId]);
+
+  const activeRole = currentUser.role;
+
+  // Platform Level Roles (mediasocial.team)
+  const isPlatformOwner = activeRole === 'platform_owner';
+  const isPlatformFinance = activeRole === 'platform_finance' || activeRole === 'platform_owner';
+  const isPlatformAdmin = activeRole === 'platform_admin' || activeRole === 'platform_owner';
+  const isPlatformUser = isPlatformOwner || isPlatformFinance || isPlatformAdmin;
+
+  // Strict User Hierarchy & RBAC:
+  // HQ: HQ Owner > HQ Leader > HQ Creative Team
+  // Branch: Branch Owner > Branch Store Manager
+  const isHQOwner = activeRole === 'hq_owner' || activeRole === 'pusat_admin' || isPlatformOwner;
+  const isHQLeader = activeRole === 'hq_leader';
+  const isHQCreative = activeRole === 'hq_creative';
+  const isHQ = isHQOwner || isHQLeader || isHQCreative || isPlatformUser;
+  const isBranchOwner = activeRole === 'branch_owner';
+  const isBranchManager = activeRole === 'branch_manager';
+  const isBranchUser = isBranchOwner || isBranchManager;
+
+  // Permissions according to brief:
+  // - User management: ONLY Superadmin (HQ Owner) / Platform
+  // - Whitelabel settings: ONLY HQ Owner / Platform
+  // - Invoice & billing: ONLY HQ Owner, HQ Leader, Branch Owner (Branch Store Manager CANNOT access!) / Platform
+  // - Attendance: HQ team / Platform
+  const canAccessUserManagement = isHQOwner || isPlatformUser;
+  const canAccessWhitelabel = isHQOwner || isPlatformUser;
+  const canAccessBilling = isHQOwner || isHQLeader || isBranchOwner || isPlatformUser;
+  const canAccessBranchManagement = isHQOwner || isHQLeader || isPlatformUser;
+  const canAccessAttendance = isHQ || isPlatformUser;
+
+  // Active branch if user is branch user
+  const currentBranch = useMemo(() => {
+    if (!currentUser.branch_id) return null;
+    return branches.find((b) => b.id === currentUser.branch_id) || null;
+  }, [currentUser, branches]);
+
+  const switchUser = (userId: string) => {
+    setCurrentUserId(userId);
+    const user = users.find((u) => u.id === userId);
+    if (user?.branch_id) {
+      setSelectedBranchFilter(user.branch_id);
+    } else {
+      setSelectedBranchFilter('all');
+    }
+  };
+
+  const addUser = (data: Omit<UserProfile, 'id' | 'joined_date'>): { success: boolean; message: string } => {
+    const existing = users.find((u) => u.email.toLowerCase() === data.email.toLowerCase());
+    if (existing) {
+      return { success: false, message: 'User with this email already exists!' };
+    }
+    const newUser: UserProfile = {
+      ...data,
+      id: `user-${Date.now()}`,
+      status: data.status || 'active',
+      password: data.password || '1',
+      joined_date: simulatedDate
+    };
+    setUsers((prev) => [newUser, ...prev]);
+
+    addActivity({
+      branch_id: data.branch_id || undefined,
+      user_name: currentUser.full_name,
+      action_type: 'request_status_changed',
+      title: `User Registered: ${newUser.full_name}`,
+      description: `New ${newUser.role} user created for ${data.branch_id ? 'Branch' : 'HQ'}. Phone: ${newUser.phone}`,
+      severity: 'info',
+      link_tab: 'dashboard'
+    });
+
+    return { success: true, message: 'User registered successfully!' };
+  };
+
+  const updateUser = (id: string, updates: Partial<UserProfile>) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, ...updates } : u))
+    );
+  };
+
+  const setSimulatedDate = (date: string) => {
+    setSimulatedDateState(date);
+  };
+
+  // Helper to add activity log entry
+  const addActivity = (item: Omit<ActivityItem, 'id' | 'timestamp' | 'read_by'>) => {
+    const newActivity: ActivityItem = {
+      ...item,
+      id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+      timestamp: `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WITA`,
+      read_by: []
+    };
+    setActivities((prev) => [newActivity, ...prev]);
+  };
+
+  // Helper to determine if an activity notification is visible to current user
+  const isActivityVisibleForUser = (act: ActivityItem): boolean => {
+    const isHQAdmin = activeRole === 'hq_owner' || activeRole === 'hq_leader' || activeRole === 'pusat_admin';
+    // 1. HQ Owner & HQ Leader can see all platform notifications
+    if (isHQAdmin) return true;
+
+    const isAttendance =
+      act.action_type === 'attendance_clocked_in' ||
+      act.action_type === 'attendance_clocked_out' ||
+      act.title.toLowerCase().includes('clock-in') ||
+      act.title.toLowerCase().includes('clock-out') ||
+      act.title.toLowerCase().includes('출근') ||
+      act.title.toLowerCase().includes('퇴근');
+
+    // 2. Attendance notifications: strictly visible only to HQ Admin or the user themselves!
+    // Never show HQ attendance to branch owner / branch manager
+    if (isAttendance) {
+      return act.user_name === currentUser.full_name;
+    }
+
+    // 3. User mentioned
+    if (act.action_type === 'user_mentioned') {
+      return true;
+    }
+
+    // 4. HQ Creative (Designer/Editor)
+    if (activeRole === 'hq_creative') {
+      if (act.action_type === 'reimbursement_requested' || act.action_type === 'reimbursement_processed') {
+        return act.user_name === currentUser.full_name;
+      }
+      return true;
+    }
+
+    // 5. Branch Users (Branch Owner & Branch Manager)
+    // Only see notifications specifically for their branch
+    if (act.branch_id) {
+      return act.branch_id === (currentBranch?.id || currentUser.branch_id);
+    }
+
+    return false;
+  };
+
+  // Mark single activity as read
+  const markActivityAsRead = (activityId: string) => {
+    setActivities((prev) =>
+      prev.map((act) => {
+        if (act.id === activityId && !act.read_by.includes(currentUser.id)) {
+          return { ...act, read_by: [...act.read_by, currentUser.id] };
+        }
+        return act;
+      })
+    );
+  };
+
+  // Mark all user-visible activities as read
+  const markAllActivitiesAsRead = () => {
+    setActivities((prev) =>
+      prev.map((act) => {
+        const isVisible = isActivityVisibleForUser(act);
+        if (isVisible && !act.read_by.includes(currentUser.id)) {
+          return { ...act, read_by: [...act.read_by, currentUser.id] };
+        }
+        return act;
+      })
+    );
+  };
+
+  // Unread badge count (scoped personally)
+  const unreadNotificationsCount = useMemo(() => {
+    return activities.filter((act) => {
+      const isVisible = isActivityVisibleForUser(act);
+      return isVisible && !act.read_by.includes(currentUser.id);
+    }).length;
+  }, [activities, activeRole, currentBranch, currentUser.id, currentUser.full_name, currentUser.branch_id]);
+
+  // Attendance system
+  const todayAttendance = useMemo(() => {
+    return attendances.find((a) => a.user_id === currentUser.id && a.date === simulatedDate) || null;
+  }, [attendances, currentUser.id, simulatedDate]);
+
+  const clockIn = (mode: AttendanceMode, targetBranchId?: string): { success: boolean; message: string } => {
+    if (todayAttendance) {
+      return { success: false, message: 'Already clocked in for today!' };
+    }
+    const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    const isLate = nowTime > '09:00';
+    const newRecord: AttendanceRecord = {
+      id: `att-${Date.now()}`,
+      user_id: currentUser.id,
+      user_name: currentUser.full_name,
+      date: simulatedDate,
+      clock_in_time: nowTime,
+      mode,
+      status: isLate ? 'late' : 'present',
+      work_log: '',
+      target_branch_id: targetBranchId
+    };
+
+    setAttendances((prev) => [newRecord, ...prev]);
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'attendance_clocked_in',
+      title: `Daily Clock-In: ${currentUser.full_name}`,
+      description: `Clocked in at ${nowTime} (${mode}${targetBranchId ? ` - Visit: ${targetBranchId}` : ''})`,
+      severity: 'info',
+      link_tab: 'attendance'
+    });
+
+    return { success: true, message: 'Clock in successful!' };
+  };
+
+  const clockOut = (workLog?: string): { success: boolean; message: string } => {
+    if (!todayAttendance) {
+      return { success: false, message: 'You have not clocked in today yet.' };
+    }
+    const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    
+    const [inH, inM] = todayAttendance.clock_in_time.split(':').map(Number);
+    const [outH, outM] = nowTime.split(':').map(Number);
+    let diff = (outH + outM / 60) - (inH + inM / 60);
+    if (diff < 0) diff += 24;
+    const totalHours = Math.max(1, Math.round(diff * 10) / 10);
+
+    setAttendances((prev) =>
+      prev.map((a) =>
+        a.id === todayAttendance.id
+          ? {
+              ...a,
+              clock_out_time: nowTime,
+              status: 'completed',
+              total_hours: totalHours,
+              work_log: workLog !== undefined ? workLog : a.work_log
+            }
+          : a
+      )
+    );
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'attendance_clocked_out',
+      title: `Daily Clock-Out: ${currentUser.full_name}`,
+      description: `Clocked out at ${nowTime}. Total hours: ${totalHours}h. Work summary logged.`,
+      severity: 'success',
+      link_tab: 'attendance'
+    });
+
+    return { success: true, message: 'Clock out successful!' };
+  };
+
+  const updateWorkLog = (workLog: string) => {
+    if (!todayAttendance) return;
+    setAttendances((prev) =>
+      prev.map((a) => (a.id === todayAttendance.id ? { ...a, work_log: workLog } : a))
+    );
+  };
+
+  // Branch Management (HQ Owner & Leader)
+  const addBranch = (
+    data: Omit<Branch, 'id' | 'created_at' | 'wallet_balance'> & { initial_wallet_balance?: number }
+  ): { success: boolean; message: string; branchId: string } => {
+    const rawCode = (data.code || data.name.replace(/[^A-Za-z]/g, '').substring(0, 3)).toUpperCase();
+    const newId = `branch-${rawCode.toLowerCase()}-${Date.now().toString().slice(-4)}`;
+    
+    const newBranch: Branch = {
+      ...data,
+      id: newId,
+      code: rawCode,
+      created_at: simulatedDate,
+      wallet_balance: data.initial_wallet_balance !== undefined ? data.initial_wallet_balance : 5000000,
+      custom_retainer_fee: data.custom_retainer_fee || whitelabelConfig.default_monthly_retainer,
+      package_tier: data.package_tier || 'Standard',
+      contract_status: data.contract_status || 'active',
+      max_monthly_design_requests: data.max_monthly_design_requests || whitelabelConfig.max_monthly_design_requests,
+      max_monthly_active_promos: data.max_monthly_active_promos || whitelabelConfig.max_monthly_active_promos,
+      lead_days: data.lead_days || whitelabelConfig.design_min_lead_days
+    };
+
+    setBranches((prev) => [...prev, newBranch]);
+
+    // Initialize quota for this branch
+    const period = simulatedDate.substring(0, 7);
+    const newQuota: MonthlyQuota = {
+      id: `quota-${period}-${newId}`,
+      branch_id: newId,
+      period_month: period,
+      design_used: 0,
+      promo_used: 0
+    };
+    setQuotas((prev) => [...prev, newQuota]);
+
+    addActivity({
+      branch_id: newId,
+      branch_name: newBranch.name,
+      user_name: currentUser.full_name,
+      action_type: 'invoice_generated',
+      title: `Cabang Baru Terdaftar: ${newBranch.name}`,
+      description: `HQ mendaftarkan cabang baru (${newBranch.city}) dengan paket ${newBranch.package_tier} & saldo wallet Rp${newBranch.wallet_balance.toLocaleString('id-ID')}.`,
+      severity: 'success',
+      link_tab: 'branches'
+    });
+
+    return { success: true, message: 'Cabang franchise berhasil ditambahkan!', branchId: newId };
+  };
+
+  const updateBranch = (id: string, updates: Partial<Branch>) => {
+    setBranches((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
+    );
+    addActivity({
+      branch_id: id,
+      branch_name: updates.name || branches.find((b) => b.id === id)?.name,
+      user_name: currentUser.full_name,
+      action_type: 'custom_pricing_updated',
+      title: `Profil Cabang Diperbarui: ${updates.name || id}`,
+      description: `Detail cabang dan konfigurasi paket telah diperbarui oleh ${currentUser.full_name}.`,
+      severity: 'info',
+      link_tab: 'branches'
+    });
+  };
+
+  const deleteBranch = (id: string): { success: boolean; message: string } => {
+    const target = branches.find((b) => b.id === id);
+    if (!target) return { success: false, message: 'Branch not found.' };
+
+    setBranches((prev) => prev.filter((b) => b.id !== id));
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'custom_pricing_updated',
+      title: `Cabang Dihapus / Nonaktif: ${target.name}`,
+      description: `Cabang ${target.name} telah dihapus dari jaringan franchise oleh ${currentUser.full_name}.`,
+      severity: 'warning',
+      link_tab: 'branches'
+    });
+
+    return { success: true, message: 'Cabang berhasil dihapus.' };
+  };
+
+  // Branch Wallet & Deposit System
+  const topUpBranchWallet = (
+    branchId: string, 
+    amount: number, 
+    proofUrl: string, 
+    notes?: string
+  ): { success: boolean; message: string } => {
+    const branch = branches.find((b) => b.id === branchId);
+    const newTx: WalletTransaction = {
+      id: `wtx-${Date.now()}`,
+      branch_id: branchId,
+      branch_name: branch?.name || 'Branch',
+      type: 'top_up',
+      amount,
+      title: `Top-Up Saldo Iklan & Produksi (${branch?.name})`,
+      description: notes || 'Top-up deposit saldo iklan Meta Ads dan photoshoot.',
+      proof_url: proofUrl,
+      status: 'pending',
+      created_at: simulatedDate
+    };
+
+    setWalletTransactions((prev) => [newTx, ...prev]);
+
+    addActivity({
+      branch_id: branchId,
+      branch_name: branch?.name,
+      user_name: currentUser.full_name,
+      action_type: 'payment_proof_uploaded',
+      title: `Pengajuan Top-Up Wallet: ${whitelabelConfig.currency_symbol}${amount.toLocaleString('id-ID')}`,
+      description: `${branch?.name} mengunggah bukti bayar top-up saldo wallet. Menunggu verifikasi HQ.`,
+      severity: 'warning',
+      link_tab: 'billing'
+    });
+
+    return { success: true, message: 'Pengajuan top-up terkirim! HQ akan memverifikasi dan menambahkan ke saldo wallet.' };
+  };
+
+  const verifyWalletTransaction = (transactionId: string, approve: boolean) => {
+    let targetTx: WalletTransaction | undefined;
+
+    setWalletTransactions((prev) =>
+      prev.map((tx) => {
+        if (tx.id === transactionId) {
+          targetTx = {
+            ...tx,
+            status: approve ? 'verified' : 'rejected',
+            verified_by: `${currentUser.full_name} (${isHQOwner ? 'Owner' : 'Leader'})`
+          };
+          return targetTx;
+        }
+        return tx;
+      })
+    );
+
+    if (targetTx && approve && targetTx.type === 'top_up') {
+      setBranches((prev) =>
+        prev.map((b) =>
+          b.id === targetTx?.branch_id
+            ? { ...b, wallet_balance: (b.wallet_balance || 0) + (targetTx?.amount || 0) }
+            : b
+        )
+      );
+
+      addActivity({
+        branch_id: targetTx.branch_id,
+        branch_name: targetTx.branch_name,
+        user_name: currentUser.full_name,
+        action_type: 'payment_verified',
+        title: `Top-Up Terverifikasi: +${whitelabelConfig.currency_symbol}${targetTx.amount.toLocaleString('id-ID')}`,
+        description: `Saldo deposit sebesar ${whitelabelConfig.currency_symbol}${targetTx.amount.toLocaleString('id-ID')} telah dikreditkan ke ${targetTx.branch_name}.`,
+        severity: 'success',
+        link_tab: 'billing'
+      });
+    }
+  };
+
+  // Budget Requests (HQ Creative & Leader)
+  const addBudgetRequest = (data: Omit<BudgetRequest, 'id' | 'created_at' | 'status' | 'approved_by'>): { success: boolean; message: string } => {
+    const newBudget: BudgetRequest = {
+      ...data,
+      id: `bgt-${Date.now()}`,
+      status: 'pending_approval',
+      created_at: simulatedDate
+    };
+
+    setBudgetRequests((prev) => [newBudget, ...prev]);
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'budget_requested',
+      title: `Budget Requested: ${data.title}`,
+      description: `${currentUser.full_name} (${currentUser.job_title || 'HQ'}) requested ${whitelabelConfig.currency_symbol}${data.amount.toLocaleString('id-ID')} for ${data.type}.`,
+      severity: 'warning',
+      link_tab: 'dashboard'
+    });
+
+    return { success: true, message: 'Budget request submitted for HQ review!' };
+  };
+
+  const approveBudgetRequest = (id: string) => {
+    let targetBudget: BudgetRequest | undefined;
+    setBudgetRequests((prev) =>
+      prev.map((b) => {
+        if (b.id === id) {
+          targetBudget = {
+            ...b,
+            status: 'approved',
+            approved_by: `${currentUser.full_name} (${isHQOwner ? 'Owner' : 'Leader'})`
+          };
+          return targetBudget;
+        }
+        return b;
+      })
+    );
+
+    if (targetBudget) {
+      addActivity({
+        user_name: currentUser.full_name,
+        action_type: 'budget_approved',
+        title: `Budget Approved: ${targetBudget.title}`,
+        description: `${whitelabelConfig.currency_symbol}${targetBudget.amount.toLocaleString('id-ID')} allocated for ${targetBudget.type}. Approved by ${currentUser.full_name}.`,
+        severity: 'success',
+        link_tab: 'dashboard'
+      });
+    }
+  };
+
+  const rejectBudgetRequest = (id: string) => {
+    setBudgetRequests((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: 'rejected' } : b))
+    );
+  };
+
+  const disburseBudgetRequest = (
+    id: string,
+    transferProofUrl: string,
+    transferReference?: string,
+    transferNote?: string
+  ): { success: boolean; message: string } => {
+    let targetBgt: BudgetRequest | undefined;
+
+    setBudgetRequests((prev) =>
+      prev.map((b) => {
+        if (b.id === id) {
+          targetBgt = {
+            ...b,
+            status: 'disbursed',
+            approved_by: b.approved_by || `${currentUser.full_name} (${isHQOwner ? 'Owner' : 'Leader'})`,
+            disbursed_by: `${currentUser.full_name} (${isHQOwner ? 'Owner' : 'Leader'})`,
+            disbursed_at: `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WITA`,
+            transfer_proof_url: transferProofUrl,
+            transfer_reference: transferReference || `BCA-MB-${Date.now().toString().slice(-6)}`,
+            transfer_note: transferNote || `Dana ${b.type} ditransfer ke pelaksana kreatif.`
+          };
+          return targetBgt;
+        }
+        return b;
+      })
+    );
+
+    if (targetBgt && targetBgt.target_branch_id) {
+      const branchId = targetBgt.target_branch_id;
+      // Deduct from branch wallet balance
+      setBranches((prev) =>
+        prev.map((b) =>
+          b.id === branchId
+            ? { ...b, wallet_balance: Math.max(0, (b.wallet_balance || 0) - targetBgt!.amount) }
+            : b
+        )
+      );
+
+      // Record wallet transaction deduction
+      const deductTx: WalletTransaction = {
+        id: `wtx-${Date.now()}`,
+        branch_id: branchId,
+        branch_name: targetBgt.target_branch_name,
+        type: 'budget_deduct',
+        amount: targetBgt.amount,
+        title: `Pemotongan Saldo: ${targetBgt.title}`,
+        description: `Disbursement untuk ${targetBgt.type}. Ref: ${targetBgt.transfer_reference || 'N/A'}`,
+        reference_id: targetBgt.id,
+        proof_url: transferProofUrl,
+        status: 'verified',
+        created_at: simulatedDate,
+        verified_by: currentUser.full_name
+      };
+      setWalletTransactions((prev) => [deductTx, ...prev]);
+
+      addActivity({
+        branch_id: branchId,
+        branch_name: targetBgt.target_branch_name,
+        user_name: currentUser.full_name,
+        action_type: 'budget_approved',
+        title: `Dana Ditransfer: ${targetBgt.title}`,
+        description: `HQ mentransfer ${whitelabelConfig.currency_symbol}${targetBgt.amount.toLocaleString('id-ID')} ke tim kreatif. Bukti transfer telah dilampirkan.`,
+        severity: 'success',
+        link_tab: 'requests'
+      });
+    }
+
+    return { success: true, message: 'Dana berhasil ditransfer dan bukti pembayaran telah diunggah!' };
+  };
+
+  const acknowledgeBudgetDisbursement = (id: string) => {
+    let targetBgt: BudgetRequest | undefined;
+    setBudgetRequests((prev) =>
+      prev.map((b) => {
+        if (b.id === id) {
+          targetBgt = {
+            ...b,
+            status: 'acknowledged',
+            acknowledged_at: `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WITA`
+          };
+          return targetBgt;
+        }
+        return b;
+      })
+    );
+
+    if (targetBgt) {
+      addActivity({
+        branch_id: targetBgt.target_branch_id,
+        branch_name: targetBgt.target_branch_name,
+        user_name: currentUser.full_name,
+        action_type: 'request_status_changed',
+        title: `Konfirmasi Penerimaan Dana: ${targetBgt.title}`,
+        description: `${currentUser.full_name} mengonfirmasi bahwa dana operasional ${whitelabelConfig.currency_symbol}${targetBgt.amount.toLocaleString('id-ID')} telah diterima.`,
+        severity: 'info',
+        link_tab: 'requests'
+      });
+    }
+  };
+
+  const submitBudgetCompletionReport = (id: string, report: BudgetCompletionReport): { success: boolean; message: string } => {
+    let targetBgt: BudgetRequest | undefined;
+
+    setBudgetRequests((prev) =>
+      prev.map((b) => {
+        if (b.id === id) {
+          targetBgt = {
+            ...b,
+            status: 'completed',
+            completion_report: report
+          };
+          return targetBgt;
+        }
+        return b;
+      })
+    );
+
+    if (targetBgt) {
+      addActivity({
+        branch_id: targetBgt.target_branch_id,
+        branch_name: targetBgt.target_branch_name,
+        user_name: currentUser.full_name,
+        action_type: 'request_status_changed',
+        title: `Laporan Pelaksanaan Selesai: ${targetBgt.title}`,
+        description: `Tim kreatif mengunggah laporan pertanggungjawaban (LPJ) biaya ${whitelabelConfig.currency_symbol}${report.spent_amount.toLocaleString('id-ID')} & screenshot hasil untuk ${targetBgt.target_branch_name}.`,
+        severity: 'success',
+        link_tab: 'billing'
+      });
+    }
+
+    return { success: true, message: language === 'ko' ? '집행 보고서(LPJ)가 지점에 성공적으로 제출되었습니다.' : 'LPJ completion report successfully delivered to branch!' };
+  };
+
+  // HQ Operational Reimbursements & Work Expense
+  const addHqReimbursement = (data: {
+    category: HqReimbursementCategory;
+    title: string;
+    amount: number;
+    description: string;
+    receipt_proof_url: string;
+  }): { success: boolean; message: string } => {
+    const newReimb: HqReimbursementRequest = {
+      id: `reimb-${Date.now()}`,
+      requester_id: currentUser.id,
+      requester_name: currentUser.full_name,
+      requester_role: currentUser.role,
+      category: data.category,
+      title: data.title,
+      amount: data.amount,
+      description: data.description,
+      receipt_proof_url: data.receipt_proof_url,
+      status: 'pending_approval',
+      created_at: simulatedDate
+    };
+
+    setHqReimbursements((prev) => [newReimb, ...prev]);
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'reimbursement_requested',
+      title: `${language === 'ko' ? '본사 경비 청구' : 'Expense Claim Submitted'}: ${data.title}`,
+      description: `${currentUser.full_name} (${currentUser.job_title || 'HQ Team'}) submitted claim for ${whitelabelConfig.currency_symbol}${data.amount.toLocaleString('id-ID')} (${data.category}).`,
+      severity: 'warning',
+      link_tab: 'billing'
+    });
+
+    return {
+      success: true,
+      message: language === 'ko' ? '본사 대표 승인을 위한 경비 청구서가 접수되었습니다.' : 'Expense claim submitted to HQ Owner for review!'
+    };
+  };
+
+  const approveHqReimbursement = (id: string, adminNotes?: string) => {
+    let target: HqReimbursementRequest | undefined;
+    setHqReimbursements((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          target = {
+            ...r,
+            status: 'approved',
+            approved_by: `${currentUser.full_name} (HQ Owner)`,
+            approved_at: simulatedDate,
+            admin_notes: adminNotes || r.admin_notes
+          };
+          return target;
+        }
+        return r;
+      })
+    );
+
+    if (target) {
+      addActivity({
+        user_name: currentUser.full_name,
+        action_type: 'reimbursement_processed',
+        title: `${language === 'ko' ? '경비 청구 승인' : 'Expense Claim Approved'}: ${target.title}`,
+        description: `HQ Owner approved reimbursement of ${whitelabelConfig.currency_symbol}${target.amount.toLocaleString('id-ID')} for ${target.requester_name}. Payout is ready for batch disbursement.`,
+        severity: 'success',
+        link_tab: 'billing'
+      });
+    }
+  };
+
+  const rejectHqReimbursement = (id: string, adminNotes?: string) => {
+    setHqReimbursements((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status: 'rejected', admin_notes: adminNotes || 'Rejected by Owner' } : r))
+    );
+  };
+
+  const disburseHqReimbursementBatch = (
+    reimbursementIds: string[],
+    transferProofUrl: string,
+    transferReference?: string,
+    adminNotes?: string
+  ): { success: boolean; message: string } => {
+    const batchId = `batch-${Date.now()}`;
+    let totalAmount = 0;
+    const recipientNames = new Set<string>();
+
+    setHqReimbursements((prev) =>
+      prev.map((r) => {
+        if (reimbursementIds.includes(r.id)) {
+          totalAmount += r.amount;
+          recipientNames.add(r.requester_name);
+          return {
+            ...r,
+            status: 'reimbursed',
+            reimbursed_at: simulatedDate,
+            reimburse_batch_id: batchId,
+            transfer_proof_url: transferProofUrl,
+            transfer_reference: transferReference || `BCA-REIMB-${Date.now().toString().slice(-6)}`,
+            admin_notes: adminNotes || r.admin_notes
+          };
+        }
+        return r;
+      })
+    );
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'reimbursement_processed',
+      title: `${language === 'ko' ? '경비 일괄 정산 송금 완료' : 'Collective Reimbursement Disbursed'}: ${reimbursementIds.length} Items`,
+      description: `HQ Owner completed payout of ${whitelabelConfig.currency_symbol}${totalAmount.toLocaleString('id-ID')} for ${Array.from(recipientNames).join(', ')}. Proof slip attached.`,
+      severity: 'success',
+      link_tab: 'billing'
+    });
+
+    return {
+      success: true,
+      message: language === 'ko'
+        ? `총 ${reimbursementIds.length}건 (${whitelabelConfig.currency_symbol}${totalAmount.toLocaleString('id-ID')}) 경비 정산 및 이체 증빙 첨부가 완료되었습니다.`
+        : `Successfully disbursed ${reimbursementIds.length} expense items (${whitelabelConfig.currency_symbol}${totalAmount.toLocaleString('id-ID')}) with proof slip attached!`
+    };
+  };
+
+  // HQ To-Do List & Auto Work Log
+  const addHqTodo = (
+    title: string,
+    category: 'design' | 'promo' | 'shoot' | 'general' = 'general',
+    related_request_id?: string,
+    target_date?: string
+  ) => {
+    if (!title.trim()) return;
+    const newTodo: HqTodoItem = {
+      id: `todo-${Date.now()}`,
+      user_id: currentUser.id,
+      user_name: currentUser.full_name,
+      title: title.trim(),
+      category,
+      related_request_id,
+      target_date: target_date || simulatedDate,
+      completed: false,
+      included_in_work_log: false,
+      created_at: simulatedDate
+    };
+
+    setHqTodos((prev) => [newTodo, ...prev]);
+  };
+
+  const toggleHqTodo = (id: string) => {
+    setHqTodos((prev) =>
+      prev.map((t) => {
+        if (t.id === id) {
+          const nextCompleted = !t.completed;
+          return {
+            ...t,
+            completed: nextCompleted,
+            completed_at: nextCompleted ? `${simulatedDate} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined,
+            included_in_work_log: nextCompleted
+          };
+        }
+        return t;
+      })
+    );
+  };
+
+  const deleteHqTodo = (id: string) => {
+    setHqTodos((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const generateClockOutWhatsappReport = (): { reportText: string; waUrl: string } => {
+    const todayTodos = hqTodos.filter((t) => t.user_id === currentUser.id && t.completed);
+    const pendingTodos = hqTodos.filter((t) => t.user_id === currentUser.id && !t.completed);
+    const ownerPhone = whitelabelConfig.contact_whatsapp.replace(/[^0-9]/g, '');
+
+    let text = '';
+    if (language === 'ko') {
+      text = `📊 *[일일 업무 보고서 - ${whitelabelConfig.brand_name} 크리에이티브팀]*\n` +
+        `👤 담당자: ${currentUser.full_name} (${currentUser.job_title || 'HQ Studio'})\n` +
+        `📅 일자: ${simulatedDate}\n` +
+        `⏰ 근무 형태: ${todayAttendance?.mode || 'Office HQ (WFO)'}\n\n` +
+        `✅ *오늘 완료된 작업 내역:*\n` +
+        (todayTodos.length > 0
+          ? todayTodos.map((t, idx) => `${idx + 1}. [${t.category.toUpperCase()}] ${t.title}`).join('\n')
+          : `• ${todayAttendance?.work_log || '디자인 시안 검토 및 지점 요청 처리'}`) +
+        `\n\n📌 *익일 진행 예정 및 메모:*\n` +
+        (pendingTodos.length > 0
+          ? pendingTodos.map((t, idx) => `• ${t.title}`).join('\n')
+          : '• 모든 배정 작업 정상 마감 완료') +
+        `\n\n수고하셨습니다!\n_${whitelabelConfig.brand_name} HQ Operations_`;
+    } else {
+      text = `📊 *[Daily Work Report - ${whitelabelConfig.brand_name} HQ Creative]*\n` +
+        `👤 Staff: ${currentUser.full_name} (${currentUser.job_title || 'HQ Studio'})\n` +
+        `📅 Date: ${simulatedDate}\n` +
+        `⏰ Work Mode: ${todayAttendance?.mode || 'Office HQ (WFO)'}\n\n` +
+        `✅ *Completed Tasks & Deliverables Today:*\n` +
+        (todayTodos.length > 0
+          ? todayTodos.map((t, idx) => `${idx + 1}. [${t.category.toUpperCase()}] ${t.title}`).join('\n')
+          : `• ${todayAttendance?.work_log || 'Design briefs review & asset deliveries'}`) +
+        `\n\n📌 *Pending / Next Day Priorities:*\n` +
+        (pendingTodos.length > 0
+          ? pendingTodos.map((t, idx) => `• ${t.title}`).join('\n')
+          : '• All scheduled deliverables completed') +
+        `\n\nHave a great evening!\n_${whitelabelConfig.brand_name} Operations_`;
+    }
+
+    const waUrl = `https://wa.me/${ownerPhone}?text=${encodeURIComponent(text)}`;
+    return { reportText: text, waUrl };
+  };
+
+  // Team Chat & Collaboration Hub
+  const unreadChatCount = useMemo(() => {
+    return teamChatMessages.filter((msg) => {
+      // Don't count own messages
+      if (msg.sender_id === currentUser.id) return false;
+      // HQ internal channel is only accessible to HQ roles
+      if (msg.channel === 'hq_internal' && !isHQ) return false;
+      // Branch check for branch users
+      if (!isHQ && msg.branch_id && msg.branch_id !== currentBranch?.id) return false;
+      
+      const isRead = msg.read_by && msg.read_by.includes(currentUser.id);
+      return !isRead;
+    }).length;
+  }, [teamChatMessages, currentUser.id, isHQ, currentBranch]);
+
+  const markChatAsRead = (channel?: 'hq_internal' | 'branch_collab') => {
+    setTeamChatMessages((prev) =>
+      prev.map((msg) => {
+        if (channel && msg.channel !== channel) return msg;
+        const currentReads = msg.read_by || [];
+        if (!currentReads.includes(currentUser.id)) {
+          return { ...msg, read_by: [...currentReads, currentUser.id] };
+        }
+        return msg;
+      })
+    );
+  };
+
+  const sendTeamChatMessage = (
+    channel: 'hq_internal' | 'branch_collab',
+    message: string,
+    taggedUserIds: string[] = [],
+    linkedRequestId?: string,
+    linkedRequestTitle?: string,
+    mediaUrl?: string,
+    mediaType?: 'image' | 'video'
+  ) => {
+    if (!message.trim() && !mediaUrl) return;
+
+    const taggedNames: string[] = [];
+    taggedUserIds.forEach((uid) => {
+      const u = users.find((x) => x.id === uid);
+      if (u) taggedNames.push(u.full_name);
+    });
+
+    const newMsg: TeamChatMessage = {
+      id: `chat-${Date.now()}`,
+      sender_id: currentUser.id,
+      sender_name: currentUser.full_name,
+      sender_role: currentUser.role,
+      sender_avatar: currentUser.avatar_url,
+      channel,
+      branch_id: currentBranch?.id,
+      branch_name: currentBranch?.name,
+      message: message.trim(),
+      tagged_user_ids: taggedUserIds,
+      tagged_user_names: taggedNames,
+      linked_request_id: linkedRequestId,
+      linked_request_title: linkedRequestTitle,
+      media_url: mediaUrl,
+      media_type: mediaType,
+      read_by: [currentUser.id],
+      created_at: `${simulatedDate} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    };
+
+    setTeamChatMessages((prev) => [...prev, newMsg]);
+
+    // Send notifications to tagged users
+    if (taggedUserIds.length > 0) {
+      addActivity({
+        branch_id: currentBranch?.id,
+        user_name: currentUser.full_name,
+        action_type: 'user_mentioned',
+        title: `${language === 'ko' ? '새로운 멘션 태그' : 'You were mentioned by'} ${currentUser.full_name}`,
+        description: `"${(message || 'Attached media').slice(0, 80)}..." in ${channel === 'hq_internal' ? 'HQ Internal' : 'Branch Collab'}`,
+        severity: 'purple',
+        link_tab: 'chat'
+      });
+    }
+  };
+
+  // Calendar Meeting Agendas
+  const addMeetingAgenda = (data: Omit<MeetingAgenda, 'id' | 'created_at'>): { success: boolean; message: string } => {
+    const newMeet: MeetingAgenda = {
+      ...data,
+      id: `meet-${Date.now()}`,
+      created_at: simulatedDate
+    };
+
+    setMeetingAgendas((prev) => [newMeet, ...prev]);
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'exposure_scheduled',
+      title: `${language === 'ko' ? '새 회의 일정 등록' : 'Meeting Scheduled'}: ${data.title}`,
+      description: `${data.date} (${data.start_time} - ${data.end_time}) | Location: ${data.location_or_link}`,
+      severity: 'info',
+      link_tab: 'calendar'
+    });
+
+    return {
+      success: true,
+      message: language === 'ko' ? '회의 일정이 캘린더에 성공적으로 등록되었습니다.' : 'Meeting agenda scheduled on calendar!'
+    };
+  };
+
+  const deleteMeetingAgenda = (id: string) => {
+    setMeetingAgendas((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  // Branch Caption & Mockup Settings
+  const updateBranchCaptionSettings = (branchId: string, settings: { default_caption_template?: string; default_hashtags?: string }) => {
+    setBranches((prev) =>
+      prev.map((b) => (b.id === branchId ? { ...b, ...settings } : b))
+    );
+  };
+
+  // Shoot Requests (Branch Store Managers & Owners)
+  const addShootRequest = (data: Omit<ShootRequest, 'id' | 'created_at' | 'status'>): { success: boolean; message: string } => {
+    const branch = branches.find((b) => b.id === data.branch_id);
+    const newShoot: ShootRequest = {
+      ...data,
+      id: `sht-${Date.now()}`,
+      branch_name: branch?.name || 'Branch',
+      status: 'pending',
+      created_at: simulatedDate
+    };
+
+    setShootRequests((prev) => [newShoot, ...prev]);
+
+    addActivity({
+      branch_id: data.branch_id,
+      branch_name: branch?.name,
+      user_name: currentUser.full_name,
+      action_type: 'shoot_requested',
+      title: `Photoshoot Visit Requested: ${data.title}`,
+      description: `${branch?.name} requested photoshoot/additional work on ${data.preferred_date}. Requester: ${currentUser.full_name}`,
+      severity: 'purple',
+      link_tab: 'exposure'
+    });
+
+    return { success: true, message: 'Photoshoot request submitted to HQ team!' };
+  };
+
+  const updateShootRequestStatus = (id: string, status: ShootRequest['status'], assignedCreativeId?: string) => {
+    const assignedUser = users.find((u) => u.id === assignedCreativeId);
+    let updatedShoot: ShootRequest | undefined;
+
+    setShootRequests((prev) =>
+      prev.map((s) => {
+        if (s.id === id) {
+          updatedShoot = {
+            ...s,
+            status,
+            assigned_creative_id: assignedCreativeId || s.assigned_creative_id,
+            assigned_creative_name: assignedUser ? assignedUser.full_name : s.assigned_creative_name
+          };
+          return updatedShoot;
+        }
+        return s;
+      })
+    );
+
+    if (updatedShoot) {
+      addActivity({
+        branch_id: updatedShoot.branch_id,
+        branch_name: updatedShoot.branch_name,
+        user_name: currentUser.full_name,
+        action_type: 'shoot_requested',
+        title: `Photoshoot Request Updated: ${updatedShoot.title}`,
+        description: `Shoot status is now ${status}. Assigned to: ${updatedShoot.assigned_creative_name || 'Creative Team'}`,
+        severity: status === 'scheduled' ? 'success' : 'info',
+        link_tab: 'exposure'
+      });
+    }
+  };
+
+  // Helper to get quota for branch & period
+  const getBranchQuota = (branchId: string, periodMonth?: string): MonthlyQuota => {
+    const month = periodMonth || simulatedDate.slice(0, 7);
+    const found = quotas.find((q) => q.branch_id === branchId && q.period_month === month);
+    if (found) return found;
+    return {
+      id: `quota-${branchId}-${month}`,
+      branch_id: branchId,
+      period_month: month,
+      design_used: 0,
+      promo_used: 0
+    };
+  };
+
+  // Date calculation: H+N minimal date based on whitelabel config
+  const calculateMinTargetDate = (): string => {
+    const base = new Date(simulatedDate);
+    const leadDays = whitelabelConfig.design_min_lead_days || 5;
+    base.setDate(base.getDate() + leadDays);
+    return base.toISOString().split('T')[0];
+  };
+
+  const isTargetDateValid = (targetDate: string): { valid: boolean; reason?: string } => {
+    if (!targetDate) return { valid: false, reason: 'Target publication date is required.' };
+    const minDate = calculateMinTargetDate();
+    const leadDays = whitelabelConfig.design_min_lead_days || 5;
+    if (targetDate < minDate) {
+      return {
+        valid: false,
+        reason: language === 'ko'
+          ? `최소 H-${leadDays} 사전 마감 규정이 적용됩니다. 가장 빠른 가능일은 ${minDate}입니다.`
+          : `Target date must be at least H-${leadDays}! Earliest allowed publication date is ${minDate}.`
+      };
+    }
+    return { valid: true };
+  };
+
+  // Promo locking rule based on whitelabel cutoff day
+  const isPromoSubmissionAllowed = (targetMonth: string): { allowed: boolean; reason?: string } => {
+    const currentDate = new Date(simulatedDate);
+    const dayOfMonth = currentDate.getDate();
+    const currentYearMonth = simulatedDate.slice(0, 7);
+    const cutoffDay = whitelabelConfig.promo_cutoff_day_of_month || 25;
+
+    if (targetMonth > currentYearMonth) {
+      if (dayOfMonth > cutoffDay) {
+        return {
+          allowed: false,
+          reason: language === 'ko'
+            ? `익월(${targetMonth}) 프로모션 접수는 매월 ${cutoffDay}일에 마감됩니다. (현재: ${simulatedDate})`
+            : `Promo submission for ${targetMonth} is locked after day ${cutoffDay} of current month (${simulatedDate}). Contact HQ for emergency approval.`
+        };
+      }
+    }
+    return { allowed: true };
+  };
+
+  // Design Request submission with Quota check & Lead time check
+  const addDesignRequest = (data: {
+    branch_id: string;
+    title: string;
+    description: string;
+    target_date: string;
+    category: ContentPillar;
+    brief_attachment_name?: string;
+  }): { success: boolean; message: string } => {
+    const periodMonth = simulatedDate.slice(0, 7);
+    const quota = getBranchQuota(data.branch_id, periodMonth);
+    const branch = branches.find((b) => b.id === data.branch_id);
+    const maxDesignQuota = whitelabelConfig.max_monthly_design_requests || 3;
+
+    if (quota.design_used >= maxDesignQuota) {
+      return {
+        success: false,
+        message: language === 'ko'
+          ? `월간 디자인 요청 한도(${maxDesignQuota}/${maxDesignQuota})를 모두 사용하였습니다.`
+          : `Monthly design quota reached maximum (${maxDesignQuota}/${maxDesignQuota}). Quota will refresh next month.`
+      };
+    }
+
+    const dateCheck = isTargetDateValid(data.target_date);
+    if (!dateCheck.valid) {
+      return {
+        success: false,
+        message: dateCheck.reason || 'Invalid publication date.'
+      };
+    }
+
+    const newRequest: DesignRequest = {
+      id: `req-${Date.now()}`,
+      branch_id: data.branch_id,
+      title: data.title,
+      description: data.description,
+      target_date: data.target_date,
+      status: 'pending',
+      category: data.category,
+      brief_attachment_name: data.brief_attachment_name || 'brief_assets.zip',
+      created_at: simulatedDate
+    };
+
+    setDesignRequests((prev) => [newRequest, ...prev]);
+
+    // Update quota
+    setQuotas((prev) => {
+      const idx = prev.findIndex(
+        (q) => q.branch_id === data.branch_id && q.period_month === periodMonth
+      );
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], design_used: updated[idx].design_used + 1 };
+        return updated;
+      } else {
+        return [
+          ...prev,
+          {
+            id: `quota-${data.branch_id}-${periodMonth}`,
+            branch_id: data.branch_id,
+            period_month: periodMonth,
+            design_used: 1,
+            promo_used: 0
+          }
+        ];
+      }
+    });
+
+    addActivity({
+      branch_id: data.branch_id,
+      branch_name: branch?.name,
+      user_name: currentUser.full_name,
+      action_type: 'request_submitted',
+      title: language === 'ko' ? `신규 디자인 요청: ${data.title}` : `New Design Request: ${data.title}`,
+      description: language === 'ko' 
+        ? `${branch?.name}에서 ${data.category} 부문 디자인을 요청했습니다. (희망일: ${data.target_date})`
+        : `${branch?.name || 'Branch'} submitted request for ${data.category}. Target: ${data.target_date}.`,
+      severity: 'info',
+      target_id: newRequest.id,
+      link_tab: 'requests'
+    });
+
+    return {
+      success: true,
+      message: language === 'ko' ? '디자인 요청이 접수되었습니다! 상태: 대기중.' : 'Design request submitted! Status: Pending Review.'
+    };
+  };
+
+  const updateDesignRequestStatus = (
+    requestId: string,
+    status: RequestStatus,
+    asset_result_url?: string,
+    feedback_notes?: string,
+    approval_mode?: 'self_approved' | 'leader_approved' | 'pending_leader'
+  ) => {
+    let targetReq: DesignRequest | undefined;
+
+    setDesignRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          targetReq = {
+            ...req,
+            status,
+            asset_result_url: asset_result_url !== undefined ? asset_result_url : req.asset_result_url,
+            feedback_notes: feedback_notes !== undefined ? feedback_notes : req.feedback_notes,
+            completed_at: status === 'approved' ? simulatedDate : req.completed_at,
+            approval_mode: approval_mode || req.approval_mode,
+            approved_by: status === 'approved' ? currentUser.full_name : req.approved_by
+          };
+          return targetReq;
+        }
+        return req;
+      })
+    );
+
+    if (targetReq) {
+      const branch = branches.find((b) => b.id === targetReq?.branch_id);
+      
+      // Crucial: Send notification targeted to branch so branch users receive instant alerts!
+      addActivity({
+        branch_id: targetReq.branch_id,
+        branch_name: branch?.name,
+        user_name: currentUser.full_name,
+        action_type: 'request_status_changed',
+        title: language === 'ko' ? `디자인 상태 변경: ${targetReq.title}` : `Design Status: ${targetReq.title}`,
+        description: language === 'ko'
+          ? `요청 "${targetReq.title}" 상태가 [${status.toUpperCase()}]로 업데이트되었습니다. ${asset_result_url ? '결과물 다운로드 가능.' : ''}`
+          : `Request "${targetReq.title}" status changed to [${status.toUpperCase()}]. ${asset_result_url ? 'Final deliverable ready.' : ''}`,
+        severity: status === 'approved' ? 'success' : status === 'rejected' ? 'warning' : 'info',
+        target_id: targetReq.id,
+        link_tab: 'requests'
+      });
+    }
+  };
+
+  const assignDesignRequest = (requestId: string, userId: string) => {
+    const assignedUser = users.find((u) => u.id === userId);
+    setDesignRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          return {
+            ...req,
+            assigned_to_user_id: userId,
+            assigned_to_name: assignedUser?.full_name || 'Creative Staff',
+            status: req.status === 'pending' ? 'in_progress' : req.status
+          };
+        }
+        return req;
+      })
+    );
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'request_status_changed',
+      title: `Task Assigned: ${assignedUser?.full_name || 'Staff'}`,
+      description: `Creative staff ${assignedUser?.full_name} claimed request ${requestId}`,
+      severity: 'info',
+      target_id: requestId,
+      link_tab: 'requests'
+    });
+  };
+
+  const updateDesignRequestDeliverable = (
+    requestId: string,
+    urlOrPayload: string | {
+      asset_result_url?: string;
+      preview_media_url?: string;
+      preview_media_type?: 'image' | 'video';
+      canva_url?: string;
+      figma_url?: string;
+      drive_url?: string;
+      caption?: string;
+      creative_notes?: string;
+      status?: RequestStatus;
+      approval_mode?: 'self_approved' | 'leader_approved' | 'pending_leader';
+    },
+    notes?: string,
+    status?: RequestStatus,
+    approval_mode?: 'self_approved' | 'leader_approved' | 'pending_leader'
+  ) => {
+    let targetReq: DesignRequest | undefined;
+
+    setDesignRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          if (typeof urlOrPayload === 'string') {
+            targetReq = {
+              ...req,
+              asset_result_url: urlOrPayload,
+              creative_notes: notes !== undefined ? notes : req.creative_notes,
+              status: status || 'review',
+              approval_mode: approval_mode || (status === 'approved' ? 'self_approved' : 'pending_leader'),
+              completed_at: status === 'approved' ? simulatedDate : req.completed_at,
+              approved_by: status === 'approved' ? currentUser.full_name : req.approved_by
+            };
+          } else {
+            const nextStatus = urlOrPayload.status || req.status || 'review';
+            targetReq = {
+              ...req,
+              asset_result_url: urlOrPayload.asset_result_url !== undefined ? urlOrPayload.asset_result_url : req.asset_result_url,
+              preview_media_url: urlOrPayload.preview_media_url !== undefined ? urlOrPayload.preview_media_url : req.preview_media_url,
+              preview_media_type: urlOrPayload.preview_media_type !== undefined ? urlOrPayload.preview_media_type : req.preview_media_type,
+              canva_url: urlOrPayload.canva_url !== undefined ? urlOrPayload.canva_url : req.canva_url,
+              figma_url: urlOrPayload.figma_url !== undefined ? urlOrPayload.figma_url : req.figma_url,
+              drive_url: urlOrPayload.drive_url !== undefined ? urlOrPayload.drive_url : req.drive_url,
+              caption: urlOrPayload.caption !== undefined ? urlOrPayload.caption : req.caption,
+              creative_notes: urlOrPayload.creative_notes !== undefined ? urlOrPayload.creative_notes : req.creative_notes,
+              status: nextStatus,
+              approval_mode: urlOrPayload.approval_mode || (nextStatus === 'approved' ? 'self_approved' : 'pending_leader'),
+              completed_at: nextStatus === 'approved' ? simulatedDate : req.completed_at,
+              approved_by: nextStatus === 'approved' ? currentUser.full_name : req.approved_by
+            };
+          }
+          return targetReq;
+        }
+        return req;
+      })
+    );
+
+    if (targetReq) {
+      const branch = branches.find((b) => b.id === targetReq?.branch_id);
+      addActivity({
+        branch_id: targetReq.branch_id,
+        branch_name: branch?.name,
+        user_name: currentUser.full_name,
+        action_type: 'request_status_changed',
+        title: language === 'ko' ? `디자인 결과물 업데이트: ${targetReq.title}` : `Deliverable Ready: ${targetReq.title}`,
+        description: language === 'ko'
+          ? `결과물 다운로드 링크가 업로드되었습니다. 상태: ${targetReq.status.toUpperCase()}`
+          : `Deliverable link & preview uploaded. Request status: ${targetReq.status.toUpperCase()}`,
+        severity: targetReq.status === 'approved' ? 'success' : 'info',
+        target_id: requestId,
+        link_tab: 'requests'
+      });
+    }
+  };
+
+  const addDesignComment = (requestId: string, message: string, tag?: string) => {
+    if (!message.trim()) return;
+    const newComment = {
+      id: `comm-${Date.now()}`,
+      request_id: requestId,
+      user_id: currentUser.id,
+      user_name: currentUser.full_name,
+      user_role: currentUser.role,
+      user_avatar: currentUser.avatar_url,
+      message: message.trim(),
+      tag: tag || undefined,
+      created_at: `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+    };
+
+    setDesignRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          const existing = req.comments || [];
+          return {
+            ...req,
+            comments: [...existing, newComment]
+          };
+        }
+        return req;
+      })
+    );
+
+    const targetReq = designRequests.find((r) => r.id === requestId);
+    const branch = branches.find((b) => b.id === targetReq?.branch_id);
+
+    addActivity({
+      branch_id: targetReq?.branch_id,
+      branch_name: branch?.name,
+      user_name: currentUser.full_name,
+      action_type: 'request_status_changed',
+      title: `Feedback Baru: ${targetReq?.title || 'Design Request'}`,
+      description: `${currentUser.full_name} (${currentUser.role}): "${message.slice(0, 60)}${message.length > 60 ? '...' : ''}"`,
+      severity: 'purple',
+      target_id: requestId,
+      link_tab: 'requests'
+    });
+  };
+
+  const updateDesignCaption = (requestId: string, caption: string) => {
+    setDesignRequests((prev) =>
+      prev.map((req) => (req.id === requestId ? { ...req, caption } : req))
+    );
+  };
+
+  // Promo Request submission with Quota check & Cutoff
+  const addPromoRequest = (data: {
+    branch_id: string;
+    title: string;
+    mechanic: string;
+    target_month: string;
+    start_date: string;
+    end_date: string;
+    terms: string;
+  }): { success: boolean; message: string } => {
+    const periodMonth = data.target_month || simulatedDate.slice(0, 7);
+    const quota = getBranchQuota(data.branch_id, periodMonth);
+    const branch = branches.find((b) => b.id === data.branch_id);
+    const maxPromoQuota = whitelabelConfig.max_monthly_active_promos || 2;
+
+    if (quota.promo_used >= maxPromoQuota) {
+      return {
+        success: false,
+        message: language === 'ko'
+          ? `최대 활성 프로모션 한도(${maxPromoQuota}/${maxPromoQuota})를 초과했습니다.`
+          : `Maximum active promos reached (${maxPromoQuota}/${maxPromoQuota}). Wait for current promo to finish.`
+      };
+    }
+
+    const promoCheck = isPromoSubmissionAllowed(data.target_month);
+    if (!promoCheck.allowed) {
+      return {
+        success: false,
+        message: promoCheck.reason || 'Promo submission locked.'
+      };
+    }
+
+    const newPromo: PromoRequest = {
+      id: `prm-${Date.now()}`,
+      branch_id: data.branch_id,
+      title: data.title,
+      mechanic: data.mechanic,
+      target_month: data.target_month,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      terms: data.terms,
+      status: 'active',
+      created_at: simulatedDate
+    };
+
+    setPromos((prev) => [newPromo, ...prev]);
+
+    setQuotas((prev) => {
+      const idx = prev.findIndex(
+        (q) => q.branch_id === data.branch_id && q.period_month === periodMonth
+      );
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], promo_used: updated[idx].promo_used + 1 };
+        return updated;
+      } else {
+        return [
+          ...prev,
+          {
+            id: `quota-${data.branch_id}-${periodMonth}`,
+            branch_id: data.branch_id,
+            period_month: periodMonth,
+            design_used: 0,
+            promo_used: 1
+          }
+        ];
+      }
+    });
+
+    // Alert for branch users that a new promo campaign is active!
+    addActivity({
+      branch_id: data.branch_id,
+      branch_name: branch?.name,
+      user_name: currentUser.full_name,
+      action_type: 'promo_campaign_active',
+      title: language === 'ko' ? `신규 프로모션 캠페인 활성화: ${data.title}` : `New Promo Campaign Active: ${data.title}`,
+      description: language === 'ko'
+        ? `${branch?.name}의 신규 프로모션 "${data.mechanic}"이 등록되어 노출 스케줄에 반영되었습니다.`
+        : `${branch?.name} activated promo campaign "${data.mechanic}". Scheduled on content calendar.`,
+      severity: 'purple',
+      target_id: newPromo.id,
+      link_tab: 'requests'
+    });
+
+    return {
+      success: true,
+      message: language === 'ko' ? '프로모션이 등록되었습니다!' : 'Promo proposal submitted and scheduled in active agenda!'
+    };
+  };
+
+  const updatePromoStatus = (promoId: string, status: PromoRequest['status']) => {
+    setPromos((prev) =>
+      prev.map((p) => (p.id === promoId ? { ...p, status } : p))
+    );
+  };
+
+  // Custom Pricing per Branch
+  const updateBranchCustomPricing = (
+    branchId: string,
+    customRetainerFee: number,
+    packageTier: Branch['package_tier'] = 'Custom'
+  ) => {
+    let branchName = '';
+    setBranches((prev) =>
+      prev.map((b) => {
+        if (b.id === branchId) {
+          branchName = b.name;
+          return {
+            ...b,
+            custom_retainer_fee: customRetainerFee,
+            package_tier: packageTier
+          };
+        }
+        return b;
+      })
+    );
+
+    addActivity({
+      branch_id: branchId,
+      branch_name: branchName,
+      user_name: currentUser.full_name,
+      action_type: 'custom_pricing_updated',
+      title: `Subscription Pricing Updated: ${branchName}`,
+      description: `Retainer fee set to ${whitelabelConfig.currency_symbol}${customRetainerFee.toLocaleString()} / month for ${branchName}.`,
+      severity: 'warning',
+      target_id: branchId,
+      link_tab: 'billing'
+    });
+  };
+
+  // Invoicing
+  const generateMonthlyInvoices = (periodMonth?: string): { generatedCount: number; message: string } => {
+    const targetPeriod = periodMonth || '2026-10';
+    const activeBranches = branches.filter((b) => b.contract_status === 'active');
+    let count = 0;
+    const newInvoices: Invoice[] = [];
+    const prefix = whitelabelConfig.brand_monogram || 'MG';
+
+    activeBranches.forEach((branch, idx) => {
+      const existing = invoices.find(
+        (inv) => inv.branch_id === branch.id && inv.period_month.startsWith(targetPeriod)
+      );
+
+      if (!existing) {
+        const invNum = `INV/${prefix}/${targetPeriod.replace('-', '/')}/${String(idx + 1).padStart(3, '0')}`;
+        const baseRetainer = branch.custom_retainer_fee ?? (whitelabelConfig.default_monthly_retainer || 5000000);
+        const newInv: Invoice = {
+          id: `inv-${targetPeriod}-${branch.id}`,
+          branch_id: branch.id,
+          invoice_number: invNum,
+          period_month: `${targetPeriod}-01`,
+          retainer_fee: baseRetainer,
+          visit_fee: 0,
+          ad_budget: 0,
+          custom_items: [],
+          total_amount: baseRetainer,
+          status: 'unpaid',
+          due_date: `${targetPeriod}-10`,
+          created_at: `${targetPeriod}-01`
+        };
+        newInvoices.push(newInv);
+        count++;
+
+        addActivity({
+          branch_id: branch.id,
+          branch_name: branch.name,
+          user_name: 'HQ Billing Engine',
+          action_type: 'invoice_generated',
+          title: `Invoice Generated: ${invNum}`,
+          description: `Retainer invoice for period ${targetPeriod} (${whitelabelConfig.currency_symbol}${baseRetainer.toLocaleString()}) issued to ${branch.name}.`,
+          severity: 'info',
+          target_id: newInv.id,
+          link_tab: 'billing'
+        });
+      }
+    });
+
+    if (count > 0) {
+      setInvoices((prev) => [...newInvoices, ...prev]);
+      return {
+        generatedCount: count,
+        message: `Successfully generated ${count} monthly invoices for ${targetPeriod}!`
+      };
+    } else {
+      return {
+        generatedCount: 0,
+        message: `Invoices for ${targetPeriod} have already been generated for all active branches.`
+      };
+    }
+  };
+
+  const updateInvoiceCharges = (
+    invoiceId: string,
+    visit_fee: number,
+    ad_budget: number,
+    custom_items: CustomLineItem[] = [],
+    retainer_fee?: number,
+    additional_notes?: string
+  ) => {
+    let targetInv: Invoice | undefined;
+
+    setInvoices((prev) =>
+      prev.map((inv) => {
+        if (inv.id === invoiceId) {
+          const effectiveRetainer = retainer_fee !== undefined ? retainer_fee : inv.retainer_fee;
+          const customTotal = custom_items.reduce((sum, item) => sum + (item.amount || 0), 0);
+          const total_amount = effectiveRetainer + visit_fee + ad_budget + customTotal;
+
+          targetInv = {
+            ...inv,
+            retainer_fee: effectiveRetainer,
+            visit_fee,
+            ad_budget,
+            custom_items,
+            additional_notes: additional_notes ?? inv.additional_notes,
+            total_amount
+          };
+          return targetInv;
+        }
+        return inv;
+      })
+    );
+
+    if (targetInv) {
+      const branch = branches.find((b) => b.id === targetInv?.branch_id);
+      addActivity({
+        branch_id: targetInv.branch_id,
+        branch_name: branch?.name,
+        user_name: currentUser.full_name,
+        action_type: 'charge_updated',
+        title: `Charges Updated: ${targetInv.invoice_number}`,
+        description: `Total amount updated to ${whitelabelConfig.currency_symbol}${targetInv.total_amount.toLocaleString()}.`,
+        severity: 'info',
+        target_id: targetInv.id,
+        link_tab: 'billing'
+      });
+    }
+  };
+
+  const uploadPaymentProof = (invoiceId: string, proofUrl: string, proofNotes?: string) => {
+    let targetInv: Invoice | undefined;
+
+    setInvoices((prev) =>
+      prev.map((inv) => {
+        if (inv.id === invoiceId) {
+          targetInv = {
+            ...inv,
+            status: 'proof_uploaded',
+            proof_url: proofUrl,
+            proof_notes: proofNotes
+          };
+          return targetInv;
+        }
+        return inv;
+      })
+    );
+
+    if (targetInv) {
+      const branch = branches.find((b) => b.id === targetInv?.branch_id);
+      addActivity({
+        branch_id: targetInv.branch_id,
+        branch_name: branch?.name,
+        user_name: currentUser.full_name,
+        action_type: 'proof_uploaded',
+        title: `Payment Receipt Uploaded: ${targetInv.invoice_number}`,
+        description: `${branch?.name} uploaded payment receipt for ${whitelabelConfig.currency_symbol}${targetInv.total_amount.toLocaleString()}. Pending verification.`,
+        severity: 'warning',
+        target_id: targetInv.id,
+        link_tab: 'billing'
+      });
+    }
+  };
+
+  const verifyPayment = (invoiceId: string, isPaid: boolean) => {
+    let targetInv: Invoice | undefined;
+
+    setInvoices((prev) =>
+      prev.map((inv) => {
+        if (inv.id === invoiceId) {
+          targetInv = {
+            ...inv,
+            status: isPaid ? 'paid' : 'unpaid',
+            payment_date: isPaid ? simulatedDate : undefined
+          };
+          return targetInv;
+        }
+        return inv;
+      })
+    );
+
+    if (targetInv) {
+      const branch = branches.find((b) => b.id === targetInv?.branch_id);
+      addActivity({
+        branch_id: targetInv.branch_id,
+        branch_name: branch?.name,
+        user_name: currentUser.full_name,
+        action_type: 'payment_verified',
+        title: isPaid ? `Payment Verified: ${targetInv.invoice_number}` : `Payment Proof Rejected: ${targetInv.invoice_number}`,
+        description: isPaid
+          ? `Invoice ${targetInv.invoice_number} verified and marked as PAID.`
+          : `Payment proof for ${targetInv.invoice_number} rejected.`,
+        severity: isPaid ? 'success' : 'warning',
+        target_id: targetInv.id,
+        link_tab: 'billing'
+      });
+    }
+  };
+
+  // Exposure Slots
+  const addExposureSlot = (slot: Omit<ExposureSlot, 'id'>) => {
+    const newSlot: ExposureSlot = {
+      ...slot,
+      id: `slot-${Date.now()}`
+    };
+    setExposureSlots((prev) => [...prev, newSlot]);
+
+    const branch = branches.find((b) => b.id === slot.branch_id);
+    addActivity({
+      branch_id: slot.branch_id,
+      branch_name: branch?.name,
+      user_name: currentUser.full_name,
+      action_type: 'exposure_scheduled',
+      title: `Exposure Slot Scheduled: ${slot.title}`,
+      description: `${branch?.name} scheduled for ${slot.format} on ${slot.date} (${slot.pillar}).`,
+      severity: 'purple',
+      target_id: newSlot.id,
+      link_tab: 'exposure'
+    });
+  };
+
+  const updateExposureSlot = (id: string, updates: Partial<ExposureSlot>) => {
+    setExposureSlots((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+  };
+
+  const deleteExposureSlot = (id: string) => {
+    setExposureSlots((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  // Influencers
+  const addInfluencer = (inf: Omit<Influencer, 'id'>) => {
+    const newInf: Influencer = {
+      ...inf,
+      id: `inf-${Date.now()}`
+    };
+    setInfluencers((prev) => [newInf, ...prev]);
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'request_status_changed',
+      title: `Influencer Added: @${inf.handle}`,
+      description: `${inf.name} (${inf.tier}) added to directory by ${currentUser.full_name}.`,
+      severity: 'info',
+      link_tab: 'influencers'
+    });
+  };
+
+  const updateInfluencer = (id: string, updates: Partial<Influencer>) => {
+    setInfluencers((prev) =>
+      prev.map((inf) => (inf.id === id ? { ...inf, ...updates } : inf))
+    );
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'request_status_changed',
+      title: `Influencer Updated: ${updates.name || updates.handle || id}`,
+      description: `Influencer profile updated by ${currentUser.full_name}.`,
+      severity: 'info',
+      link_tab: 'influencers'
+    });
+  };
+
+  const deleteInfluencer = (id: string) => {
+    const target = influencers.find((inf) => inf.id === id);
+    setInfluencers((prev) => prev.filter((inf) => inf.id !== id));
+    if (target) {
+      addActivity({
+        user_name: currentUser.full_name,
+        action_type: 'request_status_changed',
+        title: `Influencer Deleted: @${target.handle}`,
+        description: `${target.name} removed from directory by ${currentUser.full_name}.`,
+        severity: 'info',
+        link_tab: 'influencers'
+      });
+    }
+  };
+
+  // Voucher Campaign & ROI
+  const redeemVoucherCode = (code: string, salesAmount: number): { success: boolean; message: string } => {
+    const campaign = voucherCampaigns.find((v) => v.code.toUpperCase() === code.trim().toUpperCase());
+    if (!campaign) {
+      return { success: false, message: language === 'ko' ? '유효하지 않은 바우처 코드입니다.' : 'Invalid or expired voucher code.' };
+    }
+    if (campaign.status === 'expired') {
+      return { success: false, message: language === 'ko' ? '만료된 바우처 코드입니다.' : 'Voucher campaign has ended.' };
+    }
+
+    setVoucherCampaigns((prev) =>
+      prev.map((v) =>
+        v.id === campaign.id
+          ? {
+              ...v,
+              redemption_count: v.redemption_count + 1,
+              total_sales_driven: v.total_sales_driven + salesAmount
+            }
+          : v
+      )
+    );
+
+    addActivity({
+      branch_id: campaign.branch_id,
+      branch_name: campaign.branch_name,
+      user_name: currentUser.full_name,
+      action_type: 'voucher_redeemed',
+      title: `Voucher Redeemed: ${campaign.code}`,
+      description: `Discount ${campaign.discount_percent}% applied at ${campaign.branch_name}. Order value: Rp${salesAmount.toLocaleString()}.`,
+      severity: 'success',
+      link_tab: 'influencers'
+    });
+
+    return {
+      success: true,
+      message: language === 'ko'
+        ? `바우처 ${campaign.code} 적용 완료! ${campaign.discount_percent}% 할인이 반영되었습니다.`
+        : `Voucher ${campaign.code} applied successfully! ${campaign.discount_percent}% discount registered.`
+    };
+  };
+
+  const addVoucherCampaign = (data: Omit<InfluencerVoucherCampaign, 'id' | 'redemption_count' | 'total_sales_driven'>) => {
+    const newCamp: InfluencerVoucherCampaign = {
+      ...data,
+      id: `vch-${Date.now()}`,
+      redemption_count: 0,
+      total_sales_driven: 0
+    };
+    setVoucherCampaigns((prev) => [newCamp, ...prev]);
+
+    addActivity({
+      branch_id: data.branch_id,
+      branch_name: data.branch_name,
+      user_name: currentUser.full_name,
+      action_type: 'promo_campaign_active',
+      title: `Voucher Code Created: ${data.code}`,
+      description: `Influencer ${data.influencer_name} allocated voucher ${data.code} (${data.discount_percent}% off) for ${data.branch_name}.`,
+      severity: 'purple',
+      link_tab: 'influencers'
+    });
+  };
+
+  // Computed Platform Multi-Tenant Metrics
+  const currentPlatformBrand = useMemo(() => {
+    return platformBrands.find((b) => b.slug.toLowerCase() === activeTenantSlug.toLowerCase()) || platformBrands[0] || null;
+  }, [platformBrands, activeTenantSlug]);
+
+  const totalPlatformMRR = useMemo(() => {
+    return platformBrands
+      .filter((b) => b.subscription_status === 'active' || b.subscription_status === 'expiring_soon')
+      .reduce((sum, b) => sum + (b.monthly_fee || 0), 0);
+  }, [platformBrands]);
+
+  const totalPlatformARR = useMemo(() => totalPlatformMRR * 12, [totalPlatformMRR]);
+
+  const platformWalletBalance = useMemo(() => {
+    // Total gross subscription revenue generated (simulation: 6 months pool + base)
+    const grossPool = (totalPlatformMRR * 6) + 15000000;
+    const completedWithdrawals = platformWithdrawals
+      .filter((w) => w.status === 'completed' || w.status === 'processing')
+      .reduce((sum, w) => sum + w.amount, 0);
+    return Math.max(0, grossPool - completedWithdrawals);
+  }, [totalPlatformMRR, platformWithdrawals]);
+
+  const switchTenantBrand = (slug: string, autoLogin: boolean = false) => {
+    const normalizedSlug = (slug || 'moggumung').toLowerCase().trim();
+    setActiveTenantSlug(normalizedSlug);
+    saveStorage('active_tenant_slug', normalizedSlug);
+
+    const dataset = getInitialBrandDataset(normalizedSlug);
+
+    const loadedWhitelabel = loadBrandStorage(normalizedSlug, 'whitelabel', dataset.whitelabel);
+    setWhitelabelConfig(loadedWhitelabel);
+
+    const loadedBranches = loadBrandStorage(normalizedSlug, 'branches', dataset.branches);
+    setBranches(loadedBranches);
+
+    const loadedUsers = loadBrandStorage(normalizedSlug, 'users', dataset.users);
+    setUsers(loadedUsers);
+
+    const loadedDesign = loadBrandStorage(normalizedSlug, 'design_requests', dataset.designRequests);
+    setDesignRequests(loadedDesign);
+
+    const loadedPromos = loadBrandStorage(normalizedSlug, 'promos', dataset.promos);
+    setPromos(loadedPromos);
+
+    const loadedInvoices = loadBrandStorage(normalizedSlug, 'invoices', dataset.invoices);
+    setInvoices(loadedInvoices);
+
+    const loadedInfluencers = loadBrandStorage(normalizedSlug, 'influencers', dataset.influencers);
+    setInfluencers(loadedInfluencers);
+
+    const loadedQuotas = loadBrandStorage(normalizedSlug, 'quotas', dataset.quotas || INITIAL_QUOTAS);
+    setQuotas(loadedQuotas);
+
+    const loadedActivities = loadBrandStorage(normalizedSlug, 'activities', dataset.activities || INITIAL_ACTIVITIES);
+    setActivities(loadedActivities);
+
+    const loadedAttendances = loadBrandStorage(normalizedSlug, 'attendances', dataset.attendances || INITIAL_ATTENDANCE);
+    setAttendances(loadedAttendances);
+
+    const loadedBudget = loadBrandStorage(normalizedSlug, 'budget_requests', dataset.budgetRequests || INITIAL_BUDGET_REQUESTS);
+    setBudgetRequests(loadedBudget);
+
+    const loadedShoots = loadBrandStorage(normalizedSlug, 'shoot_requests', dataset.shootRequests || INITIAL_SHOOT_REQUESTS);
+    setShootRequests(loadedShoots);
+
+    const loadedWallet = loadBrandStorage(normalizedSlug, 'wallet_transactions', dataset.walletTransactions || INITIAL_WALLET_TRANSACTIONS);
+    setWalletTransactions(loadedWallet);
+
+    const loadedReimburse = loadBrandStorage(normalizedSlug, 'hq_reimbursements', dataset.hqReimbursements || INITIAL_HQ_REIMBURSEMENTS);
+    setHqReimbursements(loadedReimburse);
+
+    const loadedTodos = loadBrandStorage(normalizedSlug, 'hq_todos', dataset.hqTodos || INITIAL_HQ_TODOS);
+    setHqTodos(loadedTodos);
+
+    const loadedChat = loadBrandStorage(normalizedSlug, 'team_chat_messages', dataset.teamChatMessages || INITIAL_TEAM_CHAT_MESSAGES);
+    setTeamChatMessages(loadedChat);
+
+    const loadedAgendas = loadBrandStorage(normalizedSlug, 'meeting_agendas', dataset.meetingAgendas || INITIAL_MEETING_AGENDAS);
+    setMeetingAgendas(loadedAgendas);
+
+    const loadedVouchers = loadBrandStorage(normalizedSlug, 'voucher_campaigns', dataset.voucherCampaigns || INITIAL_VOUCHER_CAMPAIGNS);
+    setVoucherCampaigns(loadedVouchers);
+
+    const loadedExposure = loadBrandStorage(normalizedSlug, 'exposure_slots', dataset.exposureSlots || INITIAL_EXPOSURE_SLOTS);
+    setExposureSlots(loadedExposure);
+
+    const authVal = autoLogin ? true : loadBrandStorage(normalizedSlug, 'is_authenticated', false);
+    const userVal = autoLogin ? (loadedUsers[0]?.id || '') : loadBrandStorage(normalizedSlug, 'user_id', loadedUsers[0]?.id || '');
+
+    setIsAuthenticated(authVal);
+    setCurrentUserId(userVal);
+    setSelectedBranchFilter('all');
+
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState({}, '', `/${normalizedSlug}`);
+    }
+  };
+
+  const addPlatformBrand = (brandData: Omit<PlatformBrandTenant, 'id' | 'created_at' | 'last_active_at'>): { success: boolean; message: string; brand?: PlatformBrandTenant } => {
+    const slugClean = (brandData.slug || brandData.name.toLowerCase().replace(/[^a-z0-9]/g, '')).trim();
+    if (platformBrands.some((b) => b.slug.toLowerCase() === slugClean.toLowerCase())) {
+      return { success: false, message: `Domain slug "${slugClean}" sudah terdaftar!` };
+    }
+    const newBrand: PlatformBrandTenant = {
+      ...brandData,
+      id: `brand-${Date.now()}`,
+      slug: slugClean,
+      created_at: simulatedDate,
+      last_active_at: `${simulatedDate} 09:00`,
+      wallet_balance: brandData.wallet_balance || 0
+    };
+    setPlatformBrands((prev) => [newBrand, ...prev]);
+
+    // Create owner account for the newly invited brand
+    const ownerEmail = newBrand.hq_owner_email;
+    if (!users.some((u) => u.email.toLowerCase() === ownerEmail.toLowerCase())) {
+      const newOwnerUser: UserProfile = {
+        id: `user-owner-${newBrand.slug}`,
+        branch_id: null,
+        role: 'hq_owner',
+        full_name: `${newBrand.hq_owner_name} (Owner ${newBrand.name})`,
+        email: newBrand.hq_owner_email,
+        phone: newBrand.hq_owner_phone,
+        job_title: `HQ Brand Owner & Founder (${newBrand.name})`,
+        status: 'active',
+        password: '1',
+        joined_date: simulatedDate
+      };
+      setUsers((prev) => [...prev, newOwnerUser]);
+    }
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'request_status_changed',
+      title: `Brand Baru Terdaftar: ${newBrand.name}`,
+      description: `Brand ${newBrand.name} berhasil diundang & didaftarkan ke mediasocial.team/${newBrand.slug} (${newBrand.subscription_plan_id.toUpperCase()} Plan).`,
+      severity: 'info',
+      link_tab: 'dashboard'
+    });
+
+    return { 
+      success: true, 
+      message: `Brand ${newBrand.name} berhasil didaftarkan! Subdomain: mediasocial.team/${newBrand.slug}`, 
+      brand: newBrand 
+    };
+  };
+
+  const updatePlatformBrand = (id: string, updates: Partial<PlatformBrandTenant>) => {
+    setPlatformBrands((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
+    );
+  };
+
+  const deletePlatformBrand = (id: string): { success: boolean; message: string } => {
+    setPlatformBrands((prev) => prev.filter((b) => b.id !== id));
+    return { success: true, message: 'Brand berhasil dihapus dari platform.' };
+  };
+
+  const updateSubscriptionPlan = (id: string, updates: Partial<BrandSubscriptionPlan>) => {
+    setSubscriptionPlans((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    );
+  };
+
+  const requestPlatformWithdrawal = (
+    amount: number,
+    bankName: string,
+    accountNumber: string,
+    accountHolder: string,
+    notes?: string
+  ): { success: boolean; message: string } => {
+    if (amount <= 0) {
+      return { success: false, message: 'Jumlah penarikan harus lebih besar dari Rp 0!' };
+    }
+    if (amount > platformWalletBalance) {
+      return { 
+        success: false, 
+        message: `Saldo wallet platform tidak mencukupi. (Tersedia: Rp ${platformWalletBalance.toLocaleString('id-ID')})` 
+      };
+    }
+    const refNo = `TRX-WD-${Date.now().toString().slice(-6)}`;
+    const newWd: PlatformWalletWithdrawal = {
+      id: `wd-${Date.now()}`,
+      amount,
+      bank_name: bankName,
+      account_number: accountNumber,
+      account_holder: accountHolder,
+      status: 'pending',
+      requested_by: currentUser.id,
+      requested_by_name: currentUser.full_name,
+      created_at: `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
+      reference_no: refNo,
+      notes: notes || 'Pencairan manual saldo subscription (siap integrasi payment gateway API)'
+    };
+    setPlatformWithdrawals((prev) => [newWd, ...prev]);
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'invoice_generated',
+      title: `Penarikan Dana Diajukan: Rp ${amount.toLocaleString('id-ID')}`,
+      description: `Owner mengajukan pencairan subscription ke ${bankName} (${accountNumber} a/n ${accountHolder}). Ref: ${refNo}`,
+      severity: 'warning',
+      link_tab: 'dashboard'
+    });
+
+    return { success: true, message: `Permintaan penarikan Rp ${amount.toLocaleString('id-ID')} berhasil diajukan!` };
+  };
+
+  const updateWithdrawalStatus = (id: string, status: PlatformWalletWithdrawal['status'], referenceNo?: string) => {
+    setPlatformWithdrawals((prev) =>
+      prev.map((w) => {
+        if (w.id === id) {
+          return {
+            ...w,
+            status,
+            reference_no: referenceNo || w.reference_no,
+            completed_at: status === 'completed' ? `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : w.completed_at
+          };
+        }
+        return w;
+      })
+    );
+  };
+
+  const sendSubscriptionReminder = (brandId: string, channel: 'whatsapp' | 'email' = 'whatsapp'): { success: boolean; message: string; waUrl?: string } => {
+    const brand = platformBrands.find((b) => b.id === brandId);
+    if (!brand) return { success: false, message: 'Brand tidak ditemukan' };
+
+    const plan = subscriptionPlans.find((p) => p.id === brand.subscription_plan_id);
+    const planName = plan?.name || 'Paket Langganan';
+    const cleanPhone = brand.hq_owner_phone.replace(/[^0-9]/g, '');
+    const intlPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone;
+
+    const messageText = `Halo Kak ${brand.hq_owner_name} (${brand.name})!\n\nKami dari tim mediasocial.team ingin menginformasikan bahwa paket langganan ${planName} untuk brand Anda akan jatuh tempo pada ${brand.subscription_end_date}.\n\nTotal tagihan perpanjangan: Rp ${brand.monthly_fee.toLocaleString('id-ID')}/bulan.\n\nMohon lakukan pembayaran perpanjangan agar seluruh operasional ${brand.branches_count} cabang & tim kreatif tetap berjalan lancar.\n\nTerima kasih,\nFinance mediasocial.team`;
+
+    const waUrl = `https://wa.me/${intlPhone}?text=${encodeURIComponent(messageText)}`;
+
+    const newLog: SubscriptionReminderLog = {
+      id: `rem-${Date.now()}`,
+      brand_id: brand.id,
+      brand_name: brand.name,
+      recipient_name: brand.hq_owner_name,
+      recipient_phone: brand.hq_owner_phone,
+      recipient_email: brand.hq_owner_email,
+      days_remaining: Math.ceil((new Date(brand.subscription_end_date).getTime() - new Date(simulatedDate).getTime()) / (1000 * 3600 * 24)),
+      channel,
+      message_preview: messageText.slice(0, 120) + '...',
+      sent_at: `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
+      sent_by: currentUser.full_name,
+      status: 'delivered'
+    };
+
+    setSubscriptionReminders((prev) => [newLog, ...prev]);
+
+    return { 
+      success: true, 
+      message: `Reminder WhatsApp disiapkan untuk Kak ${brand.hq_owner_name} (${brand.name})!`,
+      waUrl 
+    };
+  };
+
+  const jumpToBrandAsHQOwner = (brandSlug: string) => {
+    switchTenantBrand(brandSlug, true);
+  };
+
+  // Reset to default
+  const resetToDefaultData = () => {
+    const dataset = getInitialBrandDataset(activeTenantSlug);
+    setWhitelabelConfig(dataset.whitelabel);
+    setBranches(dataset.branches);
+    setUsers(dataset.users);
+    setDesignRequests(dataset.designRequests);
+    setPromos(dataset.promos);
+    setInvoices(dataset.invoices);
+    setInfluencers(dataset.influencers);
+    setQuotas(INITIAL_QUOTAS);
+    setActivities(INITIAL_ACTIVITIES);
+    setAttendances(INITIAL_ATTENDANCE);
+    setBudgetRequests(INITIAL_BUDGET_REQUESTS);
+    setShootRequests(INITIAL_SHOOT_REQUESTS);
+    setWalletTransactions(INITIAL_WALLET_TRANSACTIONS);
+    setHqReimbursements(INITIAL_HQ_REIMBURSEMENTS);
+    setHqTodos(INITIAL_HQ_TODOS);
+    setTeamChatMessages(INITIAL_TEAM_CHAT_MESSAGES);
+    setMeetingAgendas(INITIAL_MEETING_AGENDAS);
+    setVoucherCampaigns(INITIAL_VOUCHER_CAMPAIGNS);
+    setExposureSlots(INITIAL_EXPOSURE_SLOTS);
+    setSelectedBranchFilter('all');
+    if (dataset.users.length > 0) {
+      setCurrentUserId(dataset.users[0].id);
+    }
+  };
+
+  return (
+    <PortalContext.Provider
+      value={{
+        currentUser,
+        activeRole,
+        isHQOwner,
+        isHQLeader,
+        isHQCreative,
+        isHQ,
+        isBranchOwner,
+        isBranchManager,
+        isBranchUser,
+        canAccessBilling,
+        canAccessUserManagement,
+        canAccessBranchManagement,
+        canAccessWhitelabel,
+        canAccessAttendance,
+
+        // SaaS Super-Admin Platform Level (mediasocial.team)
+        isPlatformOwner,
+        isPlatformFinance,
+        isPlatformAdmin,
+        isPlatformUser,
+        platformBrands,
+        activeTenantSlug,
+        currentPlatformBrand,
+        subscriptionPlans,
+        platformWithdrawals,
+        subscriptionReminders,
+        platformWalletBalance,
+        totalPlatformMRR,
+        totalPlatformARR,
+        switchTenantBrand,
+        addPlatformBrand,
+        updatePlatformBrand,
+        deletePlatformBrand,
+        updateSubscriptionPlan,
+        requestPlatformWithdrawal,
+        updateWithdrawalStatus,
+        sendSubscriptionReminder,
+        jumpToBrandAsHQOwner,
+
+        currentBranch,
+        selectedBranchFilter,
+        simulatedDate,
+        branches,
+        quotas,
+        designRequests,
+        promos,
+        invoices,
+        exposureSlots,
+        influencers,
+        voucherCampaigns,
+        redeemVoucherCode,
+        addVoucherCampaign,
+        activities,
+        unreadNotificationsCount,
+        unreadChatCount,
+        markChatAsRead,
+        isActivityVisibleForUser,
+
+        // Authentication
+        isAuthenticated,
+        login,
+        logout,
+        changePassword,
+
+        // Language
+        language,
+        setLanguage,
+        t,
+
+        // Whitelabel & Theme Mode
+        whitelabelConfig,
+        themeColors,
+        themeMode,
+        setThemeMode,
+        toggleThemeMode,
+        updateWhitelabelConfig,
+        resetWhitelabelConfig,
+
+        // Branch Management & Wallet System
+        addBranch,
+        updateBranch,
+        deleteBranch,
+        walletTransactions,
+        topUpBranchWallet,
+        verifyWalletTransaction,
+
+        // User Management
+        users,
+        addUser,
+        updateUser,
+        switchUser,
+
+        // Attendance
+        attendances,
+        todayAttendance,
+        clockIn,
+        clockOut,
+        updateWorkLog,
+
+        // Budget & Shoot requests
+        budgetRequests,
+        addBudgetRequest,
+        approveBudgetRequest,
+        rejectBudgetRequest,
+        disburseBudgetRequest,
+        acknowledgeBudgetDisbursement,
+        submitBudgetCompletionReport,
+        shootRequests,
+        addShootRequest,
+        updateShootRequestStatus,
+
+        // HQ Operational Reimbursements & Expenses
+        hqReimbursements,
+        addHqReimbursement,
+        approveHqReimbursement,
+        rejectHqReimbursement,
+        disburseHqReimbursementBatch,
+
+        // HQ To-Do List & Auto Work Log
+        hqTodos,
+        addHqTodo,
+        toggleHqTodo,
+        deleteHqTodo,
+        generateClockOutWhatsappReport,
+
+        // Team Chat & Collaboration Hub
+        teamChatMessages,
+        sendTeamChatMessage,
+
+        // Calendar Meeting Agendas
+        meetingAgendas,
+        addMeetingAgenda,
+        deleteMeetingAgenda,
+
+        // Branch Caption Settings
+        updateBranchCaptionSettings,
+
+        // Nav & Date
+        setSelectedBranchFilter,
+        setSimulatedDate,
+
+        // Activity
+        markActivityAsRead,
+        markAllActivitiesAsRead,
+        addActivity,
+
+        // Quotas & Requests
+        getBranchQuota,
+        calculateMinTargetDate,
+        isTargetDateValid,
+        isPromoSubmissionAllowed,
+        addDesignRequest,
+        updateDesignRequestStatus,
+        assignDesignRequest,
+        updateDesignRequestDeliverable,
+        addDesignComment,
+        updateDesignCaption,
+
+        // Promos
+        addPromoRequest,
+        updatePromoStatus,
+
+        // Invoicing
+        generateMonthlyInvoices,
+        updateBranchCustomPricing,
+        updateInvoiceCharges,
+        uploadPaymentProof,
+        verifyPayment,
+
+        // Exposure & Influencer
+        addExposureSlot,
+        updateExposureSlot,
+        deleteExposureSlot,
+        addInfluencer,
+        updateInfluencer,
+        deleteInfluencer,
+
+        // Reset
+        resetToDefaultData
+      }}
+    >
+      {children}
+    </PortalContext.Provider>
+  );
+};
+
+export const usePortal = () => {
+  const context = useContext(PortalContext);
+  if (!context) {
+    throw new Error('usePortal must be used within a PortalProvider');
+  }
+  return context;
+};
