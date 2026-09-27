@@ -276,7 +276,120 @@ create table if not exists public.subscription_reminders (
   sent_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 16. SEED INITIAL PLATFORM SUPERADMIN USER
+-- 16. TEAM CHAT & COLLABORATION MESSAGES TABLE
+create table if not exists public.team_chat_messages (
+  id text primary key default ('chat-' || substr(md5(random()::text), 1, 8)),
+  brand_slug text not null references public.platform_brands(slug) on delete cascade,
+  sender_id text not null,
+  sender_name text not null,
+  sender_role text not null,
+  sender_avatar text,
+  channel text check (channel in ('hq_internal', 'branch_collab')) not null default 'hq_internal',
+  branch_id text references public.branches(id) on delete set null,
+  branch_name text,
+  message text not null,
+  tagged_user_ids text[],
+  tagged_user_names text[],
+  linked_request_id text references public.design_requests(id) on delete set null,
+  linked_request_title text,
+  media_url text,
+  media_type text,
+  read_by text[],
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 17. ATTENDANCES TABLE (Quick Punch & Log)
+create table if not exists public.attendances (
+  id text primary key default ('att-' || substr(md5(random()::text), 1, 8)),
+  brand_slug text not null references public.platform_brands(slug) on delete cascade,
+  user_id text not null,
+  user_name text not null,
+  date date not null,
+  clock_in_time text not null,
+  clock_out_time text,
+  mode text check (mode in ('WFO', 'WFH', 'On-Site Visit', 'Shoot', 'Off')) not null default 'WFO',
+  status text check (status in ('present', 'completed', 'late', 'absent')) default 'present',
+  target_branch_id text references public.branches(id) on delete set null,
+  work_log text,
+  total_hours numeric default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 18. HQ TO-DO ITEMS TABLE (Dashboard Work Log)
+create table if not exists public.hq_todos (
+  id text primary key default ('todo-' || substr(md5(random()::text), 1, 8)),
+  brand_slug text not null references public.platform_brands(slug) on delete cascade,
+  user_id text,
+  user_name text,
+  title text not null,
+  category text default 'general',
+  related_request_id text,
+  target_date text,
+  completed boolean default false,
+  completed_at text,
+  included_in_work_log boolean default false,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 19. SHOOT REQUESTS TABLE
+create table if not exists public.shoot_requests (
+  id text primary key default ('shoot-' || substr(md5(random()::text), 1, 8)),
+  brand_slug text not null references public.platform_brands(slug) on delete cascade,
+  branch_id text not null references public.branches(id) on delete cascade,
+  branch_name text not null,
+  requester_id text,
+  requester_name text,
+  requester_role text,
+  type text default 'photoshoot_visit',
+  title text not null,
+  preferred_date text not null,
+  details text not null,
+  focus_products text[],
+  status text check (status in ('pending', 'scheduled', 'in_progress', 'completed', 'cancelled')) default 'pending',
+  assigned_creative_id text,
+  assigned_creative_name text,
+  notes text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 20. BUDGET REQUESTS TABLE
+create table if not exists public.budget_requests (
+  id text primary key default ('bud-' || substr(md5(random()::text), 1, 8)),
+  brand_slug text not null references public.platform_brands(slug) on delete cascade,
+  target_branch_id text,
+  target_branch_name text,
+  requester_id text,
+  requester_name text,
+  requester_role text,
+  type text default 'meta_ads',
+  title text not null,
+  amount numeric not null,
+  objective text,
+  status text check (status in ('pending_approval', 'approved', 'rejected', 'disbursed', 'acknowledged', 'completed')) default 'pending_approval',
+  approved_by text,
+  disbursed_by text,
+  disbursed_at text,
+  transfer_proof_url text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 21. MEETING AGENDAS TABLE
+create table if not exists public.meeting_agendas (
+  id text primary key default ('meet-' || substr(md5(random()::text), 1, 8)),
+  brand_slug text not null references public.platform_brands(slug) on delete cascade,
+  title text not null,
+  host_name text,
+  date text not null,
+  start_time text not null,
+  end_time text not null,
+  type text default 'hq_sync',
+  location_or_link text not null,
+  attendees text[],
+  notes text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 22. SEED INITIAL PLATFORM SUPERADMIN USER
 -- Login: Phone: 08159998757, Password: Media
 insert into public.users (
   id,
@@ -305,7 +418,7 @@ insert into public.users (
   role = excluded.role,
   full_name = excluded.full_name;
 
--- 17. SEED INITIAL SUBSCRIPTION PLANS
+-- 23. SEED INITIAL SUBSCRIPTION PLANS
 insert into public.platform_plans (
   id, name, monthly_price, annual_price, max_branches, 
   max_design_requests_per_branch, max_promos_per_branch, 
@@ -323,7 +436,7 @@ on conflict (id) do update set
   max_design_requests_per_branch = excluded.max_design_requests_per_branch,
   max_promos_per_branch = excluded.max_promos_per_branch;
 
--- 18. ENABLE ROW LEVEL SECURITY (RLS) & POLICIES
+-- 24. ENABLE ROW LEVEL SECURITY (RLS) & POLICIES
 alter table public.platform_brands enable row level security;
 alter table public.whitelabel_configs enable row level security;
 alter table public.branches enable row level security;
@@ -338,6 +451,12 @@ alter table public.influencers enable row level security;
 alter table public.platform_plans enable row level security;
 alter table public.platform_withdrawals enable row level security;
 alter table public.subscription_reminders enable row level security;
+alter table public.team_chat_messages enable row level security;
+alter table public.attendances enable row level security;
+alter table public.hq_todos enable row level security;
+alter table public.shoot_requests enable row level security;
+alter table public.budget_requests enable row level security;
+alter table public.meeting_agendas enable row level security;
 
 -- Anonymous public policy for application client
 create policy "Allow all public operations" on public.platform_brands for all using (true) with check (true);
@@ -354,3 +473,10 @@ create policy "Allow all public operations" on public.influencers for all using 
 create policy "Allow all public operations" on public.platform_plans for all using (true) with check (true);
 create policy "Allow all public operations" on public.platform_withdrawals for all using (true) with check (true);
 create policy "Allow all public operations" on public.subscription_reminders for all using (true) with check (true);
+create policy "Allow all public operations" on public.team_chat_messages for all using (true) with check (true);
+create policy "Allow all public operations" on public.attendances for all using (true) with check (true);
+create policy "Allow all public operations" on public.hq_todos for all using (true) with check (true);
+create policy "Allow all public operations" on public.shoot_requests for all using (true) with check (true);
+create policy "Allow all public operations" on public.budget_requests for all using (true) with check (true);
+create policy "Allow all public operations" on public.meeting_agendas for all using (true) with check (true);
+

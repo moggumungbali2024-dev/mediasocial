@@ -452,6 +452,28 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setWhitelabelConfig((prev) => {
       const updated = { ...prev, ...newConfig };
       saveBrandStorage(activeTenantSlug, 'whitelabel', updated);
+      SupabaseService.exportDataToSupabase('whitelabel_configs', [{
+        brand_slug: activeTenantSlug,
+        brand_name: updated.brand_name,
+        brand_subtitle: updated.brand_subtitle,
+        brand_monogram: updated.brand_monogram,
+        brand_logo_url: updated.brand_logo_url || null,
+        theme_accent: updated.theme_accent || 'kinetic_orange',
+        custom_primary_hex: updated.custom_primary_hex || '#FF5B14',
+        company_legal_name: updated.company_legal_name,
+        hq_location: updated.hq_location,
+        hq_address: updated.hq_address,
+        contact_email: updated.contact_email,
+        contact_whatsapp: updated.contact_whatsapp,
+        bank_name: updated.bank_name,
+        bank_account_number: updated.bank_account_number,
+        bank_account_name: updated.bank_account_name,
+        default_monthly_retainer: updated.default_monthly_retainer,
+        max_monthly_design_requests: updated.max_monthly_design_requests,
+        max_monthly_active_promos: updated.max_monthly_active_promos,
+        design_min_lead_days: updated.design_min_lead_days,
+        promo_cutoff_day_of_month: updated.promo_cutoff_day_of_month
+      }]).catch(err => console.warn('Sync whitelabel to Supabase:', err));
       return updated;
     });
   };
@@ -1193,6 +1215,161 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }));
         setBranches(remoteBranches);
       }
+
+      // 5. Fetch Team Chat Messages
+      const chatRes = await SupabaseService.fetchFromSupabase<any>('team_chat_messages', `brand_slug=eq.${activeTenantSlug}&order=created_at.asc`);
+      if (chatRes.success && chatRes.data && chatRes.data.length > 0) {
+        const remoteChats: TeamChatMessage[] = chatRes.data.map((c: any) => ({
+          id: c.id,
+          sender_id: c.sender_id,
+          sender_name: c.sender_name,
+          sender_role: c.sender_role as UserRole,
+          sender_avatar: c.sender_avatar || '',
+          channel: c.channel as 'hq_internal' | 'branch_collab',
+          branch_id: c.branch_id || undefined,
+          branch_name: c.branch_name || undefined,
+          message: c.message,
+          tagged_user_ids: c.tagged_user_ids || [],
+          tagged_user_names: c.tagged_user_names || [],
+          linked_request_id: c.linked_request_id || undefined,
+          linked_request_title: c.linked_request_title || undefined,
+          media_url: c.media_url || undefined,
+          media_type: c.media_type as 'image' | 'video' | undefined,
+          read_by: c.read_by || [],
+          created_at: c.created_at ? (c.created_at.includes('T') ? c.created_at.replace('T', ' ').slice(0, 16) : c.created_at) : '2026-09-27 12:00'
+        }));
+        setTeamChatMessages(remoteChats);
+      }
+
+      // 6. Fetch Design Requests
+      const reqsRes = await SupabaseService.fetchFromSupabase<any>('design_requests', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
+      if (reqsRes.success && reqsRes.data && reqsRes.data.length > 0) {
+        const remoteReqs: DesignRequest[] = reqsRes.data.map((r: any) => ({
+          id: r.id,
+          branch_id: r.branch_id,
+          title: r.title,
+          description: r.description,
+          target_date: r.target_date,
+          status: r.status as RequestStatus,
+          category: r.category as ContentPillar,
+          asset_result_url: r.asset_result_url || undefined,
+          preview_media_url: r.preview_media_url || undefined,
+          preview_media_type: r.preview_media_type || undefined,
+          canva_url: r.canva_url || undefined,
+          figma_url: r.figma_url || undefined,
+          drive_url: r.drive_url || undefined,
+          caption: r.caption || undefined,
+          brief_attachment_name: r.brief_attachment_name || undefined,
+          feedback_notes: r.feedback_notes || undefined,
+          assigned_to_user_id: r.assigned_to_user_id || undefined,
+          assigned_to_name: r.assigned_to_name || undefined,
+          approval_mode: r.approval_mode || 'self_approved',
+          created_at: r.created_at ? r.created_at.split('T')[0] : '2026-09-27'
+        }));
+        setDesignRequests(remoteReqs);
+      }
+
+      // 7. Fetch Promos
+      const promosRes = await SupabaseService.fetchFromSupabase<any>('promos', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
+      if (promosRes.success && promosRes.data && promosRes.data.length > 0) {
+        const remotePromos: PromoRequest[] = promosRes.data.map((p: any) => ({
+          id: p.id,
+          branch_id: p.branch_id,
+          title: p.title,
+          mechanic: p.mechanic,
+          target_month: p.target_month,
+          start_date: p.start_date,
+          end_date: p.end_date,
+          terms: p.terms || '',
+          status: p.status as PromoRequest['status'],
+          created_at: p.created_at ? p.created_at.split('T')[0] : '2026-09-27'
+        }));
+        setPromos(remotePromos);
+      }
+
+      // 8. Fetch Invoices
+      const invsRes = await SupabaseService.fetchFromSupabase<any>('invoices', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
+      if (invsRes.success && invsRes.data && invsRes.data.length > 0) {
+        const remoteInvs: Invoice[] = invsRes.data.map((i: any) => ({
+          id: i.id,
+          branch_id: i.branch_id,
+          invoice_number: i.invoice_number,
+          period_month: i.period_month,
+          retainer_fee: Number(i.retainer_fee),
+          visit_fee: Number(i.visit_fee) || 0,
+          ad_budget: Number(i.ad_budget) || 0,
+          total_amount: Number(i.total_amount),
+          status: i.status as Invoice['status'],
+          proof_url: i.proof_url || undefined,
+          proof_notes: i.proof_notes || undefined,
+          due_date: i.due_date,
+          payment_date: i.payment_date || undefined,
+          created_at: i.created_at ? i.created_at.split('T')[0] : '2026-09-27'
+        }));
+        setInvoices(remoteInvs);
+      }
+
+      // 9. Fetch Attendances
+      const attRes = await SupabaseService.fetchFromSupabase<any>('attendances', `brand_slug=eq.${activeTenantSlug}&order=date.desc`);
+      if (attRes.success && attRes.data && attRes.data.length > 0) {
+        const remoteAtt: AttendanceRecord[] = attRes.data.map((a: any) => ({
+          id: a.id,
+          user_id: a.user_id,
+          user_name: a.user_name,
+          date: a.date,
+          clock_in_time: a.clock_in_time,
+          clock_out_time: a.clock_out_time || undefined,
+          mode: a.mode as AttendanceMode,
+          status: a.status as AttendanceRecord['status'],
+          work_log: a.work_log || '',
+          target_branch_id: a.target_branch_id || undefined,
+          total_hours: a.total_hours ? Number(a.total_hours) : undefined
+        }));
+        setAttendances(remoteAtt);
+      }
+
+      // 10. Fetch HQ Todos
+      const todosRes = await SupabaseService.fetchFromSupabase<any>('hq_todos', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
+      if (todosRes.success && todosRes.data && todosRes.data.length > 0) {
+        const remoteTodos: HqTodoItem[] = todosRes.data.map((t: any) => ({
+          id: t.id,
+          user_id: t.user_id || '',
+          user_name: t.user_name || '',
+          title: t.title,
+          category: t.category || 'general',
+          related_request_id: t.related_request_id || undefined,
+          target_date: t.target_date || undefined,
+          completed: Boolean(t.completed),
+          completed_at: t.completed_at || undefined,
+          included_in_work_log: Boolean(t.included_in_work_log),
+          created_at: t.created_at ? (t.created_at.includes('T') ? t.created_at.split('T')[0] : t.created_at) : '2026-09-27'
+        }));
+        setHqTodos(remoteTodos);
+      }
+
+      // 11. Fetch Shoot Requests
+      const shootsRes = await SupabaseService.fetchFromSupabase<any>('shoot_requests', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
+      if (shootsRes.success && shootsRes.data && shootsRes.data.length > 0) {
+        const remoteShoots: ShootRequest[] = shootsRes.data.map((s: any) => ({
+          id: s.id,
+          branch_id: s.branch_id,
+          branch_name: s.branch_name,
+          requester_id: s.requester_id || '',
+          requester_name: s.requester_name || '',
+          requester_role: s.requester_role as UserRole,
+          type: s.type || 'photoshoot_visit',
+          title: s.title,
+          preferred_date: s.preferred_date,
+          details: s.details || '',
+          focus_products: s.focus_products || [],
+          status: s.status as ShootRequest['status'],
+          assigned_creative_id: s.assigned_creative_id || undefined,
+          assigned_creative_name: s.assigned_creative_name || undefined,
+          notes: s.notes || undefined,
+          created_at: s.created_at ? s.created_at.split('T')[0] : '2026-09-27'
+        }));
+        setShootRequests(remoteShoots);
+      }
     } catch (e) {
       console.warn('Sync from Supabase:', e);
     }
@@ -1202,7 +1379,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     syncFromSupabase();
     const handleFocus = () => syncFromSupabase();
     window.addEventListener('focus', handleFocus);
-    const interval = setInterval(syncFromSupabase, 10000);
+    const interval = setInterval(syncFromSupabase, 4000);
     return () => {
       window.removeEventListener('focus', handleFocus);
       clearInterval(interval);
@@ -1469,6 +1646,20 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setAttendances((prev) => [newRecord, ...prev]);
 
+    // Push to Supabase
+    SupabaseService.exportDataToSupabase('attendances', [{
+      id: newRecord.id,
+      brand_slug: activeTenantSlug,
+      user_id: newRecord.user_id,
+      user_name: newRecord.user_name,
+      date: newRecord.date,
+      clock_in_time: newRecord.clock_in_time,
+      mode: newRecord.mode,
+      status: newRecord.status,
+      work_log: '',
+      target_branch_id: targetBranchId || null
+    }]).catch(err => console.warn('Sync clockIn to Supabase:', err));
+
     addActivity({
       user_name: currentUser.full_name,
       action_type: 'attendance_clocked_in',
@@ -1493,19 +1684,32 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (diff < 0) diff += 24;
     const totalHours = Math.max(1, Math.round(diff * 10) / 10);
 
+    const updatedAtt: AttendanceRecord = {
+      ...todayAttendance,
+      clock_out_time: nowTime,
+      status: 'completed',
+      total_hours: totalHours,
+      work_log: workLog !== undefined ? workLog : todayAttendance.work_log
+    };
+
     setAttendances((prev) =>
-      prev.map((a) =>
-        a.id === todayAttendance.id
-          ? {
-              ...a,
-              clock_out_time: nowTime,
-              status: 'completed',
-              total_hours: totalHours,
-              work_log: workLog !== undefined ? workLog : a.work_log
-            }
-          : a
-      )
+      prev.map((a) => (a.id === todayAttendance.id ? updatedAtt : a))
     );
+
+    // Push to Supabase
+    SupabaseService.exportDataToSupabase('attendances', [{
+      id: updatedAtt.id,
+      brand_slug: activeTenantSlug,
+      user_id: updatedAtt.user_id,
+      user_name: updatedAtt.user_name,
+      date: updatedAtt.date,
+      clock_in_time: updatedAtt.clock_in_time,
+      clock_out_time: updatedAtt.clock_out_time,
+      mode: updatedAtt.mode,
+      status: updatedAtt.status,
+      work_log: updatedAtt.work_log,
+      total_hours: updatedAtt.total_hours
+    }]).catch(err => console.warn('Sync clockOut to Supabase:', err));
 
     addActivity({
       user_name: currentUser.full_name,
@@ -1522,7 +1726,22 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateWorkLog = (workLog: string) => {
     if (!todayAttendance) return;
     setAttendances((prev) =>
-      prev.map((a) => (a.id === todayAttendance.id ? { ...a, work_log: workLog } : a))
+      prev.map((a) => {
+        if (a.id === todayAttendance.id) {
+          const updated = { ...a, work_log: workLog };
+          SupabaseService.exportDataToSupabase('attendances', [{
+            id: updated.id,
+            brand_slug: activeTenantSlug,
+            user_id: updated.user_id,
+            user_name: updated.user_name,
+            date: updated.date,
+            clock_in_time: updated.clock_in_time,
+            work_log: updated.work_log
+          }]).catch(err => console.warn('Sync workLog to Supabase:', err));
+          return updated;
+        }
+        return a;
+      })
     );
   };
 
@@ -2016,6 +2235,19 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     setHqTodos((prev) => [newTodo, ...prev]);
+
+    SupabaseService.exportDataToSupabase('hq_todos', [{
+      id: newTodo.id,
+      brand_slug: activeTenantSlug,
+      user_id: newTodo.user_id,
+      user_name: newTodo.user_name,
+      title: newTodo.title,
+      category: newTodo.category,
+      related_request_id: newTodo.related_request_id || null,
+      target_date: newTodo.target_date || null,
+      completed: false,
+      included_in_work_log: false
+    }]).catch(err => console.warn('Sync addHqTodo to Supabase:', err));
   };
 
   const toggleHqTodo = (id: string) => {
@@ -2023,12 +2255,24 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       prev.map((t) => {
         if (t.id === id) {
           const nextCompleted = !t.completed;
-          return {
+          const updated = {
             ...t,
             completed: nextCompleted,
             completed_at: nextCompleted ? `${simulatedDate} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined,
             included_in_work_log: nextCompleted
           };
+          SupabaseService.exportDataToSupabase('hq_todos', [{
+            id: updated.id,
+            brand_slug: activeTenantSlug,
+            user_id: updated.user_id,
+            user_name: updated.user_name,
+            title: updated.title,
+            category: updated.category,
+            completed: updated.completed,
+            completed_at: updated.completed_at || null,
+            included_in_work_log: updated.included_in_work_log
+          }]).catch(err => console.warn('Sync toggleHqTodo to Supabase:', err));
+          return updated;
         }
         return t;
       })
@@ -2037,6 +2281,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteHqTodo = (id: string) => {
     setHqTodos((prev) => prev.filter((t) => t.id !== id));
+    SupabaseService.deleteFromSupabase('hq_todos', `id=eq.${id}&brand_slug=eq.${activeTenantSlug}`).catch(err => console.warn('Sync deleteHqTodo to Supabase:', err));
   };
 
   const generateClockOutWhatsappReport = (): { reportText: string; waUrl: string } => {
@@ -2100,7 +2345,13 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (channel && msg.channel !== channel) return msg;
         const currentReads = msg.read_by || [];
         if (!currentReads.includes(currentUser.id)) {
-          return { ...msg, read_by: [...currentReads, currentUser.id] };
+          const updated = { ...msg, read_by: [...currentReads, currentUser.id] };
+          SupabaseService.exportDataToSupabase('team_chat_messages', [{
+            id: updated.id,
+            brand_slug: activeTenantSlug,
+            read_by: updated.read_by
+          }]).catch(err => console.warn('Sync read_by to Supabase:', err));
+          return updated;
         }
         return msg;
       })
@@ -2146,6 +2397,27 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setTeamChatMessages((prev) => [...prev, newMsg]);
 
+    // Push to Supabase immediately so other devices get it
+    SupabaseService.exportDataToSupabase('team_chat_messages', [{
+      id: newMsg.id,
+      brand_slug: activeTenantSlug,
+      sender_id: newMsg.sender_id,
+      sender_name: newMsg.sender_name,
+      sender_role: newMsg.sender_role,
+      sender_avatar: newMsg.sender_avatar || '',
+      channel: newMsg.channel,
+      branch_id: newMsg.branch_id || null,
+      branch_name: newMsg.branch_name || null,
+      message: newMsg.message,
+      tagged_user_ids: newMsg.tagged_user_ids || [],
+      tagged_user_names: newMsg.tagged_user_names || [],
+      linked_request_id: newMsg.linked_request_id || null,
+      linked_request_title: newMsg.linked_request_title || null,
+      media_url: newMsg.media_url || null,
+      media_type: newMsg.media_type || null,
+      read_by: newMsg.read_by || []
+    }]).catch(err => console.warn('Sync sendTeamChatMessage to Supabase:', err));
+
     // Send notifications to tagged users
     if (taggedUserIds.length > 0) {
       addActivity({
@@ -2170,6 +2442,20 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setMeetingAgendas((prev) => [newMeet, ...prev]);
 
+    SupabaseService.exportDataToSupabase('meeting_agendas', [{
+      id: newMeet.id,
+      brand_slug: activeTenantSlug,
+      title: newMeet.title,
+      host_name: newMeet.host_name || currentUser.full_name,
+      date: newMeet.date,
+      start_time: newMeet.start_time,
+      end_time: newMeet.end_time,
+      type: newMeet.type || 'hq_sync',
+      location_or_link: newMeet.location_or_link,
+      attendees: newMeet.attendees || [],
+      notes: newMeet.notes || ''
+    }]).catch(err => console.warn('Sync meeting to Supabase:', err));
+
     addActivity({
       user_name: currentUser.full_name,
       action_type: 'exposure_scheduled',
@@ -2187,6 +2473,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const deleteMeetingAgenda = (id: string) => {
     setMeetingAgendas((prev) => prev.filter((m) => m.id !== id));
+    SupabaseService.deleteFromSupabase('meeting_agendas', `id=eq.${id}&brand_slug=eq.${activeTenantSlug}`).catch(err => console.warn('Sync deleteMeeting to Supabase:', err));
   };
 
   // Branch Caption & Mockup Settings
@@ -2208,6 +2495,22 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     setShootRequests((prev) => [newShoot, ...prev]);
+
+    SupabaseService.exportDataToSupabase('shoot_requests', [{
+      id: newShoot.id,
+      brand_slug: activeTenantSlug,
+      branch_id: newShoot.branch_id,
+      branch_name: newShoot.branch_name,
+      requester_id: newShoot.requester_id,
+      requester_name: newShoot.requester_name,
+      requester_role: newShoot.requester_role,
+      type: newShoot.type || 'photoshoot_visit',
+      title: newShoot.title,
+      preferred_date: newShoot.preferred_date,
+      details: newShoot.details || '',
+      focus_products: newShoot.focus_products || [],
+      status: 'pending'
+    }]).catch(err => console.warn('Sync addShootRequest to Supabase:', err));
 
     addActivity({
       branch_id: data.branch_id,
@@ -2243,6 +2546,16 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (updatedShoot) {
+      SupabaseService.exportDataToSupabase('shoot_requests', [{
+        id: updatedShoot.id,
+        brand_slug: activeTenantSlug,
+        branch_id: updatedShoot.branch_id,
+        branch_name: updatedShoot.branch_name,
+        status: updatedShoot.status,
+        assigned_creative_id: updatedShoot.assigned_creative_id || null,
+        assigned_creative_name: updatedShoot.assigned_creative_name || null
+      }]).catch(err => console.warn('Sync updateShootRequest to Supabase:', err));
+
       addActivity({
         branch_id: updatedShoot.branch_id,
         branch_name: updatedShoot.branch_name,
@@ -2358,6 +2671,19 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setDesignRequests((prev) => [newRequest, ...prev]);
 
+    // Push new design request to Supabase
+    SupabaseService.exportDataToSupabase('design_requests', [{
+      id: newRequest.id,
+      brand_slug: activeTenantSlug,
+      branch_id: newRequest.branch_id,
+      title: newRequest.title,
+      description: newRequest.description,
+      target_date: newRequest.target_date,
+      status: 'pending',
+      category: newRequest.category,
+      brief_attachment_name: newRequest.brief_attachment_name || null
+    }]).catch(err => console.warn('Sync addDesignRequest to Supabase:', err));
+
     // Update quota
     setQuotas((prev) => {
       const idx = prev.findIndex(
@@ -2429,6 +2755,21 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetReq) {
+      SupabaseService.exportDataToSupabase('design_requests', [{
+        id: targetReq.id,
+        brand_slug: activeTenantSlug,
+        branch_id: targetReq.branch_id,
+        title: targetReq.title,
+        description: targetReq.description,
+        target_date: targetReq.target_date,
+        category: targetReq.category,
+        status: targetReq.status,
+        asset_result_url: targetReq.asset_result_url || null,
+        preview_media_url: targetReq.preview_media_url || null,
+        feedback_notes: targetReq.feedback_notes || null,
+        approval_mode: targetReq.approval_mode || 'self_approved'
+      }]).catch(err => console.warn('Sync updateDesignRequestStatus to Supabase:', err));
+
       const branch = branches.find((b) => b.id === targetReq?.branch_id);
       
       // Crucial: Send notification targeted to branch so branch users receive instant alerts!
@@ -2450,19 +2791,37 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const assignDesignRequest = (requestId: string, userId: string) => {
     const assignedUser = users.find((u) => u.id === userId);
+    let targetReq: DesignRequest | undefined;
+
     setDesignRequests((prev) =>
       prev.map((req) => {
         if (req.id === requestId) {
-          return {
+          targetReq = {
             ...req,
             assigned_to_user_id: userId,
             assigned_to_name: assignedUser?.full_name || 'Creative Staff',
             status: req.status === 'pending' ? 'in_progress' : req.status
           };
+          return targetReq;
         }
         return req;
       })
     );
+
+    if (targetReq) {
+      SupabaseService.exportDataToSupabase('design_requests', [{
+        id: targetReq.id,
+        brand_slug: activeTenantSlug,
+        branch_id: targetReq.branch_id,
+        title: targetReq.title,
+        description: targetReq.description,
+        target_date: targetReq.target_date,
+        category: targetReq.category,
+        status: targetReq.status,
+        assigned_to_user_id: targetReq.assigned_to_user_id || null,
+        assigned_to_name: targetReq.assigned_to_name || null
+      }]).catch(err => console.warn('Sync assignDesignRequest to Supabase:', err));
+    }
 
     addActivity({
       user_name: currentUser.full_name,
@@ -2533,6 +2892,25 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetReq) {
+      SupabaseService.exportDataToSupabase('design_requests', [{
+        id: targetReq.id,
+        brand_slug: activeTenantSlug,
+        branch_id: targetReq.branch_id,
+        title: targetReq.title,
+        description: targetReq.description,
+        target_date: targetReq.target_date,
+        category: targetReq.category,
+        status: targetReq.status,
+        asset_result_url: targetReq.asset_result_url || null,
+        preview_media_url: targetReq.preview_media_url || null,
+        preview_media_type: targetReq.preview_media_type || null,
+        canva_url: targetReq.canva_url || null,
+        figma_url: targetReq.figma_url || null,
+        drive_url: targetReq.drive_url || null,
+        caption: targetReq.caption || null,
+        approval_mode: targetReq.approval_mode || 'self_approved'
+      }]).catch(err => console.warn('Sync updateDesignRequestDeliverable to Supabase:', err));
+
       const branch = branches.find((b) => b.id === targetReq?.branch_id);
       addActivity({
         branch_id: targetReq.branch_id,
@@ -2646,6 +3024,19 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setPromos((prev) => [newPromo, ...prev]);
 
+    SupabaseService.exportDataToSupabase('promos', [{
+      id: newPromo.id,
+      brand_slug: activeTenantSlug,
+      branch_id: newPromo.branch_id,
+      title: newPromo.title,
+      mechanic: newPromo.mechanic,
+      target_month: newPromo.target_month,
+      start_date: newPromo.start_date,
+      end_date: newPromo.end_date,
+      terms: newPromo.terms,
+      status: 'active'
+    }]).catch(err => console.warn('Sync addPromoRequest to Supabase:', err));
+
     setQuotas((prev) => {
       const idx = prev.findIndex(
         (q) => q.branch_id === data.branch_id && q.period_month === periodMonth
@@ -2691,7 +3082,18 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const updatePromoStatus = (promoId: string, status: PromoRequest['status']) => {
     setPromos((prev) =>
-      prev.map((p) => (p.id === promoId ? { ...p, status } : p))
+      prev.map((p) => {
+        if (p.id === promoId) {
+          const updated = { ...p, status };
+          SupabaseService.exportDataToSupabase('promos', [{
+            id: updated.id,
+            brand_slug: activeTenantSlug,
+            status: updated.status
+          }]).catch(err => console.warn('Sync updatePromoStatus to Supabase:', err));
+          return updated;
+        }
+        return p;
+      })
     );
   };
 
@@ -2706,11 +3108,18 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       prev.map((b) => {
         if (b.id === branchId) {
           branchName = b.name;
-          return {
+          const updated = {
             ...b,
             custom_retainer_fee: customRetainerFee,
             package_tier: packageTier
           };
+          SupabaseService.exportDataToSupabase('branches', [{
+            id: updated.id,
+            brand_slug: activeTenantSlug,
+            custom_retainer_fee: updated.custom_retainer_fee,
+            package_tier: updated.package_tier
+          }]).catch(err => console.warn('Sync branch pricing to Supabase:', err));
+          return updated;
         }
         return b;
       })
@@ -2778,6 +3187,22 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     if (count > 0) {
       setInvoices((prev) => [...newInvoices, ...prev]);
+
+      // Push newly generated invoices to Supabase
+      SupabaseService.exportDataToSupabase('invoices', newInvoices.map((inv) => ({
+        id: inv.id,
+        brand_slug: activeTenantSlug,
+        branch_id: inv.branch_id,
+        invoice_number: inv.invoice_number,
+        period_month: inv.period_month,
+        retainer_fee: inv.retainer_fee,
+        visit_fee: inv.visit_fee,
+        ad_budget: inv.ad_budget,
+        total_amount: inv.total_amount,
+        status: inv.status,
+        due_date: inv.due_date
+      }))).catch(err => console.warn('Sync generateInvoices to Supabase:', err));
+
       return {
         generatedCount: count,
         message: `Successfully generated ${count} monthly invoices for ${targetPeriod}!`
@@ -2823,6 +3248,16 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetInv) {
+      SupabaseService.exportDataToSupabase('invoices', [{
+        id: targetInv.id,
+        brand_slug: activeTenantSlug,
+        retainer_fee: targetInv.retainer_fee,
+        visit_fee: targetInv.visit_fee,
+        ad_budget: targetInv.ad_budget,
+        total_amount: targetInv.total_amount,
+        status: targetInv.status
+      }]).catch(err => console.warn('Sync updateInvoiceCharges to Supabase:', err));
+
       const branch = branches.find((b) => b.id === targetInv?.branch_id);
       addActivity({
         branch_id: targetInv.branch_id,
@@ -2857,6 +3292,14 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetInv) {
+      SupabaseService.exportDataToSupabase('invoices', [{
+        id: targetInv.id,
+        brand_slug: activeTenantSlug,
+        status: 'proof_uploaded',
+        proof_url: targetInv.proof_url || null,
+        proof_notes: targetInv.proof_notes || null
+      }]).catch(err => console.warn('Sync uploadPaymentProof to Supabase:', err));
+
       const branch = branches.find((b) => b.id === targetInv?.branch_id);
       addActivity({
         branch_id: targetInv.branch_id,
@@ -2890,6 +3333,13 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetInv) {
+      SupabaseService.exportDataToSupabase('invoices', [{
+        id: targetInv.id,
+        brand_slug: activeTenantSlug,
+        status: targetInv.status,
+        payment_date: targetInv.payment_date || null
+      }]).catch(err => console.warn('Sync verifyPayment to Supabase:', err));
+
       const branch = branches.find((b) => b.id === targetInv?.branch_id);
       addActivity({
         branch_id: targetInv.branch_id,
