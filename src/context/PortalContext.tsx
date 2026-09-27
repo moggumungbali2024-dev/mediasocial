@@ -349,6 +349,123 @@ const PortalContext = createContext<PortalContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY_PREFIX = 'smp_v3_';
 
+const MOCK_INFLUENCER_HANDLES = new Set([
+  'gitasaras_eats',
+  'alexwanderlust',
+  'kulinerbandungjuara',
+  'kadek_vibe',
+  'dateideas.jkt',
+  'nongkrong.bdg'
+]);
+
+const MOCK_EXPOSURE_TITLES = [
+  'Slow Cooking',
+  'Golden Hour Ramen',
+  'Chashu Melt',
+  'Payday Treats',
+  'Slurp Etiquette',
+  'Side Dishes That Steal',
+  'After Office Decompression',
+  'Handmade Fresh Noodles',
+  'Behind the Design',
+  'Sunset Happy Hour',
+  'Spicy Tori Paitan',
+  'Post-Surf Meal'
+];
+
+const MOCK_USER_EMAILS = new Set([
+  'joonho.lead@moggumung.com',
+  'jiwon.creative@moggumung.com',
+  'dewa.motion@moggumung.com',
+  'ubud@moggumung.com',
+  'putu.mgr@moggumung.com',
+  'seminyak@moggumung.com',
+  'kevin.mgr@moggumung.com',
+  'canggu@moggumung.com',
+  'bandung@moggumung.com'
+]);
+
+function cleanMockInfluencers(list: Influencer[]): Influencer[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((inf) => {
+    const handle = (inf.instagram_handle || '').replace('@', '').toLowerCase().trim();
+    return !MOCK_INFLUENCER_HANDLES.has(handle) && !['Gita Saraswati', 'Alexander Lee', 'Dinda Kirana', 'Kadek Mahesa', 'Valerie & Kevin', 'Rian Firdaus'].includes(inf.name);
+  });
+}
+
+function cleanMockExposureSlots(list: ExposureSlot[]): ExposureSlot[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((slot) => {
+    return !MOCK_EXPOSURE_TITLES.some((title) => (slot.title || '').includes(title));
+  });
+}
+
+function cleanMockUsers(list: UserProfile[]): UserProfile[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((u) => {
+    const email = (u.email || '').toLowerCase().trim();
+    return !MOCK_USER_EMAILS.has(email) && !['Joon-ho Lee', 'Ji-won Park', 'Dewa Aditya', 'Budi Santoso', 'Putu Pratama', 'Sarah Wijaya', 'Kevin Pratama', 'Wayan Ardi', 'Reza Pratama'].includes(u.full_name);
+  });
+}
+
+function cleanMockWithdrawals(list: PlatformWalletWithdrawal[]): PlatformWalletWithdrawal[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((w) => {
+    return !['TRX-WD-20260915-001', 'TRX-WD-20260922-004'].includes(w.id) && w.account_holder !== 'Alexandre Tan';
+  });
+}
+
+// Global storage sanitizer on module load
+(function runSanitizer() {
+  if (typeof window === 'undefined') return;
+  try {
+    const staleKeys = [
+      'smp_influencers',
+      'smp_exposure_slots',
+      'smp_users',
+      'smp_platform_withdrawals',
+      'smp_v3_influencers',
+      'smp_v3_exposure_slots',
+      'smp_v3_platform_withdrawals',
+      'smp_b_moggumung_influencers',
+      'smp_b_moggumung_exposure_slots',
+      'smp_b_moggumung_platform_withdrawals'
+    ];
+    staleKeys.forEach((k) => localStorage.removeItem(k));
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      if (key.includes('influencers')) {
+        const raw = localStorage.getItem(key);
+        if (raw && (raw.includes('gitasaras') || raw.includes('alexwanderlust'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      if (key.includes('exposure_slots')) {
+        const raw = localStorage.getItem(key);
+        if (raw && (raw.includes('Slow Cooking') || raw.includes('Torched to Perfection'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      if (key.includes('platform_withdrawals')) {
+        const raw = localStorage.getItem(key);
+        if (raw && (raw.includes('Alexandre Tan') || raw.includes('TRX-WD-20260915'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      if (key.includes('users') && !key.includes('platform_users')) {
+        const raw = localStorage.getItem(key);
+        if (raw && (raw.includes('joonho.lead') || raw.includes('jiwon.creative') || raw.includes('dewa.motion'))) {
+          localStorage.removeItem(key);
+        }
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+})();
+
 function loadStorage<T>(key: string, fallback: T): T {
   try {
     const item = localStorage.getItem(LOCAL_STORAGE_KEY_PREFIX + key);
@@ -507,7 +624,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // User Management (Brand-specific)
   const [users, setUsers] = useState<UserProfile[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'users', initialDataset.users)
+    cleanMockUsers(loadBrandStorage(activeTenantSlug, 'users', initialDataset.users))
   );
 
   // Authentication State (Brand-specific)
@@ -1053,10 +1170,10 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loadBrandStorage(activeTenantSlug, 'invoices', initialDataset.invoices)
   );
   const [exposureSlots, setExposureSlots] = useState<ExposureSlot[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'exposure_slots', INITIAL_EXPOSURE_SLOTS)
+    cleanMockExposureSlots(loadBrandStorage(activeTenantSlug, 'exposure_slots', INITIAL_EXPOSURE_SLOTS))
   );
   const [influencers, setInfluencers] = useState<Influencer[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'influencers', initialDataset.influencers)
+    cleanMockInfluencers(loadBrandStorage(activeTenantSlug, 'influencers', initialDataset.influencers))
   );
   const [voucherCampaigns, setVoucherCampaigns] = useState<InfluencerVoucherCampaign[]>(() =>
     loadBrandStorage(activeTenantSlug, 'voucher_campaigns', INITIAL_VOUCHER_CAMPAIGNS)
@@ -1101,7 +1218,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loadStorage('platform_plans', INITIAL_PLATFORM_PLANS)
   );
   const [platformWithdrawals, setPlatformWithdrawals] = useState<PlatformWalletWithdrawal[]>(() =>
-    loadStorage('platform_withdrawals', INITIAL_PLATFORM_WITHDRAWALS)
+    cleanMockWithdrawals(loadStorage('platform_withdrawals', INITIAL_PLATFORM_WITHDRAWALS))
   );
   const [subscriptionReminders, setSubscriptionReminders] = useState<SubscriptionReminderLog[]>(() =>
     loadStorage('subscription_reminders', INITIAL_REMINDER_LOGS)
@@ -1284,8 +1401,18 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           read_by: c.read_by || [],
           created_at: c.created_at ? (c.created_at.includes('T') ? c.created_at.replace('T', ' ').slice(0, 16) : c.created_at) : '2026-09-27 12:00'
         }));
-        setTeamChatMessages(remoteChats);
-        saveBrandStorage(activeTenantSlug, 'team_chat_messages', remoteChats);
+        setTeamChatMessages((prev) => {
+          const map = new Map<string, TeamChatMessage>();
+          prev.forEach((item) => {
+            if (item && item.id) map.set(item.id, item);
+          });
+          remoteChats.forEach((item) => {
+            if (item && item.id) map.set(item.id, item);
+          });
+          const merged = Array.from(map.values()).sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+          saveBrandStorage(activeTenantSlug, 'team_chat_messages', merged);
+          return merged;
+        });
       }
 
       // 6. Fetch Design Requests
@@ -1470,12 +1597,29 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => saveBrandStorage(activeTenantSlug, 'is_authenticated', isAuthenticated), [activeTenantSlug, isAuthenticated]);
   useEffect(() => saveBrandStorage(activeTenantSlug, 'user_id', currentUserId), [activeTenantSlug, currentUserId]);
 
-  // Derived current user & role
-  const currentUser = useMemo(() => {
-    return users.find((u) => u.id === currentUserId) || users[0];
-  }, [users, currentUserId]);
+  const fallbackUser: UserProfile = useMemo(() => ({
+    id: 'user-platform-owner',
+    branch_id: null,
+    role: 'platform_owner',
+    full_name: 'Platform Superadmin',
+    email: 'owner@mediasocial.team',
+    phone: '08159998757',
+    password: 'Media',
+    job_title: 'Platform Owner',
+    avatar_url: '',
+    status: 'active',
+    joined_date: '2026-01-01'
+  }), []);
 
-  const activeRole = currentUser.role;
+  // Derived current user & role
+  const currentUser: UserProfile = useMemo(() => {
+    if (!users || users.length === 0) {
+      return fallbackUser;
+    }
+    return users.find((u) => u.id === currentUserId) || users[0] || fallbackUser;
+  }, [users, currentUserId, fallbackUser]);
+
+  const activeRole: UserRole = currentUser?.role || 'platform_owner';
 
   // Platform Level Roles (mediasocial.team)
   const isPlatformOwner = activeRole === 'platform_owner';
@@ -1507,7 +1651,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Active branch if user is branch user
   const currentBranch = useMemo(() => {
-    if (!currentUser.branch_id) return null;
+    if (!currentUser?.branch_id) return null;
     return branches.find((b) => b.id === currentUser.branch_id) || null;
   }, [currentUser, branches]);
 
@@ -3565,8 +3709,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const totalPlatformARR = useMemo(() => totalPlatformMRR * 12, [totalPlatformMRR]);
 
   const platformWalletBalance = useMemo(() => {
-    // Total gross subscription revenue generated (simulation: 6 months pool + base)
-    const grossPool = (totalPlatformMRR * 6) + 15000000;
+    const grossPool = totalPlatformMRR;
     const completedWithdrawals = platformWithdrawals
       .filter((w) => w.status === 'completed' || w.status === 'processing')
       .reduce((sum, w) => sum + w.amount, 0);
@@ -3586,7 +3729,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const loadedBranches = loadBrandStorage(normalizedSlug, 'branches', dataset.branches);
     setBranches(loadedBranches);
 
-    const loadedUsers = loadBrandStorage(normalizedSlug, 'users', dataset.users);
+    const loadedUsers = cleanMockUsers(loadBrandStorage(normalizedSlug, 'users', dataset.users));
     setUsers(loadedUsers);
 
     const loadedDesign = loadBrandStorage(normalizedSlug, 'design_requests', dataset.designRequests || []);
@@ -3598,7 +3741,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const loadedInvoices = loadBrandStorage(normalizedSlug, 'invoices', dataset.invoices || []);
     setInvoices(loadedInvoices);
 
-    const loadedInfluencers = loadBrandStorage(normalizedSlug, 'influencers', dataset.influencers || []);
+    const loadedInfluencers = cleanMockInfluencers(loadBrandStorage(normalizedSlug, 'influencers', dataset.influencers || []));
     setInfluencers(loadedInfluencers);
 
     const loadedQuotas = loadBrandStorage(normalizedSlug, 'quotas', dataset.quotas || []);
@@ -3634,7 +3777,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const loadedVouchers = loadBrandStorage(normalizedSlug, 'voucher_campaigns', dataset.voucherCampaigns || []);
     setVoucherCampaigns(loadedVouchers);
 
-    const loadedExposure = loadBrandStorage(normalizedSlug, 'exposure_slots', dataset.exposureSlots || []);
+    const loadedExposure = cleanMockExposureSlots(loadBrandStorage(normalizedSlug, 'exposure_slots', dataset.exposureSlots || []));
     setExposureSlots(loadedExposure);
 
     const authVal = autoLogin ? true : loadBrandStorage(normalizedSlug, 'is_authenticated', true);

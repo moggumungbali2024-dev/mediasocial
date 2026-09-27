@@ -110,11 +110,28 @@ export const PlatformMasterConsole: React.FC = () => {
   const [newInitialDeposit, setNewInitialDeposit] = useState(5000000);
   const [formError, setFormError] = useState('');
 
+  // Edit & Delete Brand State
+  const [showEditBrandModal, setShowEditBrandModal] = useState<PlatformBrandTenant | null>(null);
+  const [deletingBrand, setDeletingBrand] = useState<PlatformBrandTenant | null>(null);
+  const [editBrandName, setEditBrandName] = useState('');
+  const [editBrandSlug, setEditBrandSlug] = useState('');
+  const [editBrandTagline, setEditBrandTagline] = useState('');
+  const [editBrandColor, setEditBrandColor] = useState('#FF5B14');
+  const [editOwnerName, setEditOwnerName] = useState('');
+  const [editOwnerEmail, setEditOwnerEmail] = useState('');
+  const [editOwnerPhone, setEditOwnerPhone] = useState('');
+  const [editPlanId, setEditPlanId] = useState('growth');
+  const [editBranchesCount, setEditBranchesCount] = useState(3);
+  const [editMonthlyFee, setEditMonthlyFee] = useState(4890000);
+  const [editStatus, setEditStatus] = useState<PlatformBrandTenant['subscription_status']>('active');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [editFormError, setEditFormError] = useState('');
+
   // Withdrawal Form State
   const [wdAmount, setWdAmount] = useState('');
   const [wdBank, setWdBank] = useState('Bank Central Asia (BCA)');
-  const [wdAccNo, setWdAccNo] = useState('8830-1928-11');
-  const [wdAccHolder, setWdAccHolder] = useState('Alexandre Tan');
+  const [wdAccNo, setWdAccNo] = useState('');
+  const [wdAccHolder, setWdAccHolder] = useState('');
   const [wdNotes, setWdNotes] = useState('');
   const [wdError, setWdError] = useState('');
 
@@ -224,6 +241,55 @@ export const PlatformMasterConsole: React.FC = () => {
     if (res.waUrl) {
       window.open(res.waUrl, '_blank');
     }
+  };
+
+  const handleOpenEditBrand = (brand: PlatformBrandTenant) => {
+    setShowEditBrandModal(brand);
+    setEditBrandName(brand.name);
+    setEditBrandSlug(brand.slug);
+    setEditBrandTagline(brand.tagline || '');
+    setEditBrandColor(brand.primary_color || '#FF5B14');
+    setEditOwnerName(brand.hq_owner_name);
+    setEditOwnerEmail(brand.hq_owner_email || '');
+    setEditOwnerPhone(brand.hq_owner_phone);
+    setEditPlanId(brand.subscription_plan_id);
+    setEditBranchesCount(brand.branches_count);
+    setEditMonthlyFee(brand.monthly_fee);
+    setEditStatus(brand.subscription_status);
+    setEditEndDate(brand.subscription_end_date);
+    setEditFormError('');
+  };
+
+  const handleSaveEditBrand = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showEditBrandModal) return;
+    if (!editBrandName.trim() || !editOwnerName.trim() || !editOwnerPhone.trim()) {
+      setEditFormError('Nama Brand, Nama HQ Owner, dan Nomor WhatsApp wajib diisi.');
+      return;
+    }
+
+    updatePlatformBrand(showEditBrandModal.id, {
+      name: editBrandName.trim(),
+      slug: editBrandSlug.trim() || showEditBrandModal.slug,
+      tagline: editBrandTagline.trim(),
+      primary_color: editBrandColor,
+      hq_owner_name: editOwnerName.trim(),
+      hq_owner_email: editOwnerEmail.trim(),
+      hq_owner_phone: editOwnerPhone.trim(),
+      subscription_plan_id: editPlanId,
+      branches_count: Number(editBranchesCount) || 1,
+      monthly_fee: Number(editMonthlyFee) || 0,
+      subscription_status: editStatus,
+      subscription_end_date: editEndDate || showEditBrandModal.subscription_end_date
+    });
+
+    setShowEditBrandModal(null);
+  };
+
+  const handleConfirmDeleteBrand = () => {
+    if (!deletingBrand) return;
+    deletePlatformBrand(deletingBrand.id);
+    setDeletingBrand(null);
   };
 
   return (
@@ -793,20 +859,36 @@ export const PlatformMasterConsole: React.FC = () => {
                         </td>
 
                         <td className="py-4 px-5 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => jumpToBrandAsHQOwner(brand.slug)}
-                              className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                              title="Masuk ke Portal Brand"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" /> Masuk Portal
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Masuk</span>
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditBrand(brand)}
+                              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition"
+                              title="Edit Brand Tenant"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeletingBrand(brand)}
+                              className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 text-xs font-bold cursor-pointer transition"
+                              title="Hapus Brand dari Platform"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                             {(brand.subscription_status === 'expiring_soon' || brand.subscription_status === 'expired') && (
                               <button
                                 onClick={() => handleTriggerReminder(brand)}
-                                className="p-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer"
+                                className="p-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer transition"
                                 title="Kirim Reminder WhatsApp"
                               >
-                                <MessageSquare className="w-4 h-4" />
+                                <MessageSquare className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </div>
@@ -1671,7 +1753,7 @@ export const PlatformMasterConsole: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="8830-1928-11"
+                    placeholder="Contoh: 123-456-7890"
                     value={wdAccNo}
                     onChange={(e) => setWdAccNo(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -1682,7 +1764,7 @@ export const PlatformMasterConsole: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="Alexandre Tan"
+                    placeholder="Contoh: Nama Pemilik Rekening"
                     value={wdAccHolder}
                     onChange={(e) => setWdAccHolder(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -1798,6 +1880,245 @@ export const PlatformMasterConsole: React.FC = () => {
                   Simpan Perubahan
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ===================== MODAL: EDIT BRAND TENANT ===================== */}
+      {showEditBrandModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-[#14161f] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl p-6 space-y-4 shadow-2xl my-8">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <Edit3 className="w-5 h-5 text-orange-500" />
+                  Edit Data Brand: {showEditBrandModal.name}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Perbarui profil brand, status langganan, kontak owner, atau kuota cabang.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowEditBrandModal(null)}
+                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {editFormError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{editFormError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEditBrand} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Brand *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editBrandName}
+                    onChange={(e) => setEditBrandName(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Slug / Subdomain URL *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editBrandSlug}
+                    onChange={(e) => setEditBrandSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tagline Brand</label>
+                <input
+                  type="text"
+                  value={editBrandTagline}
+                  onChange={(e) => setEditBrandTagline(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama HQ Owner *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editOwnerName}
+                    onChange={(e) => setEditOwnerName(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">WhatsApp Owner *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editOwnerPhone}
+                    onChange={(e) => setEditOwnerPhone(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email Owner</label>
+                  <input
+                    type="email"
+                    value={editOwnerEmail}
+                    onChange={(e) => setEditOwnerEmail(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Paket Langganan</label>
+                  <select
+                    value={editPlanId}
+                    onChange={(e) => {
+                      const pid = e.target.value;
+                      setEditPlanId(pid);
+                      if (pid === 'starter') setEditMonthlyFee(2490000);
+                      else if (pid === 'growth') setEditMonthlyFee(4890000);
+                      else if (pid === 'enterprise') setEditMonthlyFee(8990000);
+                    }}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="starter" className="text-black">Starter Franchise</option>
+                    <option value="growth" className="text-black">Growth Network</option>
+                    <option value="enterprise" className="text-black">Enterprise Fleet</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tagihan Bulanan (Rp)</label>
+                  <input
+                    type="number"
+                    value={editMonthlyFee}
+                    onChange={(e) => setEditMonthlyFee(Number(e.target.value))}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white font-black focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Jumlah Cabang</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editBranchesCount}
+                    onChange={(e) => setEditBranchesCount(Number(e.target.value))}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status Langganan</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="active" className="text-black">Active (Aktif)</option>
+                    <option value="expiring_soon" className="text-black">Expiring Soon (Segera Habis)</option>
+                    <option value="expired" className="text-black">Expired (Kedaluwarsa)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Masa Aktif Hingga</label>
+                  <input
+                    type="date"
+                    value={editEndDate}
+                    onChange={(e) => setEditEndDate(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Warna Brand (HEX)</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={editBrandColor}
+                      onChange={(e) => setEditBrandColor(e.target.value)}
+                      className="w-8 h-8 rounded-lg border-none bg-transparent cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={editBrandColor}
+                      onChange={(e) => setEditBrandColor(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowEditBrandModal(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 cursor-pointer"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== MODAL: DELETE BRAND CONFIRMATION ===================== */}
+      {deletingBrand && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#14161f] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                Hapus Brand {deletingBrand.name}?
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Brand tenant <strong>{deletingBrand.name}</strong> ({deletingBrand.slug}) beserta konfigurasi dan datanya akan dihapus dari platform. Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingBrand(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteBrand}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-md shadow-rose-600/20 cursor-pointer"
+              >
+                Ya, Hapus Brand
+              </button>
             </div>
           </div>
         </div>

@@ -288,9 +288,9 @@ export const RequestEngine: React.FC = () => {
     const result = addShootRequest({
       branch_id: effectiveBranchId,
       branch_name: branchObj?.name || 'Branch',
-      requester_id: currentUser.id,
-      requester_name: currentUser.full_name,
-      requester_role: currentUser.role,
+      requester_id: currentUser?.id || 'user-unknown',
+      requester_name: currentUser?.full_name || 'Member',
+      requester_role: currentUser?.role || 'platform_owner',
       type: shootType,
       title: shootTitle,
       preferred_date: shootPreferredDate,
@@ -322,9 +322,9 @@ export const RequestEngine: React.FC = () => {
     const targetBranchId = isHQ ? budgetBranchId : (currentBranch?.id || budgetBranchId);
     const branchObj = branches.find((b) => b.id === targetBranchId);
     const result = addBudgetRequest({
-      requester_id: currentUser.id,
-      requester_name: currentUser.full_name,
-      requester_role: currentUser.role,
+      requester_id: currentUser?.id || 'user-unknown',
+      requester_name: currentUser?.full_name || 'Member',
+      requester_role: currentUser?.role || 'platform_owner',
       target_branch_id: targetBranchId,
       target_branch_name: branchObj?.name || 'Target Branch',
       type: budgetType,
@@ -357,7 +357,7 @@ export const RequestEngine: React.FC = () => {
     setModalDriveUrl(req.drive_url || '');
     setModalCaption(req.caption || '');
     setModalNotes(req.creative_notes || '');
-    setModalAssigneeId(req.assigned_to_user_id || currentUser.id);
+    setModalAssigneeId(req.assigned_to_user_id || currentUser?.id || '');
     setModalApprovalMode(req.approval_mode || 'self_approved');
   };
 
@@ -408,8 +408,9 @@ export const RequestEngine: React.FC = () => {
       ? selectedBranchId === 'all' || r.branch_id === selectedBranchId
       : r.branch_id === currentBranch?.id;
     const matchStatus = statusFilter === 'all' || r.status === statusFilter;
+    const currentUid = currentUser?.id;
     const matchAssignee =
-      taskAssigneeFilter === 'all' || r.assigned_to_user_id === currentUser.id;
+      taskAssigneeFilter === 'all' || (currentUid && r.assigned_to_user_id === currentUid);
     return matchBranch && matchStatus && matchAssignee;
   });
 
@@ -993,7 +994,7 @@ export const RequestEngine: React.FC = () => {
                                   <div className="flex items-center gap-1.5">
                                     {!req.assigned_to_user_id && isHQCreative && (
                                       <button
-                                        onClick={() => assignDesignRequest(req.id, currentUser.id)}
+                                        onClick={() => assignDesignRequest(req.id, currentUser?.id || '')}
                                         className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg shadow-xs transition"
                                       >
                                         {t('assignToMe')}
@@ -1507,7 +1508,7 @@ export const RequestEngine: React.FC = () => {
 
                         {isHQ && shoot.status === 'pending' && (
                           <button
-                            onClick={() => updateShootRequestStatus(shoot.id, 'scheduled', currentUser.id)}
+                            onClick={() => updateShootRequestStatus(shoot.id, 'scheduled', currentUser?.id || '')}
                             className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg text-xs transition cursor-pointer"
                           >
                             {language === 'ko' ? '일정 승인 및 담당자 배정' : 'Confirm & Schedule'}
