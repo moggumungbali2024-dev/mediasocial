@@ -66,13 +66,17 @@ export const CreativeKanbanBoard: React.FC<CreativeKanbanBoardProps> = ({
     }
   ];
 
-  const filteredRequests = designRequests.filter((r) => {
+  const safeDesignRequests = Array.isArray(designRequests) ? designRequests : [];
+  const safeBranches = Array.isArray(branches) ? branches : [];
+
+  const filteredRequests = safeDesignRequests.filter((r) => {
+    if (!r) return false;
     if (categoryFilter !== 'all' && r.category !== categoryFilter) return false;
     return true;
   });
 
   const getBranchName = (branchId: string) => {
-    const b = branches.find((branch) => branch.id === branchId);
+    const b = safeBranches.find((branch) => branch.id === branchId);
     return b ? b.name : 'Branch';
   };
 

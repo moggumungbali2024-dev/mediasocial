@@ -20,8 +20,12 @@ import {
   Check,
   Layers,
   Flame,
-  Info
+  Info,
+  Clock,
+  MapPin,
+  ArrowRightLeft
 } from 'lucide-react';
+import { TIMEZONE_PRESETS, getOfficeTimeInfo } from '../utils/timezone.ts';
 
 export const WhitelabelSettings: React.FC = () => {
   const {
@@ -558,6 +562,150 @@ export const WhitelabelSettings: React.FC = () => {
                   className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 text-xs focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
                 />
               </div>
+            </div>
+
+            {/* Office Region & Timezone Settings */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5 font-['Space_Grotesk']">
+                  <Globe2 className="w-4 h-4 text-amber-500" />
+                  <span>{language === 'ko' ? '본사 리전 & 타임존 설정 (Office Region & Timezone)' : 'Region Kantor & Zona Waktu Jam'}</span>
+                </label>
+                <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">
+                  {form.timezone_label || 'WITA'} ({form.timezone_id || 'Asia/Makassar'})
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {language === 'ko'
+                  ? '본사 국가와 도시를 설정하면 포털 시계 및 출퇴근 기록이 본사 기준 시간으로 작동하며, 접속자 위치와의 시차를 실시간으로 자동 표기합니다.'
+                  : 'Atur negara dan kota kantor pusat agar jam portal & presensi sesuai zona waktu kantor. Jika jam user berbeda dengan kantor, selisih jam akan otomatis dituliskan.'}
+              </p>
+
+              {/* Quick Presets selector */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 block mb-1">
+                  {language === 'ko' ? '빠른 리전 선택 (Presets):' : 'Pilihan Cepat Region Kantor (Preset):'}
+                </label>
+                <select
+                  value={form.timezone_id || 'Asia/Makassar'}
+                  onChange={(e) => {
+                    const selected = TIMEZONE_PRESETS.find(p => p.timezoneId === e.target.value);
+                    if (selected) {
+                      setForm({
+                        ...form,
+                        office_country: selected.country,
+                        office_city: selected.city.split('/')[0].trim(),
+                        timezone_id: selected.timezoneId,
+                        timezone_label: selected.label
+                      });
+                    }
+                  }}
+                  className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 text-xs font-semibold cursor-pointer focus:ring-2 focus:ring-amber-500"
+                >
+                  {TIMEZONE_PRESETS.map((p) => (
+                    <option key={p.timezoneId} value={p.timezoneId}>
+                      {p.country} - {p.city} ({p.label}, {p.utcOffset})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '국가 (Country)' : 'Negara Kantor'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Indonesia, South Korea, Singapore"
+                    value={form.office_country || ''}
+                    onChange={(e) => setForm({ ...form, office_country: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 text-xs focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '도시 / 본사 위치 (City)' : 'Kota Kantor'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bali, Jakarta, Seoul, Tokyo"
+                    value={form.office_city || ''}
+                    onChange={(e) => setForm({ ...form, office_city: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 text-xs focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? 'IANA 타임존 ID' : 'IANA Timezone ID'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Asia/Makassar, Asia/Jakarta, Asia/Seoul"
+                    value={form.timezone_id || 'Asia/Makassar'}
+                    onChange={(e) => setForm({ ...form, timezone_id: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 text-xs font-mono focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '타임존 약어 표기' : 'Label Singkatan Zona Waktu'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. WITA, WIB, WIT, KST, SGT"
+                    value={form.timezone_label || 'WITA'}
+                    onChange={(e) => setForm({ ...form, timezone_label: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 text-xs font-bold font-mono uppercase focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Live Timezone Preview Pill */}
+              {(() => {
+                const previewInfo = getOfficeTimeInfo(
+                  new Date(),
+                  form.timezone_id || 'Asia/Makassar',
+                  form.timezone_label || 'WITA',
+                  form.office_city || 'Bali',
+                  form.office_country || 'Indonesia',
+                  language as any
+                );
+                return (
+                  <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-2">
+                    <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-amber-500" />
+                        <span>{language === 'ko' ? '실시간 본사 시계 미리보기:' : 'Pratinjau Jam Kantor & Selisih:'}</span>
+                      </span>
+                      <span className="font-mono text-amber-700 dark:text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-lg">
+                        {previewInfo.officeTimeString} {previewInfo.officeLabel}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-300">
+                      <div>
+                        🏢 <strong>{language === 'ko' ? '본사 위치:' : 'Lokasi Kantor:'}</strong> {previewInfo.officeLocation}
+                      </div>
+                      <div>
+                        💻 <strong>{language === 'ko' ? '내 기기/브라우저:' : 'Waktu Perangkat Anda:'}</strong> {previewInfo.localTimeString} ({previewInfo.localLabel})
+                      </div>
+                    </div>
+                    <div className="text-[11px] font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-1.5 pt-1 border-t border-amber-500/20">
+                      <ArrowRightLeft className="w-3.5 h-3.5" />
+                      <span>
+                        {previewInfo.isDifferent
+                          ? `${language === 'ko' ? '시차 감지됨:' : 'Selisih waktu terdeteksi:'} ${previewInfo.diffDescription} (Jam lokal ${previewInfo.localTimeString})`
+                          : (language === 'ko' ? '기기 시간이 본사 시간과 일치합니다.' : 'Waktu perangkat Anda sama persis dengan jam kantor.')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

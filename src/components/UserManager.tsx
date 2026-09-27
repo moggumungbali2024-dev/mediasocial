@@ -20,7 +20,11 @@ import {
   ArrowLeft,
   Briefcase,
   Store,
-  Crown
+  Crown,
+  Lock,
+  Key,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 export const UserManager: React.FC = () => {
@@ -44,9 +48,11 @@ export const UserManager: React.FC = () => {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Form State
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
+    password: '',
     role: 'hq_creative' as UserRole,
     branch_id: '',
     job_title: '',
@@ -73,12 +79,14 @@ export const UserManager: React.FC = () => {
     setFormData({
       full_name: '',
       email: '',
+      password: 'Media',
       role: 'hq_creative',
       branch_id: '',
       job_title: language === 'ko' ? '그래픽 & 메뉴 디자이너' : 'Graphic & Menu Designer',
       phone: '',
       status: 'active'
     });
+    setShowPassword(false);
     setIsAddModalOpen(true);
   };
 
@@ -87,12 +95,14 @@ export const UserManager: React.FC = () => {
     setFormData({
       full_name: user.full_name,
       email: user.email,
+      password: user.password || '',
       role: user.role,
       branch_id: user.branch_id || '',
       job_title: user.job_title || '',
       phone: user.phone || '',
       status: user.status || 'active'
     });
+    setShowPassword(false);
   };
 
   const handleSaveAdd = (e: React.FormEvent) => {
@@ -108,6 +118,7 @@ export const UserManager: React.FC = () => {
     const res = addUser({
       full_name: formData.full_name,
       email: formData.email,
+      password: formData.password ? formData.password.trim() : 'Media',
       role: formData.role,
       branch_id: formData.role.startsWith('branch_') ? (formData.branch_id || branches[0].id) : null,
       job_title: formData.job_title,
@@ -127,7 +138,7 @@ export const UserManager: React.FC = () => {
     e.preventDefault();
     if (!editingUser) return;
 
-    updateUser(editingUser.id, {
+    const updates: Partial<UserProfile> = {
       full_name: formData.full_name,
       email: formData.email,
       role: formData.role,
@@ -135,7 +146,13 @@ export const UserManager: React.FC = () => {
       job_title: formData.job_title,
       phone: formData.phone,
       status: formData.status
-    });
+    };
+
+    if (formData.password && formData.password.trim()) {
+      updates.password = formData.password.trim();
+    }
+
+    updateUser(editingUser.id, updates);
 
     setMessage({ text: t('userUpdatedSuccess'), type: 'success' });
     setEditingUser(null);
@@ -451,6 +468,35 @@ export const UserManager: React.FC = () => {
                 </div>
               </div>
 
+              {/* Password Input with show/hide toggle */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{language === 'ko' ? '초기 비밀번호 (Password)' : 'Password Login Akun'}</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {language === 'ko' ? '기본값: Media (변경 가능)' : 'Default: Media (bisa diisi custom)'}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Masukkan password user..."
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white p-2.5 pr-10 outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
               {formData.role.startsWith('branch_') && (
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">{t('selectBranch')}</label>
@@ -576,6 +622,35 @@ export const UserManager: React.FC = () => {
                     <option value="inactive">{t('statusInactive')}</option>
                     <option value="suspended">{t('statusSuspended')}</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Password Input with show/hide toggle */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{language === 'ko' ? '비밀번호 변경 (Password)' : 'Ganti Password Akun'}</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {language === 'ko' ? '변경하지 않으려면 빈칸 유지' : 'Kosongkan jika tidak ingin mengubah'}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={language === 'ko' ? '새 비밀번호 입력...' : 'Masukkan password baru user...'}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white p-2.5 pr-10 outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 

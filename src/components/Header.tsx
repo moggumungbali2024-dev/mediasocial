@@ -31,6 +31,7 @@ import {
   Camera,
   Check
 } from 'lucide-react';
+import { OfficeClock } from './OfficeClock.tsx';
 import { UserRole } from '../types.ts';
 
 interface HeaderProps {
@@ -138,6 +139,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, onOpenS
       {/* Top Banner: Date Simulator, Language Toggle, Quick DB Controls */}
       <div className="bg-slate-950 px-3 sm:px-6 py-1.5 border-b border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
         <div className="flex items-center gap-2 flex-wrap">
+          <OfficeClock compact onOpenSettings={() => setActiveTab('whitelabel')} />
+
           <div className="flex items-center gap-1.5 font-medium text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-800/50 text-[11px]">
             <Clock className="w-3.5 h-3.5 shrink-0" />
             <span>{t('simulatedDate')}: <strong>{simulatedDate}</strong></span>

@@ -138,6 +138,10 @@ export interface WhitelabelConfig {
   company_legal_name: string;
   hq_location: string;
   hq_address: string;
+  office_country?: string; // e.g. 'Indonesia', 'South Korea', 'Singapore', 'Japan'
+  office_city?: string; // e.g. 'Bali', 'Jakarta', 'Seoul'
+  timezone_id?: string; // IANA timezone, e.g. 'Asia/Makassar', 'Asia/Jakarta', 'Asia/Seoul'
+  timezone_label?: string; // e.g. 'WITA', 'WIB', 'KST', 'SGT'
   contact_email: string;
   contact_whatsapp: string;
   bank_name: string;

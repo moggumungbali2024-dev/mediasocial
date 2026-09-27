@@ -116,29 +116,45 @@ create table if not exists public.platform_brands (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 3. BRAND WHITELABEL CONFIGURATIONS
+-- 3. BRAND WHITELABEL CONFIGURATIONS (With Office Region & Timezone)
 create table if not exists public.whitelabel_configs (
   brand_slug text primary key references public.platform_brands(slug) on delete cascade,
   brand_name text not null,
   brand_subtitle text,
   brand_monogram text,
   brand_logo_url text,
+  theme_accent text default 'kinetic_orange',
   custom_primary_hex text default '#FF5B14',
   company_legal_name text,
   hq_location text,
   hq_address text,
+  office_country text default 'Indonesia',
+  office_city text default 'Bali',
+  timezone_id text default 'Asia/Makassar',
+  timezone_label text default 'WITA',
   contact_email text,
   contact_whatsapp text,
   bank_name text,
   bank_account_number text,
   bank_account_name text,
+  bank_swift_code text,
+  invoice_note_footer text,
+  currency_symbol text default 'Rp',
   default_monthly_retainer numeric default 5000000,
-  max_monthly_design_requests integer default 3,
-  max_monthly_active_promos integer default 2,
+  max_monthly_design_requests integer default 12,
+  max_monthly_active_promos integer default 4,
   design_min_lead_days integer default 5,
   promo_cutoff_day_of_month integer default 25,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Safe Alter Table in case whitelabel_configs exists
+alter table public.whitelabel_configs add column if not exists office_country text default 'Indonesia';
+alter table public.whitelabel_configs add column if not exists office_city text default 'Bali';
+alter table public.whitelabel_configs add column if not exists timezone_id text default 'Asia/Makassar';
+alter table public.whitelabel_configs add column if not exists timezone_label text default 'WITA';
+alter table public.whitelabel_configs add column if not exists custom_primary_hex text default '#FF5B14';
+alter table public.whitelabel_configs add column if not exists brand_logo_url text;
 
 -- 4. FRANCHISE BRANCHES TABLE
 create table if not exists public.branches (

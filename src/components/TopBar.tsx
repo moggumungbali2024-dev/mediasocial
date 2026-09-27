@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { WhatsAppBroadcastModal } from './WhatsAppBroadcastModal.tsx';
 import { ChangePasswordModal } from './ChangePasswordModal.tsx';
+import { OfficeClock } from './OfficeClock.tsx';
 import { UserRole } from '../types.ts';
 
 interface TopBarProps {
@@ -201,6 +202,9 @@ export const TopBar: React.FC<TopBarProps> = ({
               </select>
             </div>
           )}
+
+          {/* Office HQ Timezone Clock with Local Difference Badge */}
+          <OfficeClock onOpenSettings={() => setActiveTab('whitelabel')} />
 
           {/* Date Simulator Pill */}
           <div className="relative">

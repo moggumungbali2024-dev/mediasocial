@@ -111,26 +111,33 @@ export const RequestEngine: React.FC = () => {
   const [activeEngineTab, setActiveEngineTab] = useState<'design' | 'promo' | 'shoot' | 'budget'>('design');
 
   // Branch selector (for HQ view)
+  const safeBranches = Array.isArray(branches) ? branches : [];
   const [selectedBranchId, setSelectedBranchId] = useState<string>(
-    currentBranch ? currentBranch.id : branches[0]?.id || ''
+    currentBranch ? currentBranch.id : safeBranches[0]?.id || ''
   );
 
-  const effectiveBranchId = currentBranch ? currentBranch.id : selectedBranchId;
-  const currentMonth = simulatedDate.slice(0, 7);
-  const branchQuota = getBranchQuota(effectiveBranchId, currentMonth);
-  const minTargetDate = calculateMinTargetDate();
+  const effectiveBranchId = currentBranch ? currentBranch.id : (selectedBranchId || safeBranches[0]?.id || '');
+  const currentMonth = (simulatedDate || new Date().toISOString().split('T')[0]).slice(0, 7);
+  const branchQuota = (getBranchQuota ? getBranchQuota(effectiveBranchId, currentMonth) : null) || {
+    id: `quota-${effectiveBranchId}-${currentMonth}`,
+    branch_id: effectiveBranchId,
+    period_month: currentMonth,
+    design_used: 0,
+    promo_used: 0
+  };
+  const minTargetDate = calculateMinTargetDate ? calculateMinTargetDate() : '2026-10-05';
 
   // Limits from Whitelabel config
-  const maxDesignLimit = whitelabelConfig.max_monthly_design_requests || 3;
-  const maxPromoLimit = whitelabelConfig.max_monthly_active_promos || 2;
-  const leadDays = whitelabelConfig.design_min_lead_days || 5;
-  const cutoffDay = whitelabelConfig.promo_cutoff_day_of_month || 25;
+  const maxDesignLimit = whitelabelConfig?.max_monthly_design_requests || 12;
+  const maxPromoLimit = whitelabelConfig?.max_monthly_active_promos || 4;
+  const leadDays = whitelabelConfig?.design_min_lead_days || 5;
+  const cutoffDay = whitelabelConfig?.promo_cutoff_day_of_month || 25;
 
   // 1. Design Form State
   const [designTitle, setDesignTitle] = useState('');
   const [designDesc, setDesignDesc] = useState('');
   const [designCategory, setDesignCategory] = useState<ContentPillar>('Food');
-  const [designTargetDate, setDesignTargetDate] = useState(minTargetDate);
+  const [designTargetDate, setDesignTargetDate] = useState(minTargetDate || '2026-10-05');
   const [designAttachment, setDesignAttachment] = useState<string>('');
   const [designFormAlert, setDesignFormAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -203,8 +210,8 @@ export const RequestEngine: React.FC = () => {
   const [modalApprovalMode, setModalApprovalMode] = useState<'self_approved' | 'leader_approved' | 'pending_leader'>('self_approved');
 
   // Check target date & promo cutoff
-  const dateValidation = isTargetDateValid(designTargetDate);
-  const promoLockCheck = isPromoSubmissionAllowed(promoTargetMonth);
+  const dateValidation = isTargetDateValid ? isTargetDateValid(designTargetDate) : { valid: true };
+  const promoLockCheck = isPromoSubmissionAllowed ? isPromoSubmissionAllowed(promoTargetMonth) : { allowed: true };
 
   // Submit Design Request
   const handleSubmitDesign = (e: React.FormEvent) => {
@@ -403,10 +410,17 @@ export const RequestEngine: React.FC = () => {
   };
 
   // Filtered requests
-  const filteredDesignRequests = designRequests.filter((r) => {
+  const safeDesignRequests = Array.isArray(designRequests) ? designRequests : [];
+  const safePromos = Array.isArray(promos) ? promos : [];
+  const safeShoots = Array.isArray(shootRequests) ? shootRequests : [];
+  const safeBudgetRequests = Array.isArray(budgetRequests) ? budgetRequests : [];
+  const safeUsers = Array.isArray(users) ? users : [];
+
+  const filteredDesignRequests = safeDesignRequests.filter((r) => {
+    if (!r) return false;
     const matchBranch = isHQ
       ? selectedBranchId === 'all' || r.branch_id === selectedBranchId
-      : r.branch_id === currentBranch?.id;
+      : r.branch_id === (currentBranch?.id || selectedBranchId);
     const matchStatus = statusFilter === 'all' || r.status === statusFilter;
     const currentUid = currentUser?.id;
     const matchAssignee =
@@ -414,30 +428,33 @@ export const RequestEngine: React.FC = () => {
     return matchBranch && matchStatus && matchAssignee;
   });
 
-  const filteredPromos = promos.filter((p) => {
+  const filteredPromos = safePromos.filter((p) => {
+    if (!p) return false;
     if (isHQ) {
       return selectedBranchId === 'all' || p.branch_id === selectedBranchId;
     }
-    return p.branch_id === currentBranch?.id;
+    return p.branch_id === (currentBranch?.id || selectedBranchId);
   });
 
-  const filteredShoots = shootRequests.filter((s) => {
+  const filteredShoots = safeShoots.filter((s) => {
+    if (!s) return false;
     if (isHQ) {
       return selectedBranchId === 'all' || s.branch_id === selectedBranchId;
     }
-    return s.branch_id === currentBranch?.id;
+    return s.branch_id === (currentBranch?.id || selectedBranchId);
   });
 
-  const filteredBudgetRequests = budgetRequests.filter((b) => {
+  const filteredBudgetRequests = safeBudgetRequests.filter((b) => {
+    if (!b) return false;
     const matchBranch = isHQ
       ? selectedBranchId === 'all' || b.target_branch_id === selectedBranchId
-      : b.target_branch_id === currentBranch?.id;
+      : b.target_branch_id === (currentBranch?.id || selectedBranchId);
     const matchStatus = budgetFilterStatus === 'all' || b.status === budgetFilterStatus;
     return matchBranch && matchStatus;
   });
 
-  const creativeUsers = users.filter(
-    (u) => u.role === 'hq_creative' || u.role === 'hq_leader' || u.role === 'hq_owner'
+  const creativeUsers = safeUsers.filter(
+    (u) => u && (u.role === 'hq_creative' || u.role === 'hq_leader' || u.role === 'hq_owner')
   );
 
   return (
