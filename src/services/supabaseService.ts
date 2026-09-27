@@ -90,7 +90,7 @@ export class SupabaseService {
   }
 
   /**
-   * Export all active brand data to Supabase REST endpoints
+   * Upsert/Export data to Supabase REST endpoints
    */
   static async exportDataToSupabase(
     tableName: string, 
@@ -98,6 +98,7 @@ export class SupabaseService {
     customUrl?: string, 
     customKey?: string
   ): Promise<{ success: boolean; count?: number; error?: string }> {
+    if (!rows || rows.length === 0) return { success: true, count: 0 };
     const config = getSupabaseConfig();
     const url = customUrl || config.url;
     const key = customKey || config.anonKey;
@@ -125,6 +126,7 @@ export class SupabaseService {
         return { success: false, error: `HTTP ${response.status}: ${errText}` };
       }
 
+      saveSupabaseConfig({ lastSyncedAt: new Date().toISOString() });
       return { success: true, count: rows.length };
     } catch (err: any) {
       return { success: false, error: err.message || 'Export error' };
@@ -170,6 +172,45 @@ export class SupabaseService {
       return { success: true, data: json as T[] };
     } catch (err: any) {
       return { success: false, error: err.message || 'Fetch error' };
+    }
+  }
+
+  /**
+   * Delete row from Supabase
+   */
+  static async deleteFromSupabase(
+    tableName: string,
+    matchQuery: string,
+    customUrl?: string,
+    customKey?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const config = getSupabaseConfig();
+    const url = customUrl || config.url;
+    const key = customKey || config.anonKey;
+
+    if (!url || !key) {
+      return { success: false, error: 'Supabase URL dan Anon Key belum dikonfigurasi.' };
+    }
+
+    const cleanUrl = url.trim().replace(/\/+$/, '');
+
+    try {
+      const response = await fetch(`${cleanUrl}/rest/v1/${tableName}?${matchQuery}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`
+        }
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        return { success: false, error: `HTTP ${response.status}: ${errText}` };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Delete error' };
     }
   }
 }

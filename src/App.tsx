@@ -161,7 +161,7 @@ const MainContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0d0e12] text-slate-900 dark:text-slate-100 flex flex-col md:flex-row antialiased font-['Geist',sans-serif] transition-colors duration-200">
+    <div className="min-h-screen bg-canvas-mesh text-slate-900 dark:text-slate-100 flex flex-col md:flex-row antialiased font-['Geist',sans-serif] transition-colors duration-200">
       {/* 1. Desktop & Tablet Expandable / Icon-Only Left Sidebar */}
       <Sidebar
         activeTab={activeTab}

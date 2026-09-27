@@ -4,7 +4,6 @@ import {
   Bell,
   Calendar,
   Clock,
-  RotateCcw,
   Sparkles,
   Store,
   ChevronDown,
@@ -59,7 +58,6 @@ export const TopBar: React.FC<TopBarProps> = ({
     setSelectedBranchFilter,
     simulatedDate,
     setSimulatedDate,
-    resetToDefaultData,
     activities,
     unreadNotificationsCount,
     unreadChatCount,
@@ -313,19 +311,6 @@ export const TopBar: React.FC<TopBarProps> = ({
               <span>AI Assistant</span>
             </button>
           )}
-
-          {/* Reset Demo data button */}
-          <button
-            onClick={() => {
-              if (confirm(language === 'ko' ? '초기 데모 데이터로 복원하시겠습니까?' : 'Reset to default initial data?')) {
-                resetToDefaultData();
-              }
-            }}
-            title={t('resetDemo')}
-            className="p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/90 dark:border-slate-700/80 transition shadow-2xs cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
 
           {/* Notifications Bell */}
           <div className="relative">

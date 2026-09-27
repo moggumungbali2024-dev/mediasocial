@@ -61,6 +61,7 @@ import {
 } from '../data/initialData.ts';
 import { TRANSLATIONS } from '../data/translations.ts';
 import { ThemeColors, getThemeColors, applyThemeVariables } from '../utils/theme.ts';
+import { SupabaseService } from '../services/supabaseService.ts';
 
 interface PortalContextType {
   currentUser: UserProfile;
@@ -599,13 +600,27 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         message: 'Kata sandi baru tidak boleh kosong.' 
       };
     }
+    const cleanPass = newPassword.trim();
     setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, password: newPassword.trim() } : u))
+      prev.map((u) => (u.id === userId ? { ...u, password: cleanPass } : u))
     );
     // Also update in platformUsers if it is a platform user
-    setPlatformUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, password: newPassword.trim() } : u))
-    );
+    setPlatformUsers((prev) => {
+      const updated = prev.map((u) => (u.id === userId ? { ...u, password: cleanPass } : u));
+      saveStorage('platform_users', updated);
+      const targetUser = updated.find(u => u.id === userId);
+      if (targetUser) {
+        SupabaseService.exportDataToSupabase('users', [{
+          id: targetUser.id,
+          phone: targetUser.phone,
+          password_hash: cleanPass,
+          full_name: targetUser.full_name,
+          email: targetUser.email,
+          role: targetUser.role
+        }]).catch(err => console.warn('Sync password to Supabase:', err));
+      }
+      return updated;
+    });
     return { 
       success: true, 
       message: 'Kata sandi berhasil diperbarui!' 
@@ -624,19 +639,52 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const newUser: UserProfile = {
       ...data,
       id: `user-platform-${Date.now().toString().slice(-6)}`,
-      joined_date: '2026-09-27',
+      joined_date: new Date().toISOString().split('T')[0],
       password: data.password || 'Media',
       status: 'active'
     };
 
-    setPlatformUsers((prev) => [...prev, newUser]);
+    setPlatformUsers((prev) => {
+      const updated = [...prev, newUser];
+      saveStorage('platform_users', updated);
+      return updated;
+    });
+
+    // Immediately push to Supabase REST
+    SupabaseService.exportDataToSupabase('users', [{
+      id: newUser.id,
+      brand_slug: null,
+      branch_id: null,
+      role: newUser.role,
+      full_name: newUser.full_name,
+      email: newUser.email,
+      phone: newUser.phone,
+      password_hash: newUser.password || 'Media',
+      job_title: newUser.job_title || 'Platform Team',
+      status: 'active'
+    }]).catch(err => console.warn('Sync user to Supabase:', err));
+
     return { success: true, message: `Pengguna platform ${data.full_name} (${data.role}) berhasil ditambahkan!` };
   };
 
   const updatePlatformUser = (id: string, updates: Partial<UserProfile>): { success: boolean; message: string } => {
-    setPlatformUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, ...updates } : u))
-    );
+    setPlatformUsers((prev) => {
+      const updated = prev.map((u) => (u.id === id ? { ...u, ...updates } : u));
+      saveStorage('platform_users', updated);
+      const targetUser = updated.find(u => u.id === id);
+      if (targetUser) {
+        SupabaseService.exportDataToSupabase('users', [{
+          id: targetUser.id,
+          phone: targetUser.phone,
+          full_name: targetUser.full_name,
+          email: targetUser.email,
+          role: targetUser.role,
+          job_title: targetUser.job_title,
+          password_hash: targetUser.password || 'Media'
+        }]).catch(err => console.warn('Update user to Supabase:', err));
+      }
+      return updated;
+    });
     return { success: true, message: 'Data pengguna platform berhasil diperbarui!' };
   };
 
@@ -749,6 +797,69 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Add to platform brands
     setPlatformBrands((prev) => [newBrandTenant, ...prev]);
 
+    // Export newly registered brand & owner to Supabase
+    SupabaseService.exportDataToSupabase('platform_brands', [{
+      id: newBrandTenant.id,
+      slug: newBrandTenant.slug,
+      name: newBrandTenant.name,
+      tagline: newBrandTenant.tagline,
+      primary_color: newBrandTenant.primary_color,
+      hq_owner_name: newBrandTenant.hq_owner_name,
+      hq_owner_email: newBrandTenant.hq_owner_email,
+      hq_owner_phone: newBrandTenant.hq_owner_phone,
+      subscription_plan_id: newBrandTenant.subscription_plan_id,
+      subscription_status: newBrandTenant.subscription_status,
+      monthly_fee: newBrandTenant.monthly_fee,
+      branches_count: 1,
+      wallet_balance: 0
+    }]).catch(err => console.warn('Sync brand to Supabase:', err));
+
+    SupabaseService.exportDataToSupabase('users', [{
+      id: newHqOwnerUser.id,
+      brand_slug: cleanSlug,
+      branch_id: null,
+      role: 'hq_owner',
+      full_name: newHqOwnerUser.full_name,
+      email: newHqOwnerUser.email,
+      phone: newHqOwnerUser.phone,
+      password_hash: newHqOwnerUser.password || 'Media',
+      job_title: newHqOwnerUser.job_title,
+      status: 'active'
+    }]).catch(err => console.warn('Sync HQ owner to Supabase:', err));
+
+    SupabaseService.exportDataToSupabase('branches', [{
+      id: newInitialBranch.id,
+      brand_slug: cleanSlug,
+      name: newInitialBranch.name,
+      code: newInitialBranch.code,
+      location: newInitialBranch.location,
+      city: newInitialBranch.city,
+      contract_status: 'active',
+      contact_person: newInitialBranch.contact_person,
+      phone: newInitialBranch.phone,
+      custom_retainer_fee: newInitialBranch.custom_retainer_fee,
+      package_tier: 'Standard',
+      wallet_balance: 0,
+      pic_name: newInitialBranch.pic_name,
+      pic_phone: newInitialBranch.pic_phone,
+      pic_email: newInitialBranch.pic_email,
+      owner_name: newInitialBranch.owner_name,
+      owner_phone: newInitialBranch.owner_phone,
+      owner_email: newInitialBranch.owner_email
+    }]).catch(err => console.warn('Sync branch to Supabase:', err));
+
+    SupabaseService.exportDataToSupabase('whitelabel_configs', [{
+      brand_slug: cleanSlug,
+      brand_name: newWhitelabel.brand_name,
+      brand_subtitle: newWhitelabel.brand_subtitle,
+      brand_monogram: newWhitelabel.brand_monogram,
+      company_legal_name: newWhitelabel.company_legal_name,
+      hq_location: newWhitelabel.hq_location,
+      contact_email: newWhitelabel.contact_email,
+      contact_whatsapp: newWhitelabel.contact_whatsapp,
+      custom_primary_hex: newWhitelabel.custom_primary_hex
+    }]).catch(err => console.warn('Sync whitelabel to Supabase:', err));
+
     // Switch tenant
     switchTenantBrand(cleanSlug);
     setCurrentUserId(newHqOwnerUser.id);
@@ -832,6 +943,42 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setBranches((prev) => [...prev, newBranch]);
     setUsers((prev) => [...prev, newManagerUser]);
 
+    // Sync new branch and user to Supabase
+    SupabaseService.exportDataToSupabase('branches', [{
+      id: newBranch.id,
+      brand_slug: activeTenantSlug,
+      name: newBranch.name,
+      code: newBranch.code,
+      location: newBranch.location,
+      city: newBranch.city,
+      address: newBranch.address,
+      contract_status: 'active',
+      contact_person: newBranch.contact_person,
+      phone: newBranch.phone,
+      custom_retainer_fee: newBranch.custom_retainer_fee,
+      package_tier: newBranch.package_tier,
+      wallet_balance: 0,
+      pic_name: newBranch.pic_name,
+      pic_phone: newBranch.pic_phone,
+      pic_email: newBranch.pic_email,
+      owner_name: newBranch.owner_name,
+      owner_phone: newBranch.owner_phone,
+      owner_email: newBranch.owner_email
+    }]).catch(err => console.warn('Sync branch to Supabase:', err));
+
+    SupabaseService.exportDataToSupabase('users', [{
+      id: newManagerUser.id,
+      brand_slug: activeTenantSlug,
+      branch_id: newBranch.id,
+      role: newManagerUser.role,
+      full_name: newManagerUser.full_name,
+      email: newManagerUser.email,
+      phone: newManagerUser.phone,
+      password_hash: newManagerUser.password || 'Media',
+      job_title: newManagerUser.job_title,
+      status: 'active'
+    }]).catch(err => console.warn('Sync branch user to Supabase:', err));
+
     const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/${activeTenantSlug}` : `https://mediasocial.team/${activeTenantSlug}`;
     const waText = `Halo ${data.pic_name}! 👋%0A%0AAnda telah diundang untuk mengelola cabang *${data.name}* di Portal Brand *${whitelabelConfig.brand_name}*.%0A%0A🔗 *Link Portal:* ${portalUrl}%0A📱 *Nomor HP Login:* ${data.pic_phone}%0A🔑 *Password:* ${managerPassword}%0A%0ASilakan masuk untuk request desain, upload promo, dan pantau status jadwal cabang Anda.`;
 
@@ -906,9 +1053,13 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 
   // Platform Multi-Tenant & Super-Admin States
-  const [platformBrands, setPlatformBrands] = useState<PlatformBrandTenant[]>(() =>
-    loadStorage('platform_brands', INITIAL_PLATFORM_BRANDS)
-  );
+  const [platformBrands, setPlatformBrands] = useState<PlatformBrandTenant[]>(() => {
+    const loaded = loadStorage('platform_brands', INITIAL_PLATFORM_BRANDS);
+    return (loaded || []).filter(
+      (b) => !['brand-kopisenja', 'brand-matchabae', 'brand-satenusantara', 'kopisenja', 'matchabae', 'satenusantara'].includes(b.id) &&
+             !['kopisenja', 'matchabae', 'satenusantara'].includes(b.slug)
+    );
+  });
   const [subscriptionPlans, setSubscriptionPlans] = useState<BrandSubscriptionPlan[]>(() =>
     loadStorage('platform_plans', INITIAL_PLATFORM_PLANS)
   );
@@ -918,6 +1069,145 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [subscriptionReminders, setSubscriptionReminders] = useState<SubscriptionReminderLog[]>(() =>
     loadStorage('subscription_reminders', INITIAL_REMINDER_LOGS)
   );
+
+  // Live Supabase Sync Engine
+  const syncFromSupabase = async () => {
+    try {
+      // 1. Fetch Users
+      const usersRes = await SupabaseService.fetchFromSupabase<any>('users');
+      if (usersRes.success && usersRes.data && usersRes.data.length > 0) {
+        const remoteUsers: UserProfile[] = usersRes.data.map((u: any) => ({
+          id: u.id,
+          branch_id: u.branch_id,
+          role: u.role as UserRole,
+          full_name: u.full_name,
+          email: u.email,
+          phone: u.phone,
+          password: u.password_hash || 'Media',
+          job_title: u.job_title || '',
+          avatar_url: u.avatar_url || '',
+          status: u.status || 'active',
+          joined_date: u.joined_date || (u.created_at ? u.created_at.split('T')[0] : '2026-01-01')
+        }));
+
+        const pUsers = remoteUsers.filter((u) => ['platform_owner', 'platform_finance', 'platform_admin'].includes(u.role));
+        if (pUsers.length > 0) {
+          setPlatformUsers((prev) => {
+            const map = new Map(prev.map(p => [p.id, p]));
+            pUsers.forEach(p => map.set(p.id, p));
+            return Array.from(map.values());
+          });
+        }
+
+        const bUsers = remoteUsers.filter((u) => !['platform_owner', 'platform_finance', 'platform_admin'].includes(u.role));
+        if (bUsers.length > 0) {
+          setUsers((prev) => {
+            const map = new Map(prev.map(p => [p.id, p]));
+            bUsers.forEach(b => map.set(b.id, b));
+            return Array.from(map.values());
+          });
+        }
+      }
+
+      // 2. Fetch Subscription Plans
+      const plansRes = await SupabaseService.fetchFromSupabase<any>('platform_plans');
+      if (plansRes.success && plansRes.data && plansRes.data.length > 0) {
+        const remotePlans: BrandSubscriptionPlan[] = plansRes.data.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          monthly_price: Number(p.monthly_price),
+          annual_price: Number(p.annual_price),
+          max_branches: Number(p.max_branches),
+          max_design_requests_per_branch: Number(p.max_design_requests_per_branch),
+          max_promos_per_branch: Number(p.max_promos_per_branch),
+          includes_influencer_crm: Boolean(p.includes_influencer_crm),
+          includes_collaboration_chat: Boolean(p.includes_collaboration_chat),
+          includes_auto_invoicing: Boolean(p.includes_auto_invoicing),
+          includes_dedicated_support: Boolean(p.includes_dedicated_support),
+          is_popular: Boolean(p.is_popular),
+          description: p.description || ''
+        }));
+        setSubscriptionPlans(remotePlans);
+        saveStorage('platform_plans', remotePlans);
+      }
+
+      // 3. Fetch Platform Brands
+      const brandsRes = await SupabaseService.fetchFromSupabase<any>('platform_brands');
+      if (brandsRes.success && brandsRes.data) {
+        const remoteBrands: PlatformBrandTenant[] = brandsRes.data
+          .filter((b: any) => !['kopisenja', 'matchabae', 'satenusantara'].includes(b.slug))
+          .map((b: any) => ({
+            id: b.id,
+            slug: b.slug,
+            name: b.name,
+            tagline: b.tagline || '',
+            logo_url: b.logo_url || '',
+            primary_color: b.primary_color || '#FF5B14',
+            hq_owner_name: b.hq_owner_name,
+            hq_owner_email: b.hq_owner_email,
+            hq_owner_phone: b.hq_owner_phone,
+            subscription_plan_id: b.subscription_plan_id || 'growth',
+            subscription_status: b.subscription_status || 'active',
+            subscription_start_date: b.subscription_start_date || '2026-01-01',
+            subscription_end_date: b.subscription_end_date || '2026-12-31',
+            monthly_fee: Number(b.monthly_fee) || 4890000,
+            branches_count: Number(b.branches_count) || 1,
+            is_verified: Boolean(b.is_verified),
+            created_at: b.created_at || '2026-01-01',
+            last_active_at: b.last_active_at || '2026-09-27',
+            wallet_balance: Number(b.wallet_balance) || 0,
+            notes: b.notes || ''
+          }));
+        if (remoteBrands.length > 0) {
+          setPlatformBrands(remoteBrands);
+          saveStorage('platform_brands', remoteBrands);
+        }
+      }
+
+      // 4. Fetch Branches for active brand
+      const branchesRes = await SupabaseService.fetchFromSupabase<any>('branches', `brand_slug=eq.${activeTenantSlug}`);
+      if (branchesRes.success && branchesRes.data && branchesRes.data.length > 0) {
+        const remoteBranches: Branch[] = branchesRes.data.map((b: any) => ({
+          id: b.id,
+          name: b.name,
+          code: b.code || '',
+          location: b.location || '',
+          city: b.city || '',
+          address: b.address || '',
+          contract_status: b.contract_status || 'active',
+          contact_person: b.contact_person || '',
+          phone: b.phone || '',
+          custom_retainer_fee: Number(b.custom_retainer_fee) || 5000000,
+          package_tier: b.package_tier || 'Standard',
+          wallet_balance: Number(b.wallet_balance) || 0,
+          max_monthly_design_requests: Number(b.max_monthly_design_requests) || 12,
+          max_monthly_active_promos: Number(b.max_monthly_active_promos) || 4,
+          lead_days: Number(b.lead_days) || 5,
+          pic_name: b.pic_name || '',
+          pic_phone: b.pic_phone || '',
+          pic_email: b.pic_email || '',
+          owner_name: b.owner_name || '',
+          owner_phone: b.owner_phone || '',
+          owner_email: b.owner_email || '',
+          created_at: b.created_at || '2026-01-01'
+        }));
+        setBranches(remoteBranches);
+      }
+    } catch (e) {
+      console.warn('Sync from Supabase:', e);
+    }
+  };
+
+  useEffect(() => {
+    syncFromSupabase();
+    const handleFocus = () => syncFromSupabase();
+    window.addEventListener('focus', handleFocus);
+    const interval = setInterval(syncFromSupabase, 10000);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, [activeTenantSlug]);
 
   // Auto-sync to localStorage
   useEffect(() => saveStorage('platform_brands', platformBrands), [platformBrands]);
@@ -1010,10 +1300,24 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       ...data,
       id: `user-${Date.now()}`,
       status: data.status || 'active',
-      password: data.password || '1',
+      password: data.password || 'Media',
       joined_date: simulatedDate
     };
     setUsers((prev) => [newUser, ...prev]);
+
+    // Export new user to Supabase
+    SupabaseService.exportDataToSupabase('users', [{
+      id: newUser.id,
+      brand_slug: activeTenantSlug,
+      branch_id: newUser.branch_id || null,
+      role: newUser.role,
+      full_name: newUser.full_name,
+      email: newUser.email,
+      phone: newUser.phone,
+      password_hash: newUser.password || 'Media',
+      job_title: newUser.job_title || '',
+      status: newUser.status || 'active'
+    }]).catch(err => console.warn('Sync new user to Supabase:', err));
 
     addActivity({
       branch_id: data.branch_id || undefined,
@@ -1029,9 +1333,25 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateUser = (id: string, updates: Partial<UserProfile>) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, ...updates } : u))
-    );
+    setUsers((prev) => {
+      const updated = prev.map((u) => (u.id === id ? { ...u, ...updates } : u));
+      const target = updated.find((u) => u.id === id);
+      if (target) {
+        SupabaseService.exportDataToSupabase('users', [{
+          id: target.id,
+          brand_slug: activeTenantSlug,
+          branch_id: target.branch_id || null,
+          role: target.role,
+          full_name: target.full_name,
+          email: target.email,
+          phone: target.phone,
+          password_hash: target.password || 'Media',
+          job_title: target.job_title || '',
+          status: target.status || 'active'
+        }]).catch(err => console.warn('Update user to Supabase:', err));
+      }
+      return updated;
+    });
   };
 
   const setSimulatedDate = (date: string) => {
@@ -2887,9 +3207,29 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateSubscriptionPlan = (id: string, updates: Partial<BrandSubscriptionPlan>) => {
-    setSubscriptionPlans((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-    );
+    setSubscriptionPlans((prev) => {
+      const updated = prev.map((p) => (p.id === id ? { ...p, ...updates } : p));
+      saveStorage('platform_plans', updated);
+      const targetPlan = updated.find(p => p.id === id);
+      if (targetPlan) {
+        SupabaseService.exportDataToSupabase('platform_plans', [{
+          id: targetPlan.id,
+          name: targetPlan.name,
+          monthly_price: targetPlan.monthly_price,
+          annual_price: targetPlan.annual_price,
+          max_branches: targetPlan.max_branches,
+          max_design_requests_per_branch: targetPlan.max_design_requests_per_branch,
+          max_promos_per_branch: targetPlan.max_promos_per_branch,
+          includes_influencer_crm: targetPlan.includes_influencer_crm,
+          includes_collaboration_chat: targetPlan.includes_collaboration_chat,
+          includes_auto_invoicing: targetPlan.includes_auto_invoicing,
+          includes_dedicated_support: targetPlan.includes_dedicated_support,
+          is_popular: targetPlan.is_popular,
+          description: targetPlan.description
+        }]).catch(err => console.warn('Sync plan to Supabase:', err));
+      }
+      return updated;
+    });
   };
 
   const requestPlatformWithdrawal = (

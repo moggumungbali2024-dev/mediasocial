@@ -80,39 +80,40 @@ export const DashboardCabang: React.FC<DashboardCabangProps> = ({ onNavigateTab 
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* Branch Header Banner */}
-      <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 rounded-2xl p-4 sm:p-6 shadow-xl text-white">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20 shrink-0">
-              <Store className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+      {/* Branch Header Banner - The Canvas Style */}
+      <div className="bg-[#121316] border border-white/10 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 shrink-0">
+              <Store className="w-7 h-7 sm:w-8 sm:h-8 text-orange-400" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 text-white border border-white/30 mb-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold bg-white/10 text-emerald-400 border border-white/10 mb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span>{t('activeFranchiseBranch')} • {currentBranch.city}</span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white font-['Space_Grotesk']">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white font-['Space_Grotesk']">
                 {currentBranch.name}
               </h1>
-              <p className="text-amber-100 text-xs">
-                {t('contactPersonLabel')}: <strong>{currentBranch.contact_person}</strong> ({currentBranch.phone}) • {currentBranch.location}
+              <p className="text-slate-400 text-xs sm:text-sm mt-1">
+                {t('contactPersonLabel')}: <strong className="text-white">{currentBranch.contact_person}</strong> ({currentBranch.phone}) • {currentBranch.location}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => onNavigateTab('activity')}
-              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition border border-white/20"
+              className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl text-xs flex items-center gap-2 transition border border-white/10 cursor-pointer"
             >
-              <Activity className="w-4 h-4 text-amber-300" />
+              <Activity className="w-4 h-4 text-amber-400" />
               <span>{t('activityFeedBtn')}</span>
             </button>
 
             <button
               onClick={() => onNavigateTab('requests')}
-              className="px-4 py-2 bg-slate-950 hover:bg-slate-900 text-amber-400 font-bold rounded-xl shadow-lg text-xs flex items-center gap-1.5 transition border border-amber-400/30"
+              className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-2xl shadow-lg shadow-orange-600/30 text-xs flex items-center gap-2 transition cursor-pointer"
             >
               <Layers className="w-4 h-4" />
               <span>{t('submitDesignBtn')}</span>

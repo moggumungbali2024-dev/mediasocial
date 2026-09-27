@@ -226,7 +226,57 @@ create table if not exists public.influencers (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 13. SEED INITIAL PLATFORM SUPERADMIN USER
+-- 13. PLATFORM SUBSCRIPTION PLANS TABLE
+create table if not exists public.platform_plans (
+  id text primary key, -- 'starter', 'growth', 'enterprise'
+  name text not null,
+  monthly_price numeric not null,
+  annual_price numeric not null,
+  max_branches integer not null default 3,
+  max_design_requests_per_branch integer not null default 6,
+  max_promos_per_branch integer not null default 2,
+  includes_influencer_crm boolean default false,
+  includes_collaboration_chat boolean default true,
+  includes_auto_invoicing boolean default true,
+  includes_dedicated_support boolean default false,
+  is_popular boolean default false,
+  description text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 14. PLATFORM WALLET WITHDRAWALS TABLE
+create table if not exists public.platform_withdrawals (
+  id text primary key default ('wd-' || substr(md5(random()::text), 1, 8)),
+  amount numeric not null,
+  bank_name text not null,
+  account_number text not null,
+  account_holder text not null,
+  status text check (status in ('pending', 'processing', 'completed', 'rejected')) default 'pending',
+  requested_by text references public.users(id),
+  requested_by_name text,
+  reference_no text,
+  notes text,
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 15. SUBSCRIPTION REMINDERS LOG TABLE
+create table if not exists public.subscription_reminders (
+  id text primary key default ('rem-' || substr(md5(random()::text), 1, 8)),
+  brand_id text references public.platform_brands(id) on delete cascade,
+  brand_name text not null,
+  recipient_name text not null,
+  recipient_phone text not null,
+  recipient_email text,
+  days_remaining integer not null default 0,
+  channel text check (channel in ('whatsapp', 'email', 'system')) default 'whatsapp',
+  message_preview text not null,
+  sent_by text,
+  status text check (status in ('sent', 'delivered', 'failed')) default 'sent',
+  sent_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 16. SEED INITIAL PLATFORM SUPERADMIN USER
 -- Login: Phone: 08159998757, Password: Media
 insert into public.users (
   id,
@@ -255,7 +305,25 @@ insert into public.users (
   role = excluded.role,
   full_name = excluded.full_name;
 
--- 14. ENABLE ROW LEVEL SECURITY (RLS) & POLICIES
+-- 17. SEED INITIAL SUBSCRIPTION PLANS
+insert into public.platform_plans (
+  id, name, monthly_price, annual_price, max_branches, 
+  max_design_requests_per_branch, max_promos_per_branch, 
+  includes_influencer_crm, includes_collaboration_chat, 
+  includes_auto_invoicing, includes_dedicated_support, is_popular, description
+) values
+  ('starter', 'Starter Franchise', 2490000, 24900000, 3, 6, 2, false, true, true, false, false, 'Ideal untuk franchise berkembang dengan 1–3 cabang yang butuh kepastian kuota desain & invoice bulanan.'),
+  ('growth', 'Growth Network', 4890000, 48900000, 10, 18, 6, true, true, true, false, true, 'Paling populer untuk franchise 4–10 cabang aktif dengan matrix exposure multi-outlet & modul KOL influencer.'),
+  ('enterprise', 'Enterprise Fleet', 8990000, 89900000, 30, 999, 999, true, true, true, true, false, 'Solusi tanpa batas untuk jaringan ritel/F&B nasional, custom SLA, prioritas render studio & dedicated account manager.')
+on conflict (id) do update set
+  name = excluded.name,
+  monthly_price = excluded.monthly_price,
+  annual_price = excluded.annual_price,
+  max_branches = excluded.max_branches,
+  max_design_requests_per_branch = excluded.max_design_requests_per_branch,
+  max_promos_per_branch = excluded.max_promos_per_branch;
+
+-- 18. ENABLE ROW LEVEL SECURITY (RLS) & POLICIES
 alter table public.platform_brands enable row level security;
 alter table public.whitelabel_configs enable row level security;
 alter table public.branches enable row level security;
@@ -267,6 +335,9 @@ alter table public.invoices enable row level security;
 alter table public.social_channels enable row level security;
 alter table public.social_posts enable row level security;
 alter table public.influencers enable row level security;
+alter table public.platform_plans enable row level security;
+alter table public.platform_withdrawals enable row level security;
+alter table public.subscription_reminders enable row level security;
 
 -- Anonymous public policy for application client
 create policy "Allow all public operations" on public.platform_brands for all using (true) with check (true);
@@ -280,3 +351,6 @@ create policy "Allow all public operations" on public.invoices for all using (tr
 create policy "Allow all public operations" on public.social_channels for all using (true) with check (true);
 create policy "Allow all public operations" on public.social_posts for all using (true) with check (true);
 create policy "Allow all public operations" on public.influencers for all using (true) with check (true);
+create policy "Allow all public operations" on public.platform_plans for all using (true) with check (true);
+create policy "Allow all public operations" on public.platform_withdrawals for all using (true) with check (true);
+create policy "Allow all public operations" on public.subscription_reminders for all using (true) with check (true);

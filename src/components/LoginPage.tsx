@@ -269,7 +269,7 @@ export const LoginPage: React.FC = () => {
                 <div className="relative">
                   <input
                     type="tel"
-                    placeholder="08159998757"
+                    placeholder="Contoh: 081234567890"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required

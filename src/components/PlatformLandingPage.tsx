@@ -64,8 +64,8 @@ export const PlatformLandingPage: React.FC<PlatformLandingPageProps> = ({
   const [authMode, setAuthMode] = useState<'signin' | 'register'>('signin');
 
   // Sign In Form State
-  const [loginPhone, setLoginPhone] = useState('08159998757');
-  const [loginPassword, setLoginPassword] = useState('Media');
+  const [loginPhone, setLoginPhone] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginSuccess, setLoginSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -585,7 +585,7 @@ export const PlatformLandingPage: React.FC<PlatformLandingPageProps> = ({
                     <input
                       type="tel"
                       required
-                      placeholder="08159998757"
+                      placeholder="Contoh: 081234567890"
                       value={loginPhone}
                       onChange={(e) => setLoginPhone(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm text-slate-900 font-mono font-medium focus:outline-none focus:ring-2 focus:ring-black pl-10"

@@ -207,7 +207,7 @@ export const INITIAL_USERS: UserProfile[] = [
     job_title: 'Creative Director & Operations Lead',
     status: 'active',
     phone: '0812-9999-0002',
-    password: '1',
+    password: 'Media',
     joined_date: '2024-06-01'
   },
   {
@@ -219,7 +219,7 @@ export const INITIAL_USERS: UserProfile[] = [
     job_title: 'Lead Graphic & Menu Designer',
     status: 'active',
     phone: '0812-9999-0003',
-    password: '1',
+    password: 'Media',
     joined_date: '2025-02-15'
   },
   {
@@ -231,7 +231,7 @@ export const INITIAL_USERS: UserProfile[] = [
     job_title: 'Video Editor & Content Creator',
     status: 'active',
     phone: '0812-9999-0004',
-    password: '1',
+    password: 'Media',
     joined_date: '2025-06-01'
   },
   {
@@ -243,7 +243,7 @@ export const INITIAL_USERS: UserProfile[] = [
     job_title: 'Franchise Owner Ubud',
     status: 'active',
     phone: '0812-9999-0005',
-    password: '1',
+    password: 'Media',
     joined_date: '2025-11-15'
   },
   {
@@ -255,7 +255,7 @@ export const INITIAL_USERS: UserProfile[] = [
     job_title: 'Store Operations Manager Ubud',
     status: 'active',
     phone: '0812-9999-0006',
-    password: '1',
+    password: 'Media',
     joined_date: '2025-12-01'
   },
   {
@@ -267,7 +267,7 @@ export const INITIAL_USERS: UserProfile[] = [
     job_title: 'Franchise Owner Seminyak',
     status: 'active',
     phone: '0812-9999-0007',
-    password: '1',
+    password: 'Media',
     joined_date: '2026-01-10'
   },
   {
@@ -279,7 +279,7 @@ export const INITIAL_USERS: UserProfile[] = [
     job_title: 'Store Operations Manager Seminyak',
     status: 'active',
     phone: '0812-9999-0008',
-    password: '1',
+    password: 'Media',
     joined_date: '2026-02-01'
   },
   {
@@ -291,7 +291,7 @@ export const INITIAL_USERS: UserProfile[] = [
     job_title: 'Franchise Owner Canggu',
     status: 'active',
     phone: '0812-9999-0009',
-    password: '1',
+    password: 'Media',
     joined_date: '2026-02-01'
   },
   {
@@ -303,7 +303,7 @@ export const INITIAL_USERS: UserProfile[] = [
     job_title: 'Franchise Owner Bandung',
     status: 'active',
     phone: '0812-9999-0010',
-    password: '1',
+    password: 'Media',
     joined_date: '2026-04-18'
   }
 ];
@@ -1519,67 +1519,9 @@ export const INITIAL_PLATFORM_BRANDS: PlatformBrandTenant[] = [
   }
 ];
 
-export const INITIAL_PLATFORM_WITHDRAWALS: PlatformWalletWithdrawal[] = [
-  {
-    id: 'wd-001',
-    amount: 15000000,
-    bank_name: 'Bank Central Asia (BCA)',
-    account_number: '8830-1928-11',
-    account_holder: 'Alexandre Tan',
-    status: 'completed',
-    requested_by: 'user-platform-owner',
-    requested_by_name: 'Alexandre Tan',
-    created_at: '2026-09-15 10:20',
-    completed_at: '2026-09-15 11:05',
-    reference_no: 'TRX-WD-20260915-001',
-    notes: 'Disbursement subscription pool Q3 payout.'
-  },
-  {
-    id: 'wd-002',
-    amount: 8500000,
-    bank_name: 'Bank Mandiri',
-    account_number: '1370-0099-2819',
-    account_holder: 'Alexandre Tan',
-    status: 'completed',
-    requested_by: 'user-platform-owner',
-    requested_by_name: 'Alexandre Tan',
-    created_at: '2026-09-22 14:10',
-    completed_at: '2026-09-22 15:00',
-    reference_no: 'TRX-WD-20260922-004',
-    notes: 'Operational profit share withdrawal.'
-  }
-];
+export const INITIAL_PLATFORM_WITHDRAWALS: PlatformWalletWithdrawal[] = [];
 
-export const INITIAL_REMINDER_LOGS: SubscriptionReminderLog[] = [
-  {
-    id: 'rem-001',
-    brand_id: 'brand-kopisenja',
-    brand_name: 'Kopi Senja Nusantara',
-    recipient_name: 'Arya Nugraha',
-    recipient_phone: '0813-8877-6655',
-    recipient_email: 'arya@kopisenja.id',
-    days_remaining: 4,
-    channel: 'whatsapp',
-    message_preview: 'Halo Kak Arya (Kopi Senja), langganan mediasocial.team akan berakhir dalam 4 hari (30 Sep 2026). Segera lakukan perpanjangan...',
-    sent_at: '2026-09-26 09:15',
-    sent_by: 'Clara Wijaya (Finance)',
-    status: 'delivered'
-  },
-  {
-    id: 'rem-002',
-    brand_id: 'brand-satenusantara',
-    brand_name: 'Sate Maranggi Nusantara',
-    recipient_name: 'Hendrik Gunawan',
-    recipient_phone: '0812-4455-6677',
-    recipient_email: 'hendrik@satenusantara.id',
-    days_remaining: -6,
-    channel: 'whatsapp',
-    message_preview: 'Pemberitahuan: Akun brand Sate Maranggi Nusantara di mediasocial.team telah jatuh tempo sejak 20 Sep 2026. Mohon konfirmasi pembayaran...',
-    sent_at: '2026-09-26 10:00',
-    sent_by: 'Clara Wijaya (Finance)',
-    status: 'delivered'
-  }
-];
+export const INITIAL_REMINDER_LOGS: SubscriptionReminderLog[] = [];
 
 // ==========================================
 // BRAND DATA REGISTRY (DATA ISOLATION ENGINE)
@@ -1618,671 +1560,6 @@ export const BRAND_DATA_REGISTRY: Record<string, BrandDataset> = {
     influencers: INITIAL_INFLUENCERS
   },
 
-  kopisenja: {
-    whitelabel: {
-      brand_name: 'Kopi Senja Nusantara',
-      brand_subtitle: 'Artisan Coffee Roasters & Eatery Network',
-      brand_monogram: 'KS',
-      brand_logo_url: '',
-      theme_accent: 'amber',
-      custom_primary_hex: '#D97706',
-      company_legal_name: 'PT Kopi Senja Indonesia',
-      hq_location: 'Jakarta HQ (Senopati Roastery)',
-      hq_address: 'Jl. Senopati No. 45, Kebayoran Baru, Jakarta Selatan 12190',
-      contact_email: 'hq@kopisenja.id',
-      contact_whatsapp: '+62 813-8877-6655',
-      bank_name: 'Bank Mandiri',
-      bank_account_number: '1370-0088-9922',
-      bank_account_name: 'PT Kopi Senja Indonesia',
-      bank_swift_code: 'BMRIIDJA',
-      invoice_note_footer: 'Pembayaran tagihan retainer dan ad budget transfer ke Rekening Mandiri PT Kopi Senja Indonesia.',
-      currency_symbol: 'Rp',
-      default_monthly_retainer: 6000000,
-      max_monthly_design_requests: 4,
-      max_monthly_active_promos: 3,
-      design_min_lead_days: 5,
-      promo_cutoff_day_of_month: 25
-    },
-    branches: [
-      {
-        id: 'branch-ks-senopati',
-        name: 'Kopi Senja Senopati',
-        code: 'KS-SNP',
-        location: 'Jl. Senopati No. 45',
-        city: 'Jakarta Selatan',
-        contract_status: 'active',
-        contact_person: 'Rio Firmansyah',
-        phone: '0813-8877-0004',
-        custom_retainer_fee: 7500000,
-        package_tier: 'Premium',
-        wallet_balance: 14000000,
-        max_monthly_design_requests: 18,
-        max_monthly_active_promos: 6,
-        lead_days: 4,
-        pic_name: 'Dian Safitri (Manager)',
-        pic_phone: '0813-8877-0005',
-        pic_email: 'store.senopati@kopisenja.id',
-        owner_name: 'Rio Firmansyah (Owner)',
-        owner_phone: '0813-8877-0004',
-        owner_email: 'rio@kopisenja.id',
-        created_at: '2026-01-10'
-      },
-      {
-        id: 'branch-ks-dago',
-        name: 'Kopi Senja Dago Heritage',
-        code: 'KS-DGO',
-        location: 'Jl. Ir. H. Juanda No. 128, Dago',
-        city: 'Bandung',
-        contract_status: 'active',
-        contact_person: 'Farhan Malik',
-        phone: '0813-8877-0006',
-        custom_retainer_fee: 6000000,
-        package_tier: 'Standard',
-        wallet_balance: 8500000,
-        max_monthly_design_requests: 12,
-        max_monthly_active_promos: 4,
-        lead_days: 5,
-        pic_name: 'Gita Pratiwi (Manager)',
-        pic_phone: '0813-8877-0007',
-        pic_email: 'store.dago@kopisenja.id',
-        owner_name: 'Farhan Malik (Owner)',
-        owner_phone: '0813-8877-0006',
-        owner_email: 'farhan@kopisenja.id',
-        created_at: '2026-02-15'
-      },
-      {
-        id: 'branch-ks-canggu',
-        name: 'Kopi Senja Canggu Roastery',
-        code: 'KS-CGU',
-        location: 'Jl. Pantai Batu Mejan No. 8',
-        city: 'Badung, Bali',
-        contract_status: 'active',
-        contact_person: 'Wayan Bagus',
-        phone: '0813-8877-0008',
-        custom_retainer_fee: 5500000,
-        package_tier: 'Standard',
-        wallet_balance: 6000000,
-        max_monthly_design_requests: 12,
-        max_monthly_active_promos: 4,
-        lead_days: 5,
-        pic_name: 'Made Sanjaya (Manager)',
-        pic_phone: '0813-8877-0009',
-        pic_email: 'store.canggu@kopisenja.id',
-        owner_name: 'Wayan Bagus (Owner)',
-        owner_phone: '0813-8877-0008',
-        owner_email: 'wayan@kopisenja.id',
-        created_at: '2026-03-01'
-      }
-    ],
-    users: [
-      {
-        id: 'user-ks-owner',
-        branch_id: null,
-        role: 'hq_owner',
-        full_name: 'Arya Nugraha (HQ Owner & Founder)',
-        email: 'arya@kopisenja.id',
-        job_title: 'Founder & Managing Director',
-        status: 'active',
-        phone: '0813-8877-6655',
-        password: '1',
-        joined_date: '2025-01-01'
-      },
-      {
-        id: 'user-ks-leader',
-        branch_id: null,
-        role: 'hq_leader',
-        full_name: 'Dimas Ananda (HQ Creative Lead)',
-        email: 'dimas@kopisenja.id',
-        job_title: 'Head of Creative & Brand Marketing',
-        status: 'active',
-        phone: '0813-8877-0002',
-        password: '1',
-        joined_date: '2025-02-01'
-      },
-      {
-        id: 'user-ks-creative',
-        branch_id: null,
-        role: 'hq_creative',
-        full_name: 'Maya Anggraini (Lead Designer)',
-        email: 'maya@kopisenja.id',
-        job_title: 'Senior Brand & Packaging Designer',
-        status: 'active',
-        phone: '0813-8877-0003',
-        password: '1',
-        joined_date: '2025-03-15'
-      },
-      {
-        id: 'user-ks-senopati-owner',
-        branch_id: 'branch-ks-senopati',
-        role: 'branch_owner',
-        full_name: 'Rio Firmansyah (Owner Senopati)',
-        email: 'rio@kopisenja.id',
-        job_title: 'Franchisee Owner Senopati',
-        status: 'active',
-        phone: '0813-8877-0004',
-        password: '1',
-        joined_date: '2026-01-10'
-      },
-      {
-        id: 'user-ks-senopati-mgr',
-        branch_id: 'branch-ks-senopati',
-        role: 'branch_manager',
-        full_name: 'Dian Safitri (Manager Senopati)',
-        email: 'dian.mgr@kopisenja.id',
-        job_title: 'Store Operations Manager',
-        status: 'active',
-        phone: '0813-8877-0005',
-        password: '1',
-        joined_date: '2026-01-15'
-      },
-      {
-        id: 'user-ks-dago-owner',
-        branch_id: 'branch-ks-dago',
-        role: 'branch_owner',
-        full_name: 'Farhan Malik (Owner Dago)',
-        email: 'farhan@kopisenja.id',
-        job_title: 'Franchisee Owner Dago',
-        status: 'active',
-        phone: '0813-8877-0006',
-        password: '1',
-        joined_date: '2026-02-15'
-      }
-    ],
-    designRequests: [
-      {
-        id: 'req-ks-01',
-        branch_id: 'branch-ks-senopati',
-        branch_name: 'Kopi Senja Senopati',
-        requester_id: 'user-ks-senopati-owner',
-        requester_name: 'Rio Firmansyah',
-        title: 'Poster Cold Brew Can Collection Series',
-        description: 'Desain poster promosi rilis 3 varian kaleng cold brew (Classic, Oat Milk, Pandan Honey).',
-        category: 'Promo',
-        target_date: '2026-10-02',
-        status: 'approved',
-        assigned_to_id: 'user-ks-creative',
-        assigned_to_name: 'Maya Anggraini',
-        asset_result_url: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=800',
-        caption: 'Nikmati kesegaran Cold Brew Can Kopi Senja di mana saja! Diseduh dingin selama 18 jam.',
-        created_at: '2026-09-22',
-        comments: []
-      },
-      {
-        id: 'req-ks-02',
-        branch_id: 'branch-ks-dago',
-        branch_name: 'Kopi Senja Dago Heritage',
-        requester_id: 'user-ks-dago-owner',
-        requester_name: 'Farhan Malik',
-        title: 'Standing Banner Manual Brew Single Origin Gayo',
-        description: 'Banner pengenalan beans Arabica Gayo Natural Anaerobic untuk coffee bar area Dago.',
-        category: 'Creative',
-        target_date: '2026-10-05',
-        status: 'in_progress',
-        assigned_to_id: 'user-ks-creative',
-        assigned_to_name: 'Maya Anggraini',
-        created_at: '2026-09-24',
-        comments: []
-      }
-    ],
-    promos: [
-      {
-        id: 'prm-ks-01',
-        branch_id: 'branch-ks-senopati',
-        branch_name: 'Kopi Senja Senopati',
-        title: 'Senja Coffee Break 25K All Espresso',
-        mechanic: 'Semua menu espresso based diskon jadi Rp 25.000 setiap jam 15:00 - 18:00 WIB.',
-        target_month: '2026-10-01',
-        start_date: '2026-10-01',
-        end_date: '2026-10-31',
-        terms: 'Berlaku dine-in dan takeaway di Kopi Senja Senopati.',
-        status: 'active',
-        created_at: '2026-09-20'
-      }
-    ],
-    invoices: [
-      {
-        id: 'inv-ks-01',
-        branch_id: 'branch-ks-senopati',
-        invoice_number: 'INV/KS/2026/10/001',
-        period_month: '2026-10-01',
-        retainer_fee: 7500000,
-        visit_fee: 1500000,
-        ad_budget: 3000000,
-        total_amount: 12000000,
-        status: 'paid',
-        due_date: '2026-10-07',
-        payment_date: '2026-10-05',
-        created_at: '2026-10-01'
-      }
-    ],
-    influencers: [
-      {
-        id: 'inf-ks-01',
-        name: 'Vanya Coffee Enthusiast',
-        handle: '@vanyacoffee',
-        location: 'Jakarta',
-        category: 'Foodie & Review',
-        tier: 'Micro (10k-50k)',
-        followers: '42.5K',
-        engagement_rate: '4.8%',
-        collaboration_type: 'barter',
-        fee_estimate: 'Barter Menu + Rp 500K Transport',
-        status: 'approved',
-        contact: '0812-3344-5566',
-        notes: 'Spesialis konten roastery & manual brew aesthetic.'
-      }
-    ]
-  },
-
-  matchabae: {
-    whitelabel: {
-      brand_name: 'Matchabae',
-      brand_subtitle: 'Authentic Uji Matcha Desserts & Parfait Bar',
-      brand_monogram: 'MB',
-      brand_logo_url: '',
-      theme_accent: 'emerald',
-      custom_primary_hex: '#059669',
-      company_legal_name: 'PT Matcha Bae Nusantara',
-      hq_location: 'PIK HQ Studio',
-      hq_address: 'Rukan Golf Island Blok L No. 12, Pantai Indah Kapuk, Jakarta Utara 14470',
-      contact_email: 'management@matchabae.com',
-      contact_whatsapp: '+62 817-2233-4455',
-      bank_name: 'Bank Central Asia (BCA)',
-      bank_account_number: '8820-3399-1100',
-      bank_account_name: 'PT Matcha Bae Nusantara',
-      bank_swift_code: 'CENAIDJA',
-      invoice_note_footer: 'Transfer invoice tepat waktu untuk memastikan pasokan bubuk Uji ceremonial matcha & support visual.',
-      currency_symbol: 'Rp',
-      default_monthly_retainer: 5500000,
-      max_monthly_design_requests: 3,
-      max_monthly_active_promos: 2,
-      design_min_lead_days: 5,
-      promo_cutoff_day_of_month: 25
-    },
-    branches: [
-      {
-        id: 'branch-mb-pik',
-        name: 'Matchabae PIK Avenue',
-        code: 'MB-PIK',
-        location: 'PIK Avenue Mall Lt. 2',
-        city: 'Jakarta Utara',
-        contract_status: 'active',
-        contact_person: 'Alvin Chen',
-        phone: '0817-2233-0004',
-        custom_retainer_fee: 6800000,
-        package_tier: 'Premium',
-        wallet_balance: 9000000,
-        max_monthly_design_requests: 15,
-        max_monthly_active_promos: 5,
-        lead_days: 4,
-        pic_name: 'Felicia Gunawan (Manager)',
-        pic_phone: '0817-2233-0005',
-        pic_email: 'store.pik@matchabae.com',
-        owner_name: 'Alvin Chen (Owner)',
-        owner_phone: '0817-2233-0004',
-        owner_email: 'alvin@matchabae.com',
-        created_at: '2026-03-01'
-      },
-      {
-        id: 'branch-mb-serpong',
-        name: 'Matchabae Gading Serpong',
-        code: 'MB-GS',
-        location: 'Ruko Sorrento Place No. 18',
-        city: 'Tangerang',
-        contract_status: 'active',
-        contact_person: 'Kevin Hartono',
-        phone: '0817-2233-0006',
-        custom_retainer_fee: 5500000,
-        package_tier: 'Standard',
-        wallet_balance: 5000000,
-        max_monthly_design_requests: 10,
-        max_monthly_active_promos: 3,
-        lead_days: 5,
-        pic_name: 'Siska Dewi (Manager)',
-        pic_phone: '0817-2233-0007',
-        pic_email: 'store.serpong@matchabae.com',
-        owner_name: 'Kevin Hartono (Owner)',
-        owner_phone: '0817-2233-0006',
-        owner_email: 'kevin@matchabae.com',
-        created_at: '2026-04-10'
-      }
-    ],
-    users: [
-      {
-        id: 'user-mb-owner',
-        branch_id: null,
-        role: 'hq_owner',
-        full_name: 'Jessica Tanujaya (HQ Owner & Founder)',
-        email: 'jessica@matchabae.com',
-        job_title: 'Founder & Head of Product',
-        status: 'active',
-        phone: '0817-2233-4455',
-        password: '1',
-        joined_date: '2025-05-01'
-      },
-      {
-        id: 'user-mb-leader',
-        branch_id: null,
-        role: 'hq_leader',
-        full_name: 'Kenji Watanabe (HQ Creative Director)',
-        email: 'kenji@matchabae.com',
-        job_title: 'Creative & Visual Director',
-        status: 'active',
-        phone: '0817-2233-0002',
-        password: '1',
-        joined_date: '2025-06-01'
-      },
-      {
-        id: 'user-mb-creative',
-        branch_id: null,
-        role: 'hq_creative',
-        full_name: 'Cindy Lau (Motion & Content)',
-        email: 'cindy@matchabae.com',
-        job_title: 'Motion & Visual Designer',
-        status: 'active',
-        phone: '0817-2233-0003',
-        password: '1',
-        joined_date: '2025-07-15'
-      },
-      {
-        id: 'user-mb-pik-owner',
-        branch_id: 'branch-mb-pik',
-        role: 'branch_owner',
-        full_name: 'Alvin Chen (Owner PIK)',
-        email: 'alvin@matchabae.com',
-        job_title: 'Franchisee Owner PIK',
-        status: 'active',
-        phone: '0817-2233-0004',
-        password: '1',
-        joined_date: '2026-03-01'
-      },
-      {
-        id: 'user-mb-pik-mgr',
-        branch_id: 'branch-mb-pik',
-        role: 'branch_manager',
-        full_name: 'Felicia Gunawan (Manager PIK)',
-        email: 'felicia@matchabae.com',
-        job_title: 'Store Operations Manager',
-        status: 'active',
-        phone: '0817-2233-0005',
-        password: '1',
-        joined_date: '2026-03-05'
-      }
-    ],
-    designRequests: [
-      {
-        id: 'req-mb-01',
-        branch_id: 'branch-mb-pik',
-        branch_name: 'Matchabae PIK Avenue',
-        requester_id: 'user-mb-pik-owner',
-        requester_name: 'Alvin Chen',
-        title: '4K Motion Graphic: Uji Matcha Soft Serve Swirl',
-        description: 'Motion video vertikal untuk display screen booth PIK Avenue saat weekend.',
-        category: 'Creative',
-        target_date: '2026-10-04',
-        status: 'approved',
-        assigned_to_id: 'user-mb-creative',
-        assigned_to_name: 'Cindy Lau',
-        asset_result_url: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=800',
-        caption: '100% Ceremonial Uji Grade Matcha. Rasakan kelembutan dan umami sejati di Matchabae PIK Avenue!',
-        created_at: '2026-09-23',
-        comments: []
-      }
-    ],
-    promos: [
-      {
-        id: 'prm-mb-01',
-        branch_id: 'branch-mb-pik',
-        branch_name: 'Matchabae PIK Avenue',
-        title: 'Matcha Parfait Buy 1 Get 1 Ocha',
-        mechanic: 'Beli 1 Signature Shiratama Parfait Gratis 1 Iced Genmaicha.',
-        target_month: '2026-10-01',
-        start_date: '2026-10-01',
-        end_date: '2026-10-15',
-        terms: 'Khusus dine-in setiap hari Selasa & Kamis.',
-        status: 'active',
-        created_at: '2026-09-20'
-      }
-    ],
-    invoices: [
-      {
-        id: 'inv-mb-01',
-        branch_id: 'branch-mb-pik',
-        invoice_number: 'INV/MB/2026/10/001',
-        period_month: '2026-10-01',
-        retainer_fee: 6800000,
-        visit_fee: 1200000,
-        ad_budget: 2500000,
-        total_amount: 10500000,
-        status: 'paid',
-        due_date: '2026-10-07',
-        payment_date: '2026-10-04',
-        created_at: '2026-10-01'
-      }
-    ],
-    influencers: [
-      {
-        id: 'inf-mb-01',
-        name: 'Karin Dessert Hunter',
-        handle: '@karindesserts',
-        location: 'Jakarta',
-        category: 'Foodie & Review',
-        tier: 'Micro (10k-50k)',
-        followers: '38.2K',
-        engagement_rate: '5.2%',
-        collaboration_type: 'barter',
-        fee_estimate: 'Barter All Parfait Menu',
-        status: 'approved',
-        contact: '0818-9900-1122',
-        notes: 'Top matcha reviewer di kawasan PIK & Jakbar.'
-      }
-    ]
-  },
-
-  satenusantara: {
-    whitelabel: {
-      brand_name: 'Sate Maranggi Nusantara',
-      brand_subtitle: 'Authentic Charcoal Grill & Nusantara House',
-      brand_monogram: 'SN',
-      brand_logo_url: '',
-      theme_accent: 'rose',
-      custom_primary_hex: '#DC2626',
-      company_legal_name: 'PT Sate Maranggi Nusantara',
-      hq_location: 'Bandung Central Kitchen & HQ',
-      hq_address: 'Jl. Riau No. 88, Cihapit, Kota Bandung, Jawa Barat 40114',
-      contact_email: 'franchise@satenusantara.id',
-      contact_whatsapp: '+62 812-4455-6677',
-      bank_name: 'Bank Central Asia (BCA)',
-      bank_account_number: '7720-1122-3344',
-      bank_account_name: 'PT Sate Maranggi Nusantara',
-      bank_swift_code: 'CENAIDJA',
-      invoice_note_footer: 'Pembayaran invoice retainer operasional franchise wajib diselesaikan setiap awal bulan.',
-      currency_symbol: 'Rp',
-      default_monthly_retainer: 7500000,
-      max_monthly_design_requests: 4,
-      max_monthly_active_promos: 3,
-      design_min_lead_days: 5,
-      promo_cutoff_day_of_month: 25
-    },
-    branches: [
-      {
-        id: 'branch-sn-cibubur',
-        name: 'Sate Maranggi Cibubur',
-        code: 'SN-CBR',
-        location: 'Jl. Alternatif Cibubur No. 28',
-        city: 'Jakarta Timur',
-        contract_status: 'active',
-        contact_person: 'Joko Susanto',
-        phone: '0812-4455-0004',
-        custom_retainer_fee: 8000000,
-        package_tier: 'Custom',
-        wallet_balance: 16000000,
-        max_monthly_design_requests: 18,
-        max_monthly_active_promos: 6,
-        lead_days: 4,
-        pic_name: 'Asep Sunandar (Manager)',
-        pic_phone: '0812-4455-0005',
-        pic_email: 'store.cibubur@satenusantara.id',
-        owner_name: 'Joko Susanto (Owner)',
-        owner_phone: '0812-4455-0004',
-        owner_email: 'joko@satenusantara.id',
-        created_at: '2025-09-01'
-      },
-      {
-        id: 'branch-sn-bsd',
-        name: 'Sate Maranggi BSD City',
-        code: 'SN-BSD',
-        location: 'The Breeze BSD Unit L-02',
-        city: 'Tangerang Selatan',
-        contract_status: 'active',
-        contact_person: 'Herman Wijaya',
-        phone: '0812-4455-0006',
-        custom_retainer_fee: 7500000,
-        package_tier: 'Premium',
-        wallet_balance: 11000000,
-        max_monthly_design_requests: 15,
-        max_monthly_active_promos: 5,
-        lead_days: 4,
-        pic_name: 'Rahmat Hidayat (Manager)',
-        pic_phone: '0812-4455-0007',
-        pic_email: 'store.bsd@satenusantara.id',
-        owner_name: 'Herman Wijaya (Owner)',
-        owner_phone: '0812-4455-0006',
-        owner_email: 'herman@satenusantara.id',
-        created_at: '2025-10-15'
-      }
-    ],
-    users: [
-      {
-        id: 'user-sn-owner',
-        branch_id: null,
-        role: 'hq_owner',
-        full_name: 'Hendrik Gunawan (HQ Owner & Founder)',
-        email: 'hendrik@satenusantara.id',
-        job_title: 'Franchise President & Founder',
-        status: 'active',
-        phone: '0812-4455-6677',
-        password: '1',
-        joined_date: '2024-08-01'
-      },
-      {
-        id: 'user-sn-leader',
-        branch_id: null,
-        role: 'hq_leader',
-        full_name: 'Bambang Sutrisno (HQ Creative Lead)',
-        email: 'bambang@satenusantara.id',
-        job_title: 'Creative Marketing Lead',
-        status: 'active',
-        phone: '0812-4455-0002',
-        password: '1',
-        joined_date: '2024-09-01'
-      },
-      {
-        id: 'user-sn-creative',
-        branch_id: null,
-        role: 'hq_creative',
-        full_name: 'Rian Hidayat (Graphic & Motion)',
-        email: 'rian@satenusantara.id',
-        job_title: 'Visual Producer & Motion Designer',
-        status: 'active',
-        phone: '0812-4455-0003',
-        password: '1',
-        joined_date: '2025-01-10'
-      },
-      {
-        id: 'user-sn-cibubur-owner',
-        branch_id: 'branch-sn-cibubur',
-        role: 'branch_owner',
-        full_name: 'Joko Susanto (Owner Cibubur)',
-        email: 'joko@satenusantara.id',
-        job_title: 'Franchisee Owner Cibubur',
-        status: 'active',
-        phone: '0812-4455-0004',
-        password: '1',
-        joined_date: '2025-09-01'
-      },
-      {
-        id: 'user-sn-cibubur-mgr',
-        branch_id: 'branch-sn-cibubur',
-        role: 'branch_manager',
-        full_name: 'Asep Sunandar (Manager Cibubur)',
-        email: 'asep@satenusantara.id',
-        job_title: 'Store Operations Manager',
-        status: 'active',
-        phone: '0812-4455-0005',
-        password: '1',
-        joined_date: '2025-09-05'
-      }
-    ],
-    designRequests: [
-      {
-        id: 'req-sn-01',
-        branch_id: 'branch-sn-cibubur',
-        branch_name: 'Sate Maranggi Cibubur',
-        requester_id: 'user-sn-cibubur-owner',
-        requester_name: 'Joko Susanto',
-        title: 'Spanduk Promo Pesta Sate 100 Tusuk Hemat 20%',
-        description: 'Spanduk gantung outdoor ukuran 3x1 meter untuk promo makan rame-rame keluarga.',
-        category: 'Promo',
-        target_date: '2026-10-02',
-        status: 'approved',
-        assigned_to_id: 'user-sn-creative',
-        assigned_to_name: 'Rian Hidayat',
-        asset_result_url: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800',
-        caption: 'Makan sate maranggi empuk bumbu rempah legendaris makin hemat bareng rombongan!',
-        created_at: '2026-09-22',
-        comments: []
-      }
-    ],
-    promos: [
-      {
-        id: 'prm-sn-01',
-        branch_id: 'branch-sn-cibubur',
-        branch_name: 'Sate Maranggi Cibubur',
-        title: 'Paket Rombongan Sate 100 Tusuk',
-        mechanic: 'Beli Paket 100 Tusuk Daging Sapi Pilihan Gratis 5 Porsi Nasi Timbel & Es Kelapa.',
-        target_month: '2026-10-01',
-        start_date: '2026-10-01',
-        end_date: '2026-10-31',
-        terms: 'Dine-in dan take-away di Sate Maranggi Cibubur.',
-        status: 'active',
-        created_at: '2026-09-20'
-      }
-    ],
-    invoices: [
-      {
-        id: 'inv-sn-01',
-        branch_id: 'branch-sn-cibubur',
-        invoice_number: 'INV/SN/2026/10/001',
-        period_month: '2026-10-01',
-        retainer_fee: 8000000,
-        visit_fee: 2000000,
-        ad_budget: 4000000,
-        total_amount: 14000000,
-        status: 'paid',
-        due_date: '2026-10-07',
-        payment_date: '2026-10-03',
-        created_at: '2026-10-01'
-      }
-    ],
-    influencers: [
-      {
-        id: 'inf-sn-01',
-        name: 'Bang Kuliner Nusantara',
-        handle: '@bangkuliner',
-        location: 'Jakarta',
-        category: 'Foodie & Review',
-        tier: 'Mid-tier (50k-250k)',
-        followers: '124.0K',
-        engagement_rate: '6.1%',
-        collaboration_type: 'paid',
-        fee_estimate: 'Rp 2.500.000 (Reels + Story)',
-        status: 'approved',
-        contact: '0812-7788-9900',
-        notes: 'Spesialis kuliner tradisional & sate bakar viral.'
-      }
-    ]
-  }
 };
 
 export function getInitialBrandDataset(slug: string): BrandDataset {
@@ -2336,7 +1613,7 @@ export function getInitialBrandDataset(slug: string): BrandDataset {
         phone: brandTenant?.hq_owner_phone || '0812-9999-0001',
         job_title: `Brand Owner & Founder (${brandName})`,
         status: 'active',
-        password: '1',
+        password: 'Media',
         joined_date: '2026-01-01'
       }
     ],

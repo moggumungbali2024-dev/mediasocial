@@ -169,26 +169,27 @@ export const DashboardPusat: React.FC<DashboardPusatProps> = ({ onNavigateTab })
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* Top Banner: Pusat Welcome & Action */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl text-white">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="relative overflow-hidden rounded-3xl bg-[#121316] text-white border border-white/10 p-6 sm:p-8 shadow-xl">
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800 mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-emerald-400 border border-white/15 mb-3">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>{whitelabelConfig.brand_name} HQ • {whitelabelConfig.hq_location}</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white font-['Space_Grotesk']">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white font-['Space_Grotesk']">
               {t('pusatHeaderTitle')}
             </h1>
-            <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
               {t('pusatHeaderSubtitle')}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             {(isHQOwner || isHQLeader) && (
               <button
                 onClick={handleAutoInvoice}
-                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg shadow-amber-500/20 text-xs flex items-center gap-1.5 transition cursor-pointer"
+                className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black rounded-full shadow-lg shadow-orange-500/20 text-xs flex items-center gap-2 transition cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>{t('autoInvoiceBtn')}</span>
@@ -196,21 +197,21 @@ export const DashboardPusat: React.FC<DashboardPusatProps> = ({ onNavigateTab })
             )}
             <button
               onClick={() => onNavigateTab('attendance')}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl border border-slate-700 text-xs flex items-center gap-1.5 transition cursor-pointer"
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold rounded-full border border-white/15 text-xs flex items-center gap-2 transition cursor-pointer"
             >
               <Timer className="w-4 h-4 text-amber-400" />
               <span>{t('attendance')} ({todayAttendances.length})</span>
             </button>
             <button
               onClick={() => onNavigateTab('calendar')}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl border border-slate-700 text-xs flex items-center gap-1.5 transition cursor-pointer"
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold rounded-full border border-white/15 text-xs flex items-center gap-2 transition cursor-pointer"
             >
               <Calendar className="w-4 h-4 text-indigo-400" />
               <span>{language === 'ko' ? '캘린더' : 'Calendar'}</span>
             </button>
             <button
               onClick={() => onNavigateTab('chat')}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl border border-slate-700 text-xs flex items-center gap-1.5 transition cursor-pointer"
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold rounded-full border border-white/15 text-xs flex items-center gap-2 transition cursor-pointer"
             >
               <MessageSquare className="w-4 h-4 text-purple-400" />
               <span>{language === 'ko' ? '협업 채팅' : 'Collab Chat'}</span>
