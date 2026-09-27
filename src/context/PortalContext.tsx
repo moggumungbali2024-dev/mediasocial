@@ -617,9 +617,9 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const changePassword = (userId: string, newPassword: string): { success: boolean; message: string } => {
     if (!newPassword.trim()) {
-      return { 
-        success: false, 
-        message: 'Kata sandi baru tidak boleh kosong.' 
+      return {
+        success: false,
+        message: 'Kata sandi baru tidak boleh kosong.'
       };
     }
     const cleanPass = newPassword.trim();
@@ -643,9 +643,9 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       return updated;
     });
-    return { 
-      success: true, 
-      message: 'Kata sandi berhasil diperbarui!' 
+    return {
+      success: true,
+      message: 'Kata sandi berhasil diperbarui!'
     };
   };
 
@@ -813,11 +813,26 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     saveBrandStorage(cleanSlug, 'promos', []);
     saveBrandStorage(cleanSlug, 'invoices', []);
     saveBrandStorage(cleanSlug, 'influencers', []);
+    saveBrandStorage(cleanSlug, 'activities', []);
+    saveBrandStorage(cleanSlug, 'attendances', []);
+    saveBrandStorage(cleanSlug, 'budget_requests', []);
+    saveBrandStorage(cleanSlug, 'shoot_requests', []);
+    saveBrandStorage(cleanSlug, 'wallet_transactions', []);
+    saveBrandStorage(cleanSlug, 'hq_reimbursements', []);
+    saveBrandStorage(cleanSlug, 'hq_todos', []);
+    saveBrandStorage(cleanSlug, 'team_chat_messages', []);
+    saveBrandStorage(cleanSlug, 'meeting_agendas', []);
+    saveBrandStorage(cleanSlug, 'voucher_campaigns', []);
+    saveBrandStorage(cleanSlug, 'exposure_slots', []);
     saveBrandStorage(cleanSlug, 'is_authenticated', true);
     saveBrandStorage(cleanSlug, 'user_id', newHqOwnerUser.id);
 
     // Add to platform brands
-    setPlatformBrands((prev) => [newBrandTenant, ...prev]);
+    setPlatformBrands((prev) => {
+      const updated = [newBrandTenant, ...prev.filter(b => b.slug !== cleanSlug)];
+      saveStorage('platform_brands', updated);
+      return updated;
+    });
 
     // Export newly registered brand & owner to Supabase
     SupabaseService.exportDataToSupabase('platform_brands', [{
@@ -883,7 +898,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }]).catch(err => console.warn('Sync whitelabel to Supabase:', err));
 
     // Switch tenant
-    switchTenantBrand(cleanSlug);
+    switchTenantBrand(cleanSlug, true);
     setCurrentUserId(newHqOwnerUser.id);
     setIsAuthenticated(true);
 
@@ -1079,7 +1094,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const loaded = loadStorage('platform_brands', INITIAL_PLATFORM_BRANDS);
     return (loaded || []).filter(
       (b) => !['brand-kopisenja', 'brand-matchabae', 'brand-satenusantara', 'kopisenja', 'matchabae', 'satenusantara'].includes(b.id) &&
-             !['kopisenja', 'matchabae', 'satenusantara'].includes(b.slug)
+        !['kopisenja', 'matchabae', 'satenusantara'].includes(b.slug)
     );
   });
   const [subscriptionPlans, setSubscriptionPlans] = useState<BrandSubscriptionPlan[]>(() =>
@@ -1095,6 +1110,36 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Live Supabase Sync Engine
   const syncFromSupabase = async () => {
     try {
+      // 0. Fetch Whitelabel Config for active brand
+      const wlRes = await SupabaseService.fetchFromSupabase<any>('whitelabel_configs', `brand_slug=eq.${activeTenantSlug}`);
+      if (wlRes.success && wlRes.data && wlRes.data.length > 0) {
+        const w = wlRes.data[0];
+        const remoteWhitelabel: WhitelabelConfig = {
+          ...DEFAULT_WHITELABEL_CONFIG,
+          brand_name: w.brand_name || activeTenantSlug,
+          brand_subtitle: w.brand_subtitle || 'Media Social Team Portal',
+          brand_monogram: w.brand_monogram || (w.brand_name ? w.brand_name.substring(0, 2).toUpperCase() : 'MS'),
+          brand_logo_url: w.brand_logo_url || '',
+          theme_accent: w.theme_accent || 'kinetic_orange',
+          custom_primary_hex: w.custom_primary_hex || '#FF5B14',
+          company_legal_name: w.company_legal_name || `PT ${w.brand_name} `,
+          hq_location: w.hq_location || '',
+          hq_address: w.hq_address || '',
+          contact_email: w.contact_email || '',
+          contact_whatsapp: w.contact_whatsapp || '',
+          bank_name: w.bank_name || '',
+          bank_account_number: w.bank_account_number || '',
+          bank_account_name: w.bank_account_name || '',
+          default_monthly_retainer: Number(w.default_monthly_retainer) || 5000000,
+          max_monthly_design_requests: Number(w.max_monthly_design_requests) || 12,
+          max_monthly_active_promos: Number(w.max_monthly_active_promos) || 4,
+          design_min_lead_days: Number(w.design_min_lead_days) || 5,
+          promo_cutoff_day_of_month: Number(w.promo_cutoff_day_of_month) || 25
+        };
+        setWhitelabelConfig(remoteWhitelabel);
+        saveBrandStorage(activeTenantSlug, 'whitelabel', remoteWhitelabel);
+      }
+
       // 1. Fetch Users
       const usersRes = await SupabaseService.fetchFromSupabase<any>('users');
       if (usersRes.success && usersRes.data && usersRes.data.length > 0) {
@@ -1121,13 +1166,13 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           });
         }
 
-        const bUsers = remoteUsers.filter((u) => !['platform_owner', 'platform_finance', 'platform_admin'].includes(u.role));
+        const bUsers = remoteUsers.filter((u: any) => {
+          const raw = usersRes.data?.find((r: any) => r.id === u.id);
+          return raw?.brand_slug === activeTenantSlug || (!raw?.brand_slug && !['platform_owner', 'platform_finance', 'platform_admin'].includes(u.role));
+        });
         if (bUsers.length > 0) {
-          setUsers((prev) => {
-            const map = new Map(prev.map(p => [p.id, p]));
-            bUsers.forEach(b => map.set(b.id, b));
-            return Array.from(map.values());
-          });
+          setUsers(bUsers);
+          saveBrandStorage(activeTenantSlug, 'users', bUsers);
         }
       }
 
@@ -1188,7 +1233,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // 4. Fetch Branches for active brand
       const branchesRes = await SupabaseService.fetchFromSupabase<any>('branches', `brand_slug=eq.${activeTenantSlug}`);
-      if (branchesRes.success && branchesRes.data && branchesRes.data.length > 0) {
+      if (branchesRes.success && branchesRes.data) {
         const remoteBranches: Branch[] = branchesRes.data.map((b: any) => ({
           id: b.id,
           name: b.name,
@@ -1214,11 +1259,12 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           created_at: b.created_at || '2026-01-01'
         }));
         setBranches(remoteBranches);
+        saveBrandStorage(activeTenantSlug, 'branches', remoteBranches);
       }
 
       // 5. Fetch Team Chat Messages
       const chatRes = await SupabaseService.fetchFromSupabase<any>('team_chat_messages', `brand_slug=eq.${activeTenantSlug}&order=created_at.asc`);
-      if (chatRes.success && chatRes.data && chatRes.data.length > 0) {
+      if (chatRes.success && chatRes.data) {
         const remoteChats: TeamChatMessage[] = chatRes.data.map((c: any) => ({
           id: c.id,
           sender_id: c.sender_id,
@@ -1239,11 +1285,12 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           created_at: c.created_at ? (c.created_at.includes('T') ? c.created_at.replace('T', ' ').slice(0, 16) : c.created_at) : '2026-09-27 12:00'
         }));
         setTeamChatMessages(remoteChats);
+        saveBrandStorage(activeTenantSlug, 'team_chat_messages', remoteChats);
       }
 
       // 6. Fetch Design Requests
       const reqsRes = await SupabaseService.fetchFromSupabase<any>('design_requests', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
-      if (reqsRes.success && reqsRes.data && reqsRes.data.length > 0) {
+      if (reqsRes.success && reqsRes.data) {
         const remoteReqs: DesignRequest[] = reqsRes.data.map((r: any) => ({
           id: r.id,
           branch_id: r.branch_id,
@@ -1267,11 +1314,12 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           created_at: r.created_at ? r.created_at.split('T')[0] : '2026-09-27'
         }));
         setDesignRequests(remoteReqs);
+        saveBrandStorage(activeTenantSlug, 'design_requests', remoteReqs);
       }
 
       // 7. Fetch Promos
       const promosRes = await SupabaseService.fetchFromSupabase<any>('promos', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
-      if (promosRes.success && promosRes.data && promosRes.data.length > 0) {
+      if (promosRes.success && promosRes.data) {
         const remotePromos: PromoRequest[] = promosRes.data.map((p: any) => ({
           id: p.id,
           branch_id: p.branch_id,
@@ -1285,11 +1333,12 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           created_at: p.created_at ? p.created_at.split('T')[0] : '2026-09-27'
         }));
         setPromos(remotePromos);
+        saveBrandStorage(activeTenantSlug, 'promos', remotePromos);
       }
 
       // 8. Fetch Invoices
       const invsRes = await SupabaseService.fetchFromSupabase<any>('invoices', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
-      if (invsRes.success && invsRes.data && invsRes.data.length > 0) {
+      if (invsRes.success && invsRes.data) {
         const remoteInvs: Invoice[] = invsRes.data.map((i: any) => ({
           id: i.id,
           branch_id: i.branch_id,
@@ -1307,11 +1356,12 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           created_at: i.created_at ? i.created_at.split('T')[0] : '2026-09-27'
         }));
         setInvoices(remoteInvs);
+        saveBrandStorage(activeTenantSlug, 'invoices', remoteInvs);
       }
 
       // 9. Fetch Attendances
       const attRes = await SupabaseService.fetchFromSupabase<any>('attendances', `brand_slug=eq.${activeTenantSlug}&order=date.desc`);
-      if (attRes.success && attRes.data && attRes.data.length > 0) {
+      if (attRes.success && attRes.data) {
         const remoteAtt: AttendanceRecord[] = attRes.data.map((a: any) => ({
           id: a.id,
           user_id: a.user_id,
@@ -1326,11 +1376,12 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           total_hours: a.total_hours ? Number(a.total_hours) : undefined
         }));
         setAttendances(remoteAtt);
+        saveBrandStorage(activeTenantSlug, 'attendances', remoteAtt);
       }
 
       // 10. Fetch HQ Todos
       const todosRes = await SupabaseService.fetchFromSupabase<any>('hq_todos', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
-      if (todosRes.success && todosRes.data && todosRes.data.length > 0) {
+      if (todosRes.success && todosRes.data) {
         const remoteTodos: HqTodoItem[] = todosRes.data.map((t: any) => ({
           id: t.id,
           user_id: t.user_id || '',
@@ -1345,11 +1396,12 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           created_at: t.created_at ? (t.created_at.includes('T') ? t.created_at.split('T')[0] : t.created_at) : '2026-09-27'
         }));
         setHqTodos(remoteTodos);
+        saveBrandStorage(activeTenantSlug, 'hq_todos', remoteTodos);
       }
 
       // 11. Fetch Shoot Requests
       const shootsRes = await SupabaseService.fetchFromSupabase<any>('shoot_requests', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
-      if (shootsRes.success && shootsRes.data && shootsRes.data.length > 0) {
+      if (shootsRes.success && shootsRes.data) {
         const remoteShoots: ShootRequest[] = shootsRes.data.map((s: any) => ({
           id: s.id,
           branch_id: s.branch_id,
@@ -1369,6 +1421,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           created_at: s.created_at ? s.created_at.split('T')[0] : '2026-09-27'
         }));
         setShootRequests(remoteShoots);
+        saveBrandStorage(activeTenantSlug, 'shoot_requests', remoteShoots);
       }
     } catch (e) {
       console.warn('Sync from Supabase:', e);
@@ -1677,7 +1730,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return { success: false, message: 'You have not clocked in today yet.' };
     }
     const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    
+
     const [inH, inM] = todayAttendance.clock_in_time.split(':').map(Number);
     const [outH, outM] = nowTime.split(':').map(Number);
     let diff = (outH + outM / 60) - (inH + inM / 60);
@@ -1751,7 +1804,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   ): { success: boolean; message: string; branchId: string } => {
     const rawCode = (data.code || data.name.replace(/[^A-Za-z]/g, '').substring(0, 3)).toUpperCase();
     const newId = `branch-${rawCode.toLowerCase()}-${Date.now().toString().slice(-4)}`;
-    
+
     const newBranch: Branch = {
       ...data,
       id: newId,
@@ -1828,9 +1881,9 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Branch Wallet & Deposit System
   const topUpBranchWallet = (
-    branchId: string, 
-    amount: number, 
-    proofUrl: string, 
+    branchId: string,
+    amount: number,
+    proofUrl: string,
     notes?: string
   ): { success: boolean; message: string } => {
     const branch = branches.find((b) => b.id === branchId);
@@ -2333,7 +2386,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (msg.channel === 'hq_internal' && !isHQ) return false;
       // Branch check for branch users
       if (!isHQ && msg.branch_id && msg.branch_id !== currentBranch?.id) return false;
-      
+
       const isRead = msg.read_by && msg.read_by.includes(currentUser.id);
       return !isRead;
     }).length;
@@ -2713,7 +2766,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       user_name: currentUser.full_name,
       action_type: 'request_submitted',
       title: language === 'ko' ? `신규 디자인 요청: ${data.title}` : `New Design Request: ${data.title}`,
-      description: language === 'ko' 
+      description: language === 'ko'
         ? `${branch?.name}에서 ${data.category} 부문 디자인을 요청했습니다. (희망일: ${data.target_date})`
         : `${branch?.name || 'Branch'} submitted request for ${data.category}. Target: ${data.target_date}.`,
       severity: 'info',
@@ -2771,7 +2824,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }]).catch(err => console.warn('Sync updateDesignRequestStatus to Supabase:', err));
 
       const branch = branches.find((b) => b.id === targetReq?.branch_id);
-      
+
       // Crucial: Send notification targeted to branch so branch users receive instant alerts!
       addActivity({
         branch_id: targetReq.branch_id,
@@ -3450,10 +3503,10 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       prev.map((v) =>
         v.id === campaign.id
           ? {
-              ...v,
-              redemption_count: v.redemption_count + 1,
-              total_sales_driven: v.total_sales_driven + salesAmount
-            }
+            ...v,
+            redemption_count: v.redemption_count + 1,
+            total_sales_driven: v.total_sales_driven + salesAmount
+          }
           : v
       )
     );
@@ -3521,7 +3574,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [totalPlatformMRR, platformWithdrawals]);
 
   const switchTenantBrand = (slug: string, autoLogin: boolean = false) => {
-    const normalizedSlug = (slug || 'moggumung').toLowerCase().trim();
+    const normalizedSlug = (slug || 'brand').toLowerCase().trim();
     setActiveTenantSlug(normalizedSlug);
     saveStorage('active_tenant_slug', normalizedSlug);
 
@@ -3536,55 +3589,55 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const loadedUsers = loadBrandStorage(normalizedSlug, 'users', dataset.users);
     setUsers(loadedUsers);
 
-    const loadedDesign = loadBrandStorage(normalizedSlug, 'design_requests', dataset.designRequests);
+    const loadedDesign = loadBrandStorage(normalizedSlug, 'design_requests', dataset.designRequests || []);
     setDesignRequests(loadedDesign);
 
-    const loadedPromos = loadBrandStorage(normalizedSlug, 'promos', dataset.promos);
+    const loadedPromos = loadBrandStorage(normalizedSlug, 'promos', dataset.promos || []);
     setPromos(loadedPromos);
 
-    const loadedInvoices = loadBrandStorage(normalizedSlug, 'invoices', dataset.invoices);
+    const loadedInvoices = loadBrandStorage(normalizedSlug, 'invoices', dataset.invoices || []);
     setInvoices(loadedInvoices);
 
-    const loadedInfluencers = loadBrandStorage(normalizedSlug, 'influencers', dataset.influencers);
+    const loadedInfluencers = loadBrandStorage(normalizedSlug, 'influencers', dataset.influencers || []);
     setInfluencers(loadedInfluencers);
 
-    const loadedQuotas = loadBrandStorage(normalizedSlug, 'quotas', dataset.quotas || INITIAL_QUOTAS);
+    const loadedQuotas = loadBrandStorage(normalizedSlug, 'quotas', dataset.quotas || []);
     setQuotas(loadedQuotas);
 
-    const loadedActivities = loadBrandStorage(normalizedSlug, 'activities', dataset.activities || INITIAL_ACTIVITIES);
+    const loadedActivities = loadBrandStorage(normalizedSlug, 'activities', dataset.activities || []);
     setActivities(loadedActivities);
 
-    const loadedAttendances = loadBrandStorage(normalizedSlug, 'attendances', dataset.attendances || INITIAL_ATTENDANCE);
+    const loadedAttendances = loadBrandStorage(normalizedSlug, 'attendances', dataset.attendances || []);
     setAttendances(loadedAttendances);
 
-    const loadedBudget = loadBrandStorage(normalizedSlug, 'budget_requests', dataset.budgetRequests || INITIAL_BUDGET_REQUESTS);
+    const loadedBudget = loadBrandStorage(normalizedSlug, 'budget_requests', dataset.budgetRequests || []);
     setBudgetRequests(loadedBudget);
 
-    const loadedShoots = loadBrandStorage(normalizedSlug, 'shoot_requests', dataset.shootRequests || INITIAL_SHOOT_REQUESTS);
+    const loadedShoots = loadBrandStorage(normalizedSlug, 'shoot_requests', dataset.shootRequests || []);
     setShootRequests(loadedShoots);
 
-    const loadedWallet = loadBrandStorage(normalizedSlug, 'wallet_transactions', dataset.walletTransactions || INITIAL_WALLET_TRANSACTIONS);
+    const loadedWallet = loadBrandStorage(normalizedSlug, 'wallet_transactions', dataset.walletTransactions || []);
     setWalletTransactions(loadedWallet);
 
-    const loadedReimburse = loadBrandStorage(normalizedSlug, 'hq_reimbursements', dataset.hqReimbursements || INITIAL_HQ_REIMBURSEMENTS);
+    const loadedReimburse = loadBrandStorage(normalizedSlug, 'hq_reimbursements', dataset.hqReimbursements || []);
     setHqReimbursements(loadedReimburse);
 
-    const loadedTodos = loadBrandStorage(normalizedSlug, 'hq_todos', dataset.hqTodos || INITIAL_HQ_TODOS);
+    const loadedTodos = loadBrandStorage(normalizedSlug, 'hq_todos', dataset.hqTodos || []);
     setHqTodos(loadedTodos);
 
-    const loadedChat = loadBrandStorage(normalizedSlug, 'team_chat_messages', dataset.teamChatMessages || INITIAL_TEAM_CHAT_MESSAGES);
+    const loadedChat = loadBrandStorage(normalizedSlug, 'team_chat_messages', dataset.teamChatMessages || []);
     setTeamChatMessages(loadedChat);
 
-    const loadedAgendas = loadBrandStorage(normalizedSlug, 'meeting_agendas', dataset.meetingAgendas || INITIAL_MEETING_AGENDAS);
+    const loadedAgendas = loadBrandStorage(normalizedSlug, 'meeting_agendas', dataset.meetingAgendas || []);
     setMeetingAgendas(loadedAgendas);
 
-    const loadedVouchers = loadBrandStorage(normalizedSlug, 'voucher_campaigns', dataset.voucherCampaigns || INITIAL_VOUCHER_CAMPAIGNS);
+    const loadedVouchers = loadBrandStorage(normalizedSlug, 'voucher_campaigns', dataset.voucherCampaigns || []);
     setVoucherCampaigns(loadedVouchers);
 
-    const loadedExposure = loadBrandStorage(normalizedSlug, 'exposure_slots', dataset.exposureSlots || INITIAL_EXPOSURE_SLOTS);
+    const loadedExposure = loadBrandStorage(normalizedSlug, 'exposure_slots', dataset.exposureSlots || []);
     setExposureSlots(loadedExposure);
 
-    const authVal = autoLogin ? true : loadBrandStorage(normalizedSlug, 'is_authenticated', false);
+    const authVal = autoLogin ? true : loadBrandStorage(normalizedSlug, 'is_authenticated', true);
     const userVal = autoLogin ? (loadedUsers[0]?.id || '') : loadBrandStorage(normalizedSlug, 'user_id', loadedUsers[0]?.id || '');
 
     setIsAuthenticated(authVal);
@@ -3603,56 +3656,231 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     const newBrand: PlatformBrandTenant = {
       ...brandData,
-      id: `brand-${Date.now()}`,
+      id: `brand-${slugClean}`,
       slug: slugClean,
       created_at: simulatedDate,
       last_active_at: `${simulatedDate} 09:00`,
       wallet_balance: brandData.wallet_balance || 0
     };
-    setPlatformBrands((prev) => [newBrand, ...prev]);
 
-    // Create owner account for the newly invited brand
-    const ownerEmail = newBrand.hq_owner_email;
-    if (!users.some((u) => u.email.toLowerCase() === ownerEmail.toLowerCase())) {
-      const newOwnerUser: UserProfile = {
-        id: `user-owner-${newBrand.slug}`,
-        branch_id: null,
-        role: 'hq_owner',
-        full_name: `${newBrand.hq_owner_name} (Owner ${newBrand.name})`,
-        email: newBrand.hq_owner_email,
-        phone: newBrand.hq_owner_phone,
-        job_title: `HQ Brand Owner & Founder (${newBrand.name})`,
-        status: 'active',
-        password: '1',
-        joined_date: simulatedDate
-      };
-      setUsers((prev) => [...prev, newOwnerUser]);
-    }
+    const newOwnerUser: UserProfile = {
+      id: `user-${slugClean}-owner`,
+      branch_id: null,
+      role: 'hq_owner',
+      full_name: `${newBrand.hq_owner_name} (HQ Owner)`,
+      email: newBrand.hq_owner_email,
+      phone: newBrand.hq_owner_phone,
+      job_title: `Brand Owner & Founder (${newBrand.name})`,
+      status: 'active',
+      password: 'Media',
+      joined_date: simulatedDate
+    };
 
-    addActivity({
-      user_name: currentUser.full_name,
-      action_type: 'request_status_changed',
-      title: `Brand Baru Terdaftar: ${newBrand.name}`,
-      description: `Brand ${newBrand.name} berhasil diundang & didaftarkan ke mediasocial.team/${newBrand.slug} (${newBrand.subscription_plan_id.toUpperCase()} Plan).`,
-      severity: 'info',
-      link_tab: 'dashboard'
+    const newCentralBranch: Branch = {
+      id: `branch-${slugClean}-central`,
+      name: `${newBrand.name} Central`,
+      code: `${slugClean.substring(0, 3).toUpperCase()}-01`,
+      location: 'Pusat',
+      city: 'Jakarta',
+      contract_status: 'active',
+      contact_person: newBrand.hq_owner_name,
+      phone: newBrand.hq_owner_phone,
+      custom_retainer_fee: newBrand.monthly_fee || 5000000,
+      package_tier: 'Standard',
+      wallet_balance: 0,
+      max_monthly_design_requests: 12,
+      max_monthly_active_promos: 4,
+      lead_days: 5,
+      pic_name: `${newBrand.hq_owner_name} (HQ Owner)`,
+      pic_phone: newBrand.hq_owner_phone,
+      pic_email: newBrand.hq_owner_email,
+      owner_name: newBrand.hq_owner_name,
+      owner_phone: newBrand.hq_owner_phone,
+      owner_email: newBrand.hq_owner_email,
+      created_at: simulatedDate
+    };
+
+    const newWhitelabel: WhitelabelConfig = {
+      ...DEFAULT_WHITELABEL_CONFIG,
+      brand_name: newBrand.name,
+      brand_subtitle: newBrand.tagline || 'Social Media Management & Quota Portal',
+      brand_monogram: newBrand.name.substring(0, 2).toUpperCase(),
+      company_legal_name: `PT ${newBrand.name} Multi Nusantara`,
+      hq_location: 'Jakarta HQ',
+      contact_email: newBrand.hq_owner_email,
+      contact_whatsapp: newBrand.hq_owner_phone,
+      custom_primary_hex: newBrand.primary_color || '#FF5B14'
+    };
+
+    // Save brand isolated datasets to localStorage
+    saveBrandStorage(slugClean, 'whitelabel', newWhitelabel);
+    saveBrandStorage(slugClean, 'users', [newOwnerUser]);
+    saveBrandStorage(slugClean, 'branches', [newCentralBranch]);
+    saveBrandStorage(slugClean, 'design_requests', []);
+    saveBrandStorage(slugClean, 'promos', []);
+    saveBrandStorage(slugClean, 'invoices', []);
+    saveBrandStorage(slugClean, 'influencers', []);
+    saveBrandStorage(slugClean, 'activities', []);
+    saveBrandStorage(slugClean, 'attendances', []);
+    saveBrandStorage(slugClean, 'budget_requests', []);
+    saveBrandStorage(slugClean, 'shoot_requests', []);
+    saveBrandStorage(slugClean, 'wallet_transactions', []);
+    saveBrandStorage(slugClean, 'hq_reimbursements', []);
+    saveBrandStorage(slugClean, 'hq_todos', []);
+    saveBrandStorage(slugClean, 'team_chat_messages', []);
+    saveBrandStorage(slugClean, 'meeting_agendas', []);
+    saveBrandStorage(slugClean, 'voucher_campaigns', []);
+    saveBrandStorage(slugClean, 'exposure_slots', []);
+    saveBrandStorage(slugClean, 'is_authenticated', true);
+    saveBrandStorage(slugClean, 'user_id', newOwnerUser.id);
+
+    // Update React state & localStorage for platformBrands
+    setPlatformBrands((prev) => {
+      const updated = [newBrand, ...prev.filter(b => b.slug !== slugClean)];
+      saveStorage('platform_brands', updated);
+      return updated;
     });
 
-    return { 
-      success: true, 
-      message: `Brand ${newBrand.name} berhasil didaftarkan! Subdomain: mediasocial.team/${newBrand.slug}`, 
-      brand: newBrand 
+    // Export to Supabase REST
+    SupabaseService.exportDataToSupabase('platform_brands', [{
+      id: newBrand.id,
+      slug: newBrand.slug,
+      name: newBrand.name,
+      tagline: newBrand.tagline,
+      logo_url: newBrand.logo_url || null,
+      primary_color: newBrand.primary_color,
+      hq_owner_name: newBrand.hq_owner_name,
+      hq_owner_email: newBrand.hq_owner_email,
+      hq_owner_phone: newBrand.hq_owner_phone,
+      subscription_plan_id: newBrand.subscription_plan_id,
+      subscription_status: newBrand.subscription_status,
+      monthly_fee: newBrand.monthly_fee,
+      branches_count: newBrand.branches_count,
+      wallet_balance: newBrand.wallet_balance,
+      is_verified: newBrand.is_verified,
+      notes: newBrand.notes
+    }]).catch(err => console.warn('Sync brand to Supabase:', err));
+
+    SupabaseService.exportDataToSupabase('whitelabel_configs', [{
+      brand_slug: slugClean,
+      brand_name: newWhitelabel.brand_name,
+      brand_subtitle: newWhitelabel.brand_subtitle,
+      brand_monogram: newWhitelabel.brand_monogram,
+      company_legal_name: newWhitelabel.company_legal_name,
+      hq_location: newWhitelabel.hq_location,
+      contact_email: newWhitelabel.contact_email,
+      contact_whatsapp: newWhitelabel.contact_whatsapp,
+      custom_primary_hex: newWhitelabel.custom_primary_hex
+    }]).catch(err => console.warn('Sync whitelabel to Supabase:', err));
+
+    SupabaseService.exportDataToSupabase('branches', [{
+      id: newCentralBranch.id,
+      brand_slug: slugClean,
+      name: newCentralBranch.name,
+      code: newCentralBranch.code,
+      location: newCentralBranch.location,
+      city: newCentralBranch.city,
+      contract_status: 'active',
+      contact_person: newCentralBranch.contact_person,
+      phone: newCentralBranch.phone,
+      custom_retainer_fee: newCentralBranch.custom_retainer_fee,
+      package_tier: 'Standard',
+      wallet_balance: 0,
+      pic_name: newCentralBranch.pic_name,
+      pic_phone: newCentralBranch.pic_phone,
+      pic_email: newCentralBranch.pic_email,
+      owner_name: newCentralBranch.owner_name,
+      owner_phone: newCentralBranch.owner_phone,
+      owner_email: newCentralBranch.owner_email
+    }]).catch(err => console.warn('Sync branch to Supabase:', err));
+
+    SupabaseService.exportDataToSupabase('users', [{
+      id: newOwnerUser.id,
+      brand_slug: slugClean,
+      branch_id: null,
+      role: 'hq_owner',
+      full_name: newOwnerUser.full_name,
+      email: newOwnerUser.email,
+      phone: newOwnerUser.phone,
+      password_hash: newOwnerUser.password || 'Media',
+      job_title: newOwnerUser.job_title,
+      status: 'active'
+    }]).catch(err => console.warn('Sync HQ owner to Supabase:', err));
+
+    return {
+      success: true,
+      message: `Brand ${newBrand.name} berhasil didaftarkan! Subdomain: mediasocial.team/${newBrand.slug}`,
+      brand: newBrand
     };
   };
 
   const updatePlatformBrand = (id: string, updates: Partial<PlatformBrandTenant>) => {
-    setPlatformBrands((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
-    );
+    setPlatformBrands((prev) => {
+      const updated = prev.map((b) => (b.id === id ? { ...b, ...updates } : b));
+      saveStorage('platform_brands', updated);
+      const target = updated.find((b) => b.id === id);
+      if (target) {
+        SupabaseService.exportDataToSupabase('platform_brands', [{
+          id: target.id,
+          slug: target.slug,
+          name: target.name,
+          tagline: target.tagline,
+          logo_url: target.logo_url || null,
+          primary_color: target.primary_color,
+          hq_owner_name: target.hq_owner_name,
+          hq_owner_email: target.hq_owner_email,
+          hq_owner_phone: target.hq_owner_phone,
+          subscription_plan_id: target.subscription_plan_id,
+          subscription_status: target.subscription_status,
+          monthly_fee: target.monthly_fee,
+          branches_count: target.branches_count,
+          wallet_balance: target.wallet_balance,
+          is_verified: target.is_verified,
+          notes: target.notes
+        }]).catch(err => console.warn('Sync update brand to Supabase:', err));
+
+        // If primary_color or name changed, also update whitelabel
+        if (updates.primary_color || updates.name || updates.tagline || updates.hq_owner_name || updates.hq_owner_phone || updates.hq_owner_email) {
+          const currentWl = loadBrandStorage<WhitelabelConfig>(target.slug, 'whitelabel', DEFAULT_WHITELABEL_CONFIG);
+          const newWl: WhitelabelConfig = {
+            ...currentWl,
+            brand_name: updates.name || currentWl.brand_name,
+            brand_subtitle: updates.tagline || currentWl.brand_subtitle,
+            custom_primary_hex: updates.primary_color || currentWl.custom_primary_hex,
+            contact_email: updates.hq_owner_email || currentWl.contact_email,
+            contact_whatsapp: updates.hq_owner_phone || currentWl.contact_whatsapp
+          };
+          saveBrandStorage(target.slug, 'whitelabel', newWl);
+          if (activeTenantSlug === target.slug) {
+            setWhitelabelConfig(newWl);
+          }
+          SupabaseService.exportDataToSupabase('whitelabel_configs', [{
+            brand_slug: target.slug,
+            brand_name: newWl.brand_name,
+            brand_subtitle: newWl.brand_subtitle,
+            brand_monogram: newWl.brand_monogram,
+            company_legal_name: newWl.company_legal_name,
+            hq_location: newWl.hq_location,
+            contact_email: newWl.contact_email,
+            contact_whatsapp: newWl.contact_whatsapp,
+            custom_primary_hex: newWl.custom_primary_hex
+          }]).catch(err => console.warn('Sync whitelabel update to Supabase:', err));
+        }
+      }
+      return updated;
+    });
   };
 
   const deletePlatformBrand = (id: string): { success: boolean; message: string } => {
-    setPlatformBrands((prev) => prev.filter((b) => b.id !== id));
+    const brand = platformBrands.find((b) => b.id === id);
+    setPlatformBrands((prev) => {
+      const updated = prev.filter((b) => b.id !== id);
+      saveStorage('platform_brands', updated);
+      return updated;
+    });
+    if (brand) {
+      SupabaseService.deleteFromSupabase('platform_brands', `id=eq.${id}`).catch(err => console.warn('Delete brand from Supabase:', err));
+    }
     return { success: true, message: 'Brand berhasil dihapus dari platform.' };
   };
 
@@ -3693,9 +3921,9 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return { success: false, message: 'Jumlah penarikan harus lebih besar dari Rp 0!' };
     }
     if (amount > platformWalletBalance) {
-      return { 
-        success: false, 
-        message: `Saldo wallet platform tidak mencukupi. (Tersedia: Rp ${platformWalletBalance.toLocaleString('id-ID')})` 
+      return {
+        success: false,
+        message: `Saldo wallet platform tidak mencukupi. (Tersedia: Rp ${platformWalletBalance.toLocaleString('id-ID')})`
       };
     }
     const refNo = `TRX-WD-${Date.now().toString().slice(-6)}`;
@@ -3772,10 +4000,10 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     setSubscriptionReminders((prev) => [newLog, ...prev]);
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: `Reminder WhatsApp disiapkan untuk Kak ${brand.hq_owner_name} (${brand.name})!`,
-      waUrl 
+      waUrl
     };
   };
 

@@ -31,7 +31,10 @@ import {
   Play,
   Share2,
   PlusCircle,
-  UserPlus
+  UserPlus,
+  User,
+  Store,
+  Plus
 } from 'lucide-react';
 
 interface PlatformLandingPageProps {
@@ -413,6 +416,140 @@ export const PlatformLandingPage: React.FC<PlatformLandingPageProps> = ({
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Brand Portal Showcase Section */}
+      <section id="portal" className="px-4 sm:px-6 max-w-5xl mx-auto py-12">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold mb-2">
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Multi-Tenant Brand Portals ({platformBrands.length} Brand Aktif)</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-950 font-['Space_Grotesk']">
+              Brand Portals & Dedicated Workspaces
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium max-w-xl">
+              Pilih brand di bawah untuk langsung membuka workspace portal manajemen kuota & konten sosial media.
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setAuthMode('register');
+              setShowAuthModal(true);
+            }}
+            className="px-5 py-2.5 rounded-full bg-black hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shrink-0 cursor-pointer shadow-md"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Daftar Brand Baru</span>
+          </button>
+        </div>
+
+        {platformBrands.length === 0 ? (
+          <div className="bg-white rounded-3xl p-10 text-center border border-slate-200/80 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 mx-auto flex items-center justify-center font-bold text-lg mb-3">
+              🏢
+            </div>
+            <h3 className="font-bold text-sm text-slate-900">Belum ada Brand yang terdaftar</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              Jadilah brand pertama yang bergabung di platform mediasocial.team.
+            </p>
+            <button
+              onClick={() => {
+                setAuthMode('register');
+                setShowAuthModal(true);
+              }}
+              className="mt-4 px-6 py-2.5 rounded-full bg-black text-white font-bold text-xs transition active:scale-95 cursor-pointer"
+            >
+              Daftarkan Brand Sekarang
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {platformBrands.map((brand) => (
+              <div
+                key={brand.id || brand.slug}
+                className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs hover:shadow-lg hover:border-slate-300 transition-all flex flex-col justify-between group relative overflow-hidden"
+              >
+                {/* Brand color strip accent */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-1.5"
+                  style={{ backgroundColor: brand.primary_color || '#FF5B14' }}
+                />
+
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {brand.logo_url ? (
+                        <img
+                          src={brand.logo_url}
+                          alt={brand.name}
+                          className="w-11 h-11 rounded-2xl object-cover border border-slate-100 shadow-xs"
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            backgroundColor: brand.primary_color || '#FF5B14',
+                            color: '#FFFFFF'
+                          }}
+                          className="w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shadow-md shadow-orange-500/10"
+                        >
+                          {brand.name.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="font-extrabold text-base text-slate-900 group-hover:text-black transition-colors font-['Space_Grotesk'] leading-tight">
+                          {brand.name}
+                        </h3>
+                        <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                          /{brand.slug}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider">
+                      {brand.subscription_plan_id || 'GROWTH'}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                    {brand.tagline || 'Social Media & Creative Quota Portal'}
+                  </p>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                    <div className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-semibold text-slate-700">{brand.hq_owner_name}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Store className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{brand.branches_count || 1} Cabang</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-5 mt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => {
+                      if (onEnterBrandPortal) {
+                        onEnterBrandPortal(brand.slug);
+                      }
+                    }}
+                    style={{
+                      backgroundColor: brand.primary_color || '#000000',
+                      color: '#FFFFFF'
+                    }}
+                    className="w-full py-2.5 px-4 rounded-full font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <span>Masuk Portal Brand</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Subscription Pricing Plans */}
