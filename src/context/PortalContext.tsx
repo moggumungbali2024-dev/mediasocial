@@ -1414,30 +1414,34 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loadStorage('subscription_reminders', INITIAL_REMINDER_LOGS)
   );
 
-  // Ensure active brand and branches exist in Supabase
+  // Ensure active brand, branches, and users exist in Supabase
   const ensureBrandInSupabase = async (brandSlug?: string) => {
     const slug = (brandSlug || activeTenantSlug || 'chub').toLowerCase().trim();
     const brandObj = platformBrands.find((b) => b.slug.toLowerCase() === slug);
-    if (brandObj) {
-      await SupabaseService.exportDataToSupabase('platform_brands', [{
-        id: brandObj.id,
-        slug: brandObj.slug,
-        name: brandObj.name,
-        tagline: brandObj.tagline || 'Social Media Management & Quota Portal',
-        primary_color: brandObj.primary_color || '#FF5B14',
-        hq_owner_name: brandObj.hq_owner_name,
-        hq_owner_email: brandObj.hq_owner_email,
-        hq_owner_phone: brandObj.hq_owner_phone,
-        subscription_plan_id: brandObj.subscription_plan_id || 'growth',
-        subscription_status: brandObj.subscription_status || 'active',
-        subscription_start_date: brandObj.subscription_start_date || '2026-09-27',
-        subscription_end_date: brandObj.subscription_end_date || '2026-12-31',
-        monthly_fee: brandObj.monthly_fee || 4890000,
-        branches_count: brandObj.branches_count || 1,
-        wallet_balance: brandObj.wallet_balance || 0,
-        is_verified: true
-      }]).catch(() => {});
-    }
+    const brandName = brandObj?.name || whitelabelConfig.brand_name || (slug.charAt(0).toUpperCase() + slug.slice(1));
+    const ownerName = brandObj?.hq_owner_name || users.find(u => u.role === 'hq_owner')?.full_name || 'Owner';
+    const ownerEmail = brandObj?.hq_owner_email || users.find(u => u.role === 'hq_owner')?.email || `owner@${slug}.com`;
+    const ownerPhone = brandObj?.hq_owner_phone || users.find(u => u.role === 'hq_owner')?.phone || '081234567890';
+    const primaryColor = brandObj?.primary_color || whitelabelConfig.custom_primary_hex || '#FF5B14';
+
+    await SupabaseService.exportDataToSupabase('platform_brands', [{
+      id: brandObj?.id || `brand-${slug}`,
+      slug: slug,
+      name: brandName,
+      tagline: brandObj?.tagline || whitelabelConfig.brand_subtitle || 'Social Media Management & Quota Portal',
+      primary_color: primaryColor,
+      hq_owner_name: ownerName,
+      hq_owner_email: ownerEmail,
+      hq_owner_phone: ownerPhone,
+      subscription_plan_id: brandObj?.subscription_plan_id || 'growth',
+      subscription_status: brandObj?.subscription_status || 'active',
+      subscription_start_date: brandObj?.subscription_start_date || '2026-09-27',
+      subscription_end_date: brandObj?.subscription_end_date || '2026-12-31',
+      monthly_fee: brandObj?.monthly_fee || 4890000,
+      branches_count: brandObj?.branches_count || (branches.length > 0 ? branches.length : 1),
+      wallet_balance: brandObj?.wallet_balance || 0,
+      is_verified: true
+    }]).catch(() => {});
 
     if (branches.length > 0) {
       await SupabaseService.exportDataToSupabase('branches', branches.map((b) => ({
@@ -1463,6 +1467,25 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         owner_phone: b.owner_phone || '',
         owner_email: b.owner_email || ''
       }))).catch(() => {});
+    }
+
+    if (users.length > 0) {
+      const brandUsersToSync = users.filter(u => !['platform_owner', 'platform_finance', 'platform_admin'].includes(u.role));
+      if (brandUsersToSync.length > 0) {
+        await SupabaseService.exportDataToSupabase('users', brandUsersToSync.map((u) => ({
+          id: u.id,
+          brand_slug: slug,
+          branch_id: u.branch_id || null,
+          role: u.role,
+          full_name: u.full_name,
+          email: u.email,
+          phone: u.phone,
+          password_hash: u.password || 'Media',
+          job_title: u.job_title || '',
+          avatar_url: u.avatar_url || null,
+          status: u.status || 'active'
+        }))).catch(() => {});
+      }
     }
   };
 
@@ -1531,11 +1554,16 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         const bUsers = cleanMockUsers(remoteUsers.filter((u: any) => {
           const raw = usersRes.data?.find((r: any) => r.id === u.id);
-          return raw?.brand_slug === activeTenantSlug || (!raw?.brand_slug && !['platform_owner', 'platform_finance', 'platform_admin'].includes(u.role));
+          return raw?.brand_slug === activeTenantSlug;
         }));
         if (bUsers.length > 0) {
-          setUsers(bUsers);
-          saveBrandStorage(activeTenantSlug, 'users', bUsers);
+          setUsers((prev) => {
+            const map = new Map(prev.map(u => [u.id, u]));
+            bUsers.forEach(u => map.set(u.id, u));
+            const merged = Array.from(map.values());
+            saveBrandStorage(activeTenantSlug, 'users', merged);
+            return merged;
+          });
         }
       }
 
@@ -2032,19 +2060,39 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const updated = prev.map((u) => (u.id === id ? { ...u, ...updates } : u));
       const target = updated.find((u) => u.id === id);
       if (target) {
-        SupabaseService.exportDataToSupabase('users', [{
-          id: target.id,
-          brand_slug: activeTenantSlug,
-          branch_id: target.branch_id || null,
-          role: target.role,
-          full_name: target.full_name,
-          email: target.email,
-          phone: target.phone,
-          password_hash: target.password || 'Media',
-          job_title: target.job_title || '',
-          status: target.status || 'active'
-        }]).catch(err => console.warn('Update user to Supabase:', err));
+        ensureBrandInSupabase(activeTenantSlug).then(() => {
+          SupabaseService.exportDataToSupabase('users', [{
+            id: target.id,
+            brand_slug: activeTenantSlug,
+            branch_id: target.branch_id || null,
+            role: target.role,
+            full_name: target.full_name,
+            email: target.email,
+            phone: target.phone,
+            password_hash: target.password || 'Media',
+            job_title: target.job_title || '',
+            status: target.status || 'active'
+          }]).catch(err => console.warn('Update user to Supabase:', err));
+        });
+
+        if (target.role === 'hq_owner') {
+          setPlatformBrands((pBrands) => {
+            const upBrands = pBrands.map((b) =>
+              b.slug.toLowerCase() === activeTenantSlug.toLowerCase()
+                ? {
+                    ...b,
+                    hq_owner_name: target.full_name,
+                    hq_owner_email: target.email,
+                    hq_owner_phone: target.phone
+                  }
+                : b
+            );
+            saveStorage('platform_brands', upBrands);
+            return upBrands;
+          });
+        }
       }
+      saveBrandStorage(activeTenantSlug, 'users', updated);
       return updated;
     });
   };
