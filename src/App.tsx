@@ -386,14 +386,18 @@ const MainContent: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3 text-[11px] flex-wrap justify-center sm:justify-end">
-              <button
-                onClick={() => setIsSqlModalOpen(true)}
-                className="text-sky-600 dark:text-sky-400 hover:text-sky-700 font-semibold flex items-center gap-1 cursor-pointer"
-              >
-                <Database className="w-3.5 h-3.5" />
-                <span>{t('supabaseSchema')}</span>
-              </button>
-              <span>•</span>
+              {isPlatformUser && (
+                <>
+                  <button
+                    onClick={() => setIsSqlModalOpen(true)}
+                    className="text-sky-600 dark:text-sky-400 hover:text-sky-700 font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Database className="w-3.5 h-3.5" />
+                    <span>{t('supabaseSchema')}</span>
+                  </button>
+                  <span>•</span>
+                </>
+              )}
               <span className="text-slate-400 dark:text-slate-400">
                 Role: <strong className="text-slate-700 dark:text-slate-200">{isHQ ? `${whitelabelConfig.brand_name} HQ (${currentUser.job_title || 'Staff'})` : `${currentBranch?.name || 'Branch'} (${currentUser.role === 'branch_manager' ? 'Store Manager' : 'Branch Owner'})`}</strong>
               </span>

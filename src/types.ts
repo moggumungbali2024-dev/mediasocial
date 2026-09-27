@@ -155,10 +155,11 @@ export interface WhitelabelConfig {
   max_monthly_active_promos: number;
   design_min_lead_days: number;
   promo_cutoff_day_of_month: number;
+  standard_work_hours?: number; // Standard daily working hours (default: 8 hours)
 }
 
 export type AttendanceMode = 'WFO' | 'WFH' | 'On-Site Visit';
-export type AttendanceStatus = 'present' | 'late' | 'completed';
+export type AttendanceStatus = 'present' | 'completed' | 'on_duty';
 
 export interface AttendanceRecord {
   id: string;
@@ -172,6 +173,7 @@ export interface AttendanceRecord {
   work_log: string;
   target_branch_id?: string;
   total_hours?: number;
+  overtime_hours?: number; // Lembur duration if total_hours > standard_work_hours
 }
 
 export interface Branch {

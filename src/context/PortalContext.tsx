@@ -2205,7 +2205,6 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return { success: false, message: 'Already clocked in for today!' };
     }
     const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    const isLate = nowTime > '09:00';
     const newRecord: AttendanceRecord = {
       id: `att-${Date.now()}`,
       user_id: currentUser.id,
@@ -2213,7 +2212,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       date: simulatedDate,
       clock_in_time: nowTime,
       mode,
-      status: isLate ? 'late' : 'present',
+      status: 'present',
       work_log: '',
       target_branch_id: targetBranchId
     };
@@ -2257,12 +2256,15 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     let diff = (outH + outM / 60) - (inH + inM / 60);
     if (diff < 0) diff += 24;
     const totalHours = Math.max(1, Math.round(diff * 10) / 10);
+    const standardHours = whitelabelConfig.standard_work_hours || 8;
+    const overtimeHours = Math.max(0, Math.round((totalHours - standardHours) * 10) / 10);
 
     const updatedAtt: AttendanceRecord = {
       ...todayAttendance,
       clock_out_time: nowTime,
       status: 'completed',
       total_hours: totalHours,
+      overtime_hours: overtimeHours,
       work_log: workLog !== undefined ? workLog : todayAttendance.work_log
     };
 
@@ -2289,7 +2291,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       user_name: currentUser.full_name,
       action_type: 'attendance_clocked_out',
       title: `Daily Clock-Out: ${currentUser.full_name}`,
-      description: `Clocked out at ${nowTime}. Total hours: ${totalHours}h. Work summary logged.`,
+      description: `Clocked out at ${nowTime}. Total hours: ${totalHours}h${overtimeHours > 0 ? ` (Overtime: +${overtimeHours}h)` : ''}. Work summary logged.`,
       severity: 'success',
       link_tab: 'attendance'
     });

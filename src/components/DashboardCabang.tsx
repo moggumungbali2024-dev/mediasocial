@@ -79,43 +79,43 @@ export const DashboardCabang: React.FC<DashboardCabangProps> = ({ onNavigateTab 
   const dayOfMonth = new Date(simulatedDate).getDate();
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
       {/* Branch Header Banner - The Canvas Style */}
-      <div className="bg-[#121316] border border-white/10 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-2xl">
+      <div className="bg-[#121316] border border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-8 text-white relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="flex items-start sm:items-center gap-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 shrink-0">
-              <Store className="w-7 h-7 sm:w-8 sm:h-8 text-orange-400" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4 sm:gap-6">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 shrink-0">
+              <Store className="w-5 h-5 sm:w-8 sm:h-8 text-orange-400" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold bg-white/10 text-emerald-400 border border-white/10 mb-2">
+              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-bold bg-white/10 text-emerald-400 border border-white/10 mb-1.5 sm:mb-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span>{t('activeFranchiseBranch')} • {currentBranch.city}</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white font-['Space_Grotesk']">
+              <h1 className="text-lg sm:text-3xl font-black tracking-tight text-white font-['Space_Grotesk']">
                 {currentBranch.name}
               </h1>
-              <p className="text-slate-400 text-xs sm:text-sm mt-1">
+              <p className="text-slate-400 text-xs sm:text-sm mt-1 line-clamp-2 sm:line-clamp-none">
                 {t('contactPersonLabel')}: <strong className="text-white">{currentBranch.contact_person}</strong> ({currentBranch.phone}) • {currentBranch.location}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={() => onNavigateTab('activity')}
-              className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl text-xs flex items-center gap-2 transition border border-white/10 cursor-pointer"
+              className="px-3 py-1.5 sm:px-4 sm:py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl sm:rounded-2xl text-[11px] sm:text-xs flex items-center gap-1.5 sm:gap-2 transition border border-white/10 cursor-pointer"
             >
-              <Activity className="w-4 h-4 text-amber-400" />
+              <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
               <span>{t('activityFeedBtn')}</span>
             </button>
 
             <button
               onClick={() => onNavigateTab('requests')}
-              className="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-2xl shadow-lg shadow-orange-600/30 text-xs flex items-center gap-2 transition cursor-pointer"
+              className="px-3.5 py-1.5 sm:px-5 sm:py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg shadow-orange-600/30 text-[11px] sm:text-xs flex items-center gap-1.5 sm:gap-2 transition cursor-pointer"
             >
-              <Layers className="w-4 h-4" />
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>{t('submitDesignBtn')}</span>
             </button>
           </div>

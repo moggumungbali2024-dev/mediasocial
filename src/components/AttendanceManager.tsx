@@ -32,7 +32,8 @@ import {
   Eye,
   Upload,
   Check,
-  ExternalLink
+  ExternalLink,
+  Download
 } from 'lucide-react';
 
 export const AttendanceManager: React.FC = () => {
@@ -229,6 +230,36 @@ export const AttendanceManager: React.FC = () => {
     if (filterUser === 'all') return true;
     return a.user_id === filterUser;
   });
+
+  const handleDownloadAttendanceCSV = () => {
+    const standardHours = whitelabelConfig.standard_work_hours || 8;
+    const headers = ['Tanggal', 'Nama Karyawan', 'Mode Kerja', 'Jam Masuk', 'Jam Keluar', 'Total Jam', 'Standar Jam/Hari', 'Lembur (Overtime)', 'Status', 'Catatan Kerja / Work Log'];
+    const rows = filteredRecords.map((r) => {
+      const totalH = r.total_hours || 0;
+      const overtime = r.overtime_hours !== undefined ? r.overtime_hours : Math.max(0, Math.round((totalH - standardHours) * 10) / 10);
+      return [
+        `"${r.date}"`,
+        `"${r.user_name.replace(/"/g, '""')}"`,
+        `"${r.mode}"`,
+        `"${r.clock_in_time}"`,
+        `"${r.clock_out_time || '-'}"`,
+        `"${totalH} jam"`,
+        `"${standardHours} jam"`,
+        `"${overtime > 0 ? `+${overtime} jam` : '0 jam'}"`,
+        `"${r.status}"`,
+        `"${(r.work_log || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`
+      ];
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Rekap_Jadwal_Kerja_${whitelabelConfig.brand_name.replace(/\s+/g, '_')}_${simulatedDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Filtered reimbursements
   const userScopedReimbursements = hqReimbursements.filter((r) => {
@@ -459,11 +490,19 @@ export const AttendanceManager: React.FC = () => {
                   </div>
                 )}
                 {todayAttendance.total_hours && (
-                  <div className="flex items-center justify-between text-xs border-t border-slate-200 dark:border-slate-700 pt-2">
-                    <span className="text-slate-500 dark:text-slate-400">{t('totalWorkHours')}:</span>
-                    <span className="font-extrabold text-amber-600 dark:text-amber-400 font-mono">
-                      {todayAttendance.total_hours} hrs
-                    </span>
+                  <div className="space-y-1 border-t border-slate-200 dark:border-slate-700 pt-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 dark:text-slate-400">{t('totalWorkHours')}:</span>
+                      <span className="font-extrabold text-amber-600 dark:text-amber-400 font-mono">
+                        {todayAttendance.total_hours} hrs
+                      </span>
+                    </div>
+                    {todayAttendance.total_hours > (whitelabelConfig.standard_work_hours || 8) && (
+                      <div className="flex items-center justify-between text-[11px] text-purple-600 dark:text-purple-400 font-bold">
+                        <span>Lembur (Overtime):</span>
+                        <span>+{Math.max(0, Math.round((todayAttendance.total_hours - (whitelabelConfig.standard_work_hours || 8)) * 10) / 10)} hrs</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -622,24 +661,35 @@ export const AttendanceManager: React.FC = () => {
               <span>{t('teamAttendanceLog')}</span>
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {language === 'ko' ? 'HQ 크리에이티브팀 전원의 출퇴근 시간 및 작업 일지' : 'HQ creative team working logs and attendance audit trail'}
+              {language === 'ko' ? 'HQ 크리에이티브팀 전원의 출퇴근 시간, 근무 시간, 초과 근무(연장) 및 작업 일지' : 'HQ creative team working logs, attendance audit trail & overtime calculation'}
             </p>
           </div>
 
-          {/* User filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Filter:</span>
-            <select
-              value={filterUser}
-              onChange={(e) => setFilterUser(e.target.value)}
-              className="text-xs rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white border p-1.5 bg-slate-50 cursor-pointer"
+          {/* User filter & Download CSV button */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadAttendanceCSV}
+              className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer"
             >
-              <option value="all">{language === 'ko' ? '전체 팀원 보기' : 'All Creative Members'}</option>
-              {Array.from(new Set(attendances.map((a) => a.user_id))).map((uid) => {
-                const rec = attendances.find((a) => a.user_id === uid);
-                return <option key={uid} value={uid}>{rec?.user_name}</option>;
-              })}
-            </select>
+              <Download className="w-3.5 h-3.5" />
+              <span>{language === 'ko' ? '근무 기록 CSV 다운로드' : 'Download Work History (CSV)'}</span>
+            </button>
+
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Filter:</span>
+              <select
+                value={filterUser}
+                onChange={(e) => setFilterUser(e.target.value)}
+                className="text-xs bg-transparent dark:text-white outline-none cursor-pointer"
+              >
+                <option value="all" className="dark:bg-slate-800">{language === 'ko' ? '전체 팀원 보기' : 'All Creative Members'}</option>
+                {Array.from(new Set(attendances.map((a) => a.user_id))).map((uid) => {
+                  const rec = attendances.find((a) => a.user_id === uid);
+                  return <option key={uid} value={uid} className="dark:bg-slate-800">{rec?.user_name}</option>;
+                })}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -653,6 +703,7 @@ export const AttendanceManager: React.FC = () => {
                 <th className="py-3 px-4">{language === 'ko' ? '출근' : 'In'}</th>
                 <th className="py-3 px-4">{language === 'ko' ? '퇴근' : 'Out'}</th>
                 <th className="py-3 px-4">{t('totalWorkHours')}</th>
+                <th className="py-3 px-4">{language === 'ko' ? '초과 근무 (Lembur)' : 'Overtime'}</th>
                 <th className="py-3 px-4">{language === 'ko' ? '근무 일지' : 'Work Log Summary'}</th>
                 <th className="py-3 px-4 text-center">{t('status')}</th>
               </tr>
@@ -660,58 +711,71 @@ export const AttendanceManager: React.FC = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 dark:text-slate-500">
+                  <td colSpan={9} className="py-8 text-center text-slate-400 dark:text-slate-500">
                     {t('noAttendanceRecords')}
                   </td>
                 </tr>
               ) : (
-                filteredRecords.map((record) => (
-                  <tr key={record.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
-                    <td className="py-3 px-4 font-mono font-medium text-slate-900 dark:text-white whitespace-nowrap">
-                      {record.date}
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="font-bold text-slate-900 dark:text-white">{record.user_name}</div>
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${
-                        record.mode === 'WFO' 
-                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                          : record.mode === 'WFH'
-                          ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                          : 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
-                      }`}>
-                        {record.mode === 'WFO' && <Building2 className="w-3 h-3" />}
-                        {record.mode === 'WFH' && <Home className="w-3 h-3" />}
-                        {record.mode === 'On-Site Visit' && <Camera className="w-3 h-3" />}
-                        <span>{record.mode}</span>
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-mono font-semibold text-slate-800 dark:text-slate-200">
-                      {record.clock_in_time}
-                    </td>
-                    <td className="py-3 px-4 font-mono font-semibold text-slate-800 dark:text-slate-200">
-                      {record.clock_out_time || '-'}
-                    </td>
-                    <td className="py-3 px-4 font-mono font-bold text-amber-700 dark:text-amber-400">
-                      {record.total_hours ? `${record.total_hours} hrs` : '-'}
-                    </td>
-                    <td className="py-3 px-4 max-w-xs truncate text-slate-600 dark:text-slate-300 font-normal">
-                      {record.work_log || <span className="text-slate-400 dark:text-slate-500 italic">No notes</span>}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        record.status === 'completed'
-                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                          : record.status === 'late'
-                          ? 'bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
-                          : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                      }`}>
-                        {record.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                filteredRecords.map((record) => {
+                  const standardHours = whitelabelConfig.standard_work_hours || 8;
+                  const totalH = record.total_hours || 0;
+                  const overtime = record.overtime_hours !== undefined ? record.overtime_hours : Math.max(0, Math.round((totalH - standardHours) * 10) / 10);
+
+                  return (
+                    <tr key={record.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+                      <td className="py-3 px-4 font-mono font-medium text-slate-900 dark:text-white whitespace-nowrap">
+                        {record.date}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <div className="font-bold text-slate-900 dark:text-white">{record.user_name}</div>
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${
+                          record.mode === 'WFO' 
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                            : record.mode === 'WFH'
+                            ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                            : 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                        }`}>
+                          {record.mode === 'WFO' && <Building2 className="w-3 h-3" />}
+                          {record.mode === 'WFH' && <Home className="w-3 h-3" />}
+                          {record.mode === 'On-Site Visit' && <Camera className="w-3 h-3" />}
+                          <span>{record.mode}</span>
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono font-semibold text-slate-800 dark:text-slate-200">
+                        {record.clock_in_time}
+                      </td>
+                      <td className="py-3 px-4 font-mono font-semibold text-slate-800 dark:text-slate-200">
+                        {record.clock_out_time || '-'}
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-amber-700 dark:text-amber-400">
+                        {record.total_hours ? `${record.total_hours} jam` : '-'}
+                      </td>
+                      <td className="py-3 px-4 font-mono whitespace-nowrap">
+                        {overtime > 0 ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                            +{overtime} jam
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 max-w-xs truncate text-slate-600 dark:text-slate-300 font-normal">
+                        {record.work_log || <span className="text-slate-400 dark:text-slate-500 italic">No notes</span>}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          record.status === 'completed'
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                            : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                        }`}>
+                          {record.status === 'completed' ? (language === 'ko' ? '완료' : 'Completed') : (language === 'ko' ? '근무 중' : 'On Duty')}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

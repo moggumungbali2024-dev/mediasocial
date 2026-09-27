@@ -51,7 +51,8 @@ export const DEFAULT_WHITELABEL_CONFIG: WhitelabelConfig = {
   max_monthly_design_requests: 12,
   max_monthly_active_promos: 4,
   design_min_lead_days: 5,
-  promo_cutoff_day_of_month: 25
+  promo_cutoff_day_of_month: 25,
+  standard_work_hours: 8
 };
 
 export const INITIAL_BRANCHES: Branch[] = [];

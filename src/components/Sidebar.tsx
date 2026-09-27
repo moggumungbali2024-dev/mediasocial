@@ -68,6 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     logout,
     language,
     setLanguage,
+    isPlatformUser,
     t
   } = usePortal();
 
@@ -647,13 +648,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
 
-          <button
-            onClick={onOpenSqlModal}
-            title={t('supabaseSchema')}
-            className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-800 transition"
-          >
-            <Database className="w-4 h-4" />
-          </button>
+          {isPlatformUser && (
+            <button
+              onClick={onOpenSqlModal}
+              title={t('supabaseSchema')}
+              className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-800 transition cursor-pointer"
+            >
+              <Database className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Powered by mediasocial.team */}

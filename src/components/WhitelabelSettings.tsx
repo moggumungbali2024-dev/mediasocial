@@ -832,7 +832,7 @@ export const WhitelabelSettings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     {t('leadDaysLabel')}
@@ -858,6 +858,21 @@ export const WhitelabelSettings: React.FC = () => {
                     value={form.promo_cutoff_day_of_month}
                     onChange={(e) => setForm({ ...form, promo_cutoff_day_of_month: Number(e.target.value) })}
                     className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 text-xs font-bold focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '일일 기준 근무 시간' : 'Daily Work Hours (Lembur Threshold)'}
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={24}
+                    value={form.standard_work_hours || 8}
+                    onChange={(e) => setForm({ ...form, standard_work_hours: Number(e.target.value) })}
+                    className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white p-2.5 text-xs font-bold focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
+                    placeholder="8 jam"
                   />
                 </div>
               </div>

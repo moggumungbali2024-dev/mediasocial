@@ -162,36 +162,34 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#11131a]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 text-slate-900 dark:text-slate-100 shadow-xs transition-colors duration-200">
       {/* 1. Desktop Top Bar */}
-      <div className="hidden md:flex items-center justify-between px-6 py-2.5">
+      <div className="hidden md:flex items-center justify-between px-4 lg:px-6 py-2.5 flex-nowrap w-full min-w-0 gap-2">
         {/* Left: Breadcrumbs & Current Location */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex items-center gap-2">
-            <div
-              style={{ backgroundColor: themeColors.primary, color: themeColors.textOnPrimary }}
-              className="w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm"
-            >
-              {whitelabelConfig.brand_monogram || 'MG'}
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-              <span className="font-bold text-slate-800 dark:text-white">{whitelabelConfig.brand_name}</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
-              <span className="font-semibold text-slate-600 dark:text-slate-300">{isHQ ? 'HQ Studio' : currentBranch?.name}</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
-              <span className="font-bold text-slate-900 dark:text-white">{getPageTitle(activeTab)}</span>
-            </div>
+        <div className="flex items-center gap-2 min-w-0 shrink truncate">
+          <div
+            style={{ backgroundColor: themeColors.primary, color: themeColors.textOnPrimary }}
+            className="w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm"
+          >
+            {whitelabelConfig.brand_monogram || 'MG'}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 truncate">
+            <span className="font-bold text-slate-800 dark:text-white shrink-0">{whitelabelConfig.brand_name}</span>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 shrink-0" />
+            <span className="font-semibold text-slate-600 dark:text-slate-300 truncate hidden lg:inline">{isHQ ? 'HQ Studio' : currentBranch?.name}</span>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 shrink-0 hidden lg:inline" />
+            <span className="font-bold text-slate-900 dark:text-white truncate">{getPageTitle(activeTab)}</span>
           </div>
         </div>
 
         {/* Right: Controls, Branch Filter (HQ only), Date Simulator, WhatsApp (HQ only), Profile & Logout */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1.5 lg:gap-2 shrink-0 flex-nowrap">
           {/* Branch filter (HQ only) */}
           {isHQ && (
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-3 py-1.5 text-xs shadow-2xs">
-              <Store className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-2.5 py-1.5 text-xs shadow-2xs">
+              <Store className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
               <select
                 value={selectedBranchFilter}
                 onChange={(e) => setSelectedBranchFilter(e.target.value)}
-                className="bg-transparent font-medium text-slate-700 dark:text-slate-200 outline-hidden text-xs cursor-pointer"
+                className="bg-transparent font-medium text-slate-700 dark:text-slate-200 outline-hidden text-xs cursor-pointer max-w-[105px] xl:max-w-none truncate"
               >
                 <option value="all" className="bg-white dark:bg-slate-800 text-slate-900 dark:text-white">{t('allBranches')}</option>
                 {branches.map((b) => (
@@ -207,7 +205,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <OfficeClock onOpenSettings={() => setActiveTab('whitelabel')} />
 
           {/* Date Simulator Pill */}
-          <div className="relative">
+          <div className="relative hidden xl:block">
             <button
               onClick={() => setShowSimulateDatePicker(!showSimulateDatePicker)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 transition shadow-2xs cursor-pointer"
@@ -282,18 +280,18 @@ export const TopBar: React.FC<TopBarProps> = ({
           {isHQ && (
             <button
               onClick={() => setIsWhatsAppOpen(true)}
-              className="p-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 transition shadow-2xs flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+              className="p-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 transition shadow-2xs flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0"
               title="Kirim WhatsApp ke Store Manager Cabang"
             >
               <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="hidden xl:inline">WhatsApp Dispatcher</span>
+              <span className="hidden 2xl:inline">WhatsApp Dispatcher</span>
             </button>
           )}
 
           {/* Theme Mode Toggle Button (Light vs Obsidian Dark) */}
           <button
             onClick={toggleThemeMode}
-            className="p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700/80 transition shadow-2xs flex items-center justify-center cursor-pointer"
+            className="p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200/90 dark:border-slate-700/80 transition shadow-2xs flex items-center justify-center cursor-pointer shrink-0"
             title={themeMode === 'dark' ? 'Switch to Clean White Mode' : 'Switch to Obsidian Dark Mode'}
           >
             {themeMode === 'dark' ? (
@@ -308,7 +306,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             <button
               onClick={onOpenAiAssistant}
               style={{ backgroundColor: themeColors.primaryLight, color: themeColors.primary }}
-              className="px-3 py-1.5 rounded-2xl text-xs font-bold border border-current transition flex items-center gap-1.5 shadow-2xs hover:opacity-90 cursor-pointer"
+              className="hidden lg:inline-flex px-3 py-1.5 rounded-2xl text-xs font-bold border border-current transition items-center gap-1.5 shadow-2xs hover:opacity-90 cursor-pointer shrink-0"
               title="AI Assistant Copilot"
             >
               <Bot className="w-3.5 h-3.5" />

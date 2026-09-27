@@ -64,6 +64,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     themeColors,
     language,
     setLanguage,
+    isPlatformUser,
     t
   } = usePortal();
 
@@ -541,16 +542,18 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
                   </button>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setIsDrawerOpen(false);
-                    onOpenSqlModal();
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center gap-1.5"
-                >
-                  <Database className="w-3.5 h-3.5" />
-                  <span>DB Schema</span>
-                </button>
+                {isPlatformUser && (
+                  <button
+                    onClick={() => {
+                      setIsDrawerOpen(false);
+                      onOpenSqlModal();
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Database className="w-3.5 h-3.5" />
+                    <span>DB Schema</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

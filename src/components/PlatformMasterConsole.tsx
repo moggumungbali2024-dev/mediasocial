@@ -30,9 +30,11 @@ import {
   X,
   Calendar,
   AlertCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Database
 } from 'lucide-react';
 import { PlatformBrandTenant, BrandSubscriptionPlan } from '../types.ts';
+import { SupabaseSetupModal } from './SupabaseSetupModal.tsx';
 
 export const PlatformMasterConsole: React.FC = () => {
   const {
@@ -140,6 +142,9 @@ export const PlatformMasterConsole: React.FC = () => {
   const [editMaxBranches, setEditMaxBranches] = useState(10);
   const [editMaxDesigns, setEditMaxDesigns] = useState(18);
   const [editMaxPromos, setEditMaxPromos] = useState(6);
+
+  // Supabase DDL & Setup Modal for Platform Owner
+  const [showSupabaseModal, setShowSupabaseModal] = useState(false);
 
   // Filtered Brands
   const filteredBrands = platformBrands.filter((b) => {
@@ -344,6 +349,15 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
               </div>
             )}
+
+            <button
+              onClick={() => setShowSupabaseModal(true)}
+              className="px-3.5 py-2.5 rounded-2xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/30 text-xs font-bold flex items-center gap-2 transition shadow-2xs cursor-pointer"
+              title="Kelola Database Supabase & DDL Schema"
+            >
+              <Database className="w-4 h-4" />
+              <span>DB Schema &amp; Sync</span>
+            </button>
           </div>
         </div>
       </header>
@@ -2123,6 +2137,12 @@ export const PlatformMasterConsole: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Supabase DDL & Migration Setup Modal */}
+      <SupabaseSetupModal
+        isOpen={showSupabaseModal}
+        onClose={() => setShowSupabaseModal(false)}
+      />
     </div>
   );
 };

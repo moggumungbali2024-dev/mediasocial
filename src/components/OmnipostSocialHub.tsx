@@ -180,53 +180,30 @@ export const OmnipostSocialHub: React.FC = () => {
         setComposeSelectedChannels([loadedChannels[0].id]);
       }
 
-      // 3. Fetch Posts
+      // 3. Fetch Posts from Omnipost or Active Brand Storage
       const postRes = await OmnipostService.getPosts(undefined, config.apiUrl, config.apiToken);
-      if (postRes.success && postRes.data) {
-        const items = postRes.data.items || [];
-        if (items.length > 0) {
-          setPosts(items);
-        } else {
-          // Pre-populate sample posts
-          setPosts([
-            {
-              id: 'post-op-01',
-              title: isKo ? '신메뉴 출시 기념 스페셜 프로모션' : 'Grand Special Menu Launch Campaign',
-              content: `🔥 SPESIAL HARI INI DI ${whitelabelConfig.brand_name.toUpperCase()}! Nikmati menu signature hemat 20% serentak di seluruh outlet cabang! #Kuliner #${activeTenantSlug}`,
-              media_urls: ['https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800'],
-              channel_ids: [loadedChannels[0]?.id || 'chan-ig'],
-              status: 'published',
-              published_at: `${simulatedDate} 10:30`,
-              created_at: `${simulatedDate} 09:00`,
-              insights: { likes: 1420, comments: 88, shares: 195, views: 18500 }
-            },
-            {
-              id: 'post-op-02',
-              title: isKo ? '매일 아침 공수되는 신선한 재료 비하인드' : 'Behind The Scenes: Fresh Ingredients Every Morning',
-              content: `Rahasia kenikmatan di setiap sajian ${whitelabelConfig.brand_name} adalah bahan baku segar pilihan terbaik! 🥗✨ #KitchenStories #${activeTenantSlug}`,
-              media_urls: ['https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800'],
-              channel_ids: [loadedChannels[0]?.id || 'chan-ig'],
-              status: 'scheduled',
-              scheduled_at: `${simulatedDate} 18:00`,
-              created_at: `${simulatedDate} 11:00`
-            }
-          ]);
-        }
-      }
+      const items: OmnipostPost[] = (postRes.success && postRes.data?.items) ? postRes.data.items : [];
+      setPosts(items);
 
-      // 4. Fetch Insights Summary
+      // 4. Fetch Insights Summary (calculated dynamically from actual posts)
       const insRes = await OmnipostService.getInsightsSummary(config.apiUrl, config.apiToken);
       if (insRes.success && insRes.data) {
         setInsights(insRes.data);
       } else {
+        const pubCount = items.filter((p) => p.status === 'published').length;
+        const schCount = items.filter((p) => p.status === 'scheduled').length;
+        const dftCount = items.filter((p) => p.status === 'draft').length;
+        const failCount = items.filter((p) => p.status === 'failed').length;
+        const tot = items.length;
+
         setInsights({
-          total: 18,
-          published: 14,
-          scheduled: 3,
-          draft: 1,
-          failed: 0,
+          total: tot,
+          published: pubCount,
+          scheduled: schCount,
+          draft: dftCount,
+          failed: failCount,
           channelCount: loadedChannels.length,
-          publishRate: 94.5
+          publishRate: tot > 0 ? Math.round((pubCount / tot) * 1000) / 10 : 100
         });
       }
 
@@ -235,15 +212,14 @@ export const OmnipostSocialHub: React.FC = () => {
       if (dayRes.success && dayRes.data) {
         setPostsByDay(dayRes.data);
       } else {
-        setPostsByDay([
-          { date: '2026-09-20', count: 2 },
-          { date: '2026-09-21', count: 3 },
-          { date: '2026-09-22', count: 4 },
-          { date: '2026-09-23', count: 2 },
-          { date: '2026-09-24', count: 5 },
-          { date: '2026-09-25', count: 3 },
-          { date: '2026-09-26', count: 4 }
-        ]);
+        const last7Days = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - (6 - i));
+          const dateStr = d.toISOString().split('T')[0];
+          const count = items.filter((p) => (p.created_at || '').startsWith(dateStr) || (p.published_at || '').startsWith(dateStr)).length;
+          return { date: dateStr, count };
+        });
+        setPostsByDay(last7Days);
       }
 
     } catch (err: any) {

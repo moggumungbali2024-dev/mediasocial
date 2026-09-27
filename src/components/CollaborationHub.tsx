@@ -261,25 +261,25 @@ export const CollaborationHub: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 rounded-3xl p-4 sm:p-6 text-white shadow-xl border border-slate-800 w-full max-w-full overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header Banner - Compact on Mobile */}
+      <div className="bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 text-white shadow-xl border border-slate-800 w-full max-w-full overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 mb-2">
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>{whitelabelConfig.brand_name} Unified Collaboration Hub</span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 mb-1.5 sm:mb-2">
+              <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>{whitelabelConfig.brand_name} Collaboration</span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight font-['Space_Grotesk']">
+            <h1 className="text-lg sm:text-2xl font-black tracking-tight font-['Space_Grotesk']">
               {language === 'ko' ? 'HQ & 가맹점 실시간 협업 채널' : 'HQ & Branch Team Collaboration'}
             </h1>
-            <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed line-clamp-2 sm:line-clamp-none">
               {language === 'ko'
                 ? '본사 크리에이티브팀 및 지점 대표/스태프 간의 실시간 피드백, @멘션 태그 알림, 이미지/동영상 압축 첨부 및 디자인 요청 연동'
                 : 'Real-time discussion between HQ and branch owners/managers. Tag team members with @mentions, attach compressed media, and link requests.'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             <span className="text-xs bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-2">
               {currentUser.avatar_url ? (
                 <img src={currentUser.avatar_url} alt="Me" className="w-4 h-4 rounded-full object-cover" />
@@ -290,35 +290,37 @@ export const CollaborationHub: React.FC = () => {
             </span>
           </div>
         </div>
+      </div>
 
-        {/* Mobile Channel Switcher Tabs */}
-        <div className="flex sm:hidden items-center gap-2 pt-3 mt-3 border-t border-slate-800 text-xs font-bold w-full overflow-x-auto">
+      {/* Floating Sticky Channel Switcher for Mobile Devices */}
+      <div className="flex sm:hidden items-center gap-1.5 sticky top-[52px] z-20 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-700/80 shadow-lg text-xs font-bold w-full">
+        <button
+          type="button"
+          onClick={() => setActiveChannel('branch_collab')}
+          className={`flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
+            activeChannel === 'branch_collab'
+              ? 'bg-purple-600 text-white shadow-md'
+              : 'bg-slate-800/80 text-slate-300 hover:text-white'
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          <span>{language === 'ko' ? '지점 협업' : 'Branch Collab'}</span>
+        </button>
+
+        {isHQ && (
           <button
-            onClick={() => setActiveChannel('branch_collab')}
-            className={`flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer ${
-              activeChannel === 'branch_collab'
-                ? 'bg-purple-600 text-white shadow-md'
+            type="button"
+            onClick={() => setActiveChannel('hq_internal')}
+            className={`flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
+              activeChannel === 'hq_internal'
+                ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-slate-800/80 text-slate-300 hover:text-white'
             }`}
           >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>{language === 'ko' ? '지점 협업 채널' : 'Branch Collab'}</span>
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>{language === 'ko' ? 'HQ 내부' : 'HQ Internal'}</span>
           </button>
-
-          {isHQ && (
-            <button
-              onClick={() => setActiveChannel('hq_internal')}
-              className={`flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition cursor-pointer ${
-                activeChannel === 'hq_internal'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-800/80 text-slate-300 hover:text-white'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{language === 'ko' ? '본사 내부 스튜디오' : 'HQ Internal'}</span>
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Main Chat Layout */}
