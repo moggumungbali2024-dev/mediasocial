@@ -86,19 +86,37 @@ export const CollaborationHub: React.FC = () => {
   // Image Lightbox zoom modal
   const [selectedZoomImage, setSelectedZoomImage] = useState<string | null>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const prevChannelRef = useRef(activeChannel);
+  const prevMsgCountRef = useRef(channelMessages.length);
 
   // Auto mark channel as read
   useEffect(() => {
     markChatAsRead(activeChannel);
   }, [activeChannel, teamChatMessages.length]);
 
-  // Auto-scroll on new message
+  // Scroll to bottom on channel switch or initial load (strictly container level)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [teamChatMessages, activeChannel]);
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [activeChannel]);
+
+  // When a new message arrives, only scroll container if user was already near bottom
+  useEffect(() => {
+    if (!chatContainerRef.current) return;
+    const container = chatContainerRef.current;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+    
+    if (channelMessages.length > prevMsgCountRef.current) {
+      if (isNearBottom) {
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      }
+    }
+    prevMsgCountRef.current = channelMessages.length;
+  }, [channelMessages.length]);
 
   // Handle typing input and inline @ detection
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,6 +275,12 @@ export const CollaborationHub: React.FC = () => {
     setIsMentionOpen(false);
     setIsLinkRequestOpen(false);
     setIsEmojiOpen(false);
+
+    setTimeout(() => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: 'smooth' });
+      }
+    }, 50);
   };
 
   return (
@@ -448,7 +472,7 @@ export const CollaborationHub: React.FC = () => {
           </div>
 
           {/* Messages Stream */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-3.5 pr-1 max-h-[420px] min-h-[280px] w-full max-w-full">
+          <div ref={chatContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden space-y-3.5 pr-1 max-h-[420px] min-h-[280px] w-full max-w-full">
             {channelMessages.length === 0 ? (
               <div className="py-16 text-center text-xs text-slate-400">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30 text-purple-500" />
@@ -543,7 +567,6 @@ export const CollaborationHub: React.FC = () => {
                 );
               })
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Media Attachment Preview Bar */}

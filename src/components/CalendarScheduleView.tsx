@@ -21,9 +21,14 @@ import {
   ListFilter,
   Eye,
   Trash2,
-  Sparkles
+  Sparkles,
+  Layers,
+  FolderPlus,
+  CalendarCheck,
+  Building2,
+  FileText
 } from 'lucide-react';
-import { MeetingAgenda } from '../types.ts';
+import { MeetingAgenda, ContentPillar, BudgetRequestType, ShootRequestType } from '../types.ts';
 
 export const CalendarScheduleView: React.FC = () => {
   const { 
@@ -37,6 +42,10 @@ export const CalendarScheduleView: React.FC = () => {
     meetingAgendas, 
     addMeetingAgenda, 
     deleteMeetingAgenda,
+    addDesignRequest,
+    addPromoRequest,
+    addShootRequest,
+    addBudgetRequest,
     simulatedDate,
     whitelabelConfig,
     t,
@@ -45,19 +54,53 @@ export const CalendarScheduleView: React.FC = () => {
 
   // Calendar View: 'monthly' | 'weekly' | 'daily'
   const [viewMode, setViewMode] = useState<'monthly' | 'weekly' | 'daily'>('monthly');
-  const [currentDateStr, setCurrentDateStr] = useState<string>(simulatedDate); // '2026-09-21'
+  const [currentDateStr, setCurrentDateStr] = useState<string>(simulatedDate);
   const [selectedDate, setSelectedDate] = useState<string>(simulatedDate);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  // New Meeting Modal
-  const [isNewMeetingModalOpen, setIsNewMeetingModalOpen] = useState(false);
+  // Quick Action Modal for Selected Date (Add Meeting / Design / Promo / Shoot / Budget)
+  const [isQuickAddModalOpen, setIsQuickAddModalOpen] = useState(false);
+  const [quickAddTab, setQuickAddTab] = useState<'meeting' | 'design' | 'promo' | 'shoot' | 'budget'>('meeting');
+
+  // 1. Meeting Form State
   const [meetingTitle, setMeetingTitle] = useState('');
   const [meetingDate, setMeetingDate] = useState(simulatedDate);
   const [startTime, setStartTime] = useState('10:00');
   const [endTime, setEndTime] = useState('11:00');
-  const [locationOrLink, setLocationOrLink] = useState('HQ Conference Room A / Google Meet');
+  const [locationOrLink, setLocationOrLink] = useState('HQ Conference Room / Google Meet');
   const [attendees, setAttendees] = useState<string[]>([currentUser.full_name]);
   const [meetingNotes, setMeetingNotes] = useState('');
+
+  // 2. Design Request Form State
+  const [designBranchId, setDesignBranchId] = useState<string>(branches[0]?.id || '');
+  const [designTitle, setDesignTitle] = useState('');
+  const [designCategory, setDesignCategory] = useState<ContentPillar>('Food');
+  const [designTargetDate, setDesignTargetDate] = useState<string>(simulatedDate);
+  const [designDescription, setDesignDescription] = useState('');
+
+  // 3. Promo Campaign Form State
+  const [promoBranchId, setPromoBranchId] = useState<string>(branches[0]?.id || '');
+  const [promoTitle, setPromoTitle] = useState('');
+  const [promoMechanic, setPromoMechanic] = useState('');
+  const [promoStartDate, setPromoStartDate] = useState<string>(simulatedDate);
+  const [promoEndDate, setPromoEndDate] = useState<string>(simulatedDate);
+  const [promoTerms, setPromoTerms] = useState('');
+
+  // 4. Shoot Request Form State
+  const [shootBranchId, setShootBranchId] = useState<string>(branches[0]?.id || '');
+  const [shootTitle, setShootTitle] = useState('');
+  const [shootDate, setShootDate] = useState<string>(simulatedDate);
+  const [shootFocusProducts, setShootFocusProducts] = useState<string>('Signature Menu & Ambiance');
+  const [shootDetails, setShootDetails] = useState('');
+
+  // 5. Budget Request Form State
+  const [budgetBranchId, setBudgetBranchId] = useState<string>(branches[0]?.id || '');
+  const [budgetType, setBudgetType] = useState<BudgetRequestType>('meta_ads');
+  const [budgetTitle, setBudgetTitle] = useState('');
+  const [budgetAmount, setBudgetAmount] = useState<number>(1000000);
+  const [budgetTargetDate, setBudgetTargetDate] = useState<string>(simulatedDate);
+  const [budgetObjective, setBudgetObjective] = useState('');
+
   const [notification, setNotification] = useState<string | null>(null);
 
   // Selected event detail inspector
@@ -109,6 +152,19 @@ export const CalendarScheduleView: React.FC = () => {
   const handleToday = () => {
     setCurrentDateStr(simulatedDate);
     setSelectedDate(simulatedDate);
+  };
+
+  // Click on date cell: opens Quick Add modal prefilled with that date
+  const handleDateCellClick = (dateStr: string, defaultTab: 'meeting' | 'design' | 'promo' | 'shoot' | 'budget' = 'meeting') => {
+    setSelectedDate(dateStr);
+    setMeetingDate(dateStr);
+    setDesignTargetDate(dateStr);
+    setPromoStartDate(dateStr);
+    setPromoEndDate(dateStr);
+    setShootDate(dateStr);
+    setBudgetTargetDate(dateStr);
+    setQuickAddTab(defaultTab);
+    setIsQuickAddModalOpen(true);
   };
 
   // Compile all unified events
@@ -172,13 +228,13 @@ export const CalendarScheduleView: React.FC = () => {
       });
     });
 
-    // 4. Budget Requests
+    // 4. Budget Requests (Target date mapping)
     budgetRequests.forEach((b) => {
       events.push({
         id: b.id,
         type: 'budget',
         title: `💰 [HQ Budget] ${b.title} (${whitelabelConfig.currency_symbol} ${b.amount.toLocaleString()})`,
-        date: b.created_at,
+        date: b.target_date || b.created_at,
         branchName: b.target_branch_name,
         status: b.status,
         details: `${b.type} - Objective: ${b.objective}`,
@@ -278,7 +334,7 @@ export const CalendarScheduleView: React.FC = () => {
     return days;
   }, [currentDate, language]);
 
-  // Submit new meeting
+  // Handlers for Quick Action Modal submissions
   const handleCreateMeeting = (e: React.FormEvent) => {
     e.preventDefault();
     if (!meetingTitle.trim()) return;
@@ -296,9 +352,108 @@ export const CalendarScheduleView: React.FC = () => {
     });
 
     setNotification(res.message);
-    setIsNewMeetingModalOpen(false);
+    setIsQuickAddModalOpen(false);
     setMeetingTitle('');
     setMeetingNotes('');
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleCreateDesign = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!designTitle.trim()) return;
+
+    const res = addDesignRequest({
+      branch_id: designBranchId || branches[0]?.id || '',
+      title: designTitle.trim(),
+      description: designDescription || 'Design deliverables request',
+      target_date: designTargetDate,
+      category: designCategory
+    });
+
+    setNotification(res.message);
+    if (res.success) {
+      setIsQuickAddModalOpen(false);
+      setDesignTitle('');
+      setDesignDescription('');
+    }
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleCreatePromo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoTitle.trim()) return;
+
+    const res = addPromoRequest({
+      branch_id: promoBranchId || branches[0]?.id || '',
+      title: promoTitle.trim(),
+      mechanic: promoMechanic || 'Special Discount Campaign',
+      target_month: promoStartDate.substring(0, 7),
+      start_date: promoStartDate,
+      end_date: promoEndDate,
+      terms: promoTerms || 'Syarat & ketentuan promo berlaku.'
+    });
+
+    setNotification(res.message);
+    if (res.success) {
+      setIsQuickAddModalOpen(false);
+      setPromoTitle('');
+      setPromoMechanic('');
+      setPromoTerms('');
+    }
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleCreateShoot = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shootTitle.trim()) return;
+
+    const b = branches.find((x) => x.id === shootBranchId) || branches[0];
+    const res = addShootRequest({
+      branch_id: b?.id || '',
+      branch_name: b?.name || '',
+      requester_id: currentUser.id,
+      requester_name: currentUser.full_name,
+      requester_role: currentUser.role,
+      type: 'photoshoot_visit',
+      title: shootTitle.trim(),
+      preferred_date: shootDate,
+      details: shootDetails || 'On-site photoshoot & visit coverage',
+      focus_products: shootFocusProducts ? shootFocusProducts.split(',').map((s) => s.trim()) : ['Menu', 'Ambiance']
+    });
+
+    setNotification(res.message);
+    if (res.success) {
+      setIsQuickAddModalOpen(false);
+      setShootTitle('');
+      setShootDetails('');
+    }
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleCreateBudget = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!budgetTitle.trim()) return;
+
+    const b = branches.find((x) => x.id === budgetBranchId) || branches[0];
+    const res = addBudgetRequest({
+      requester_id: currentUser.id,
+      requester_name: currentUser.full_name,
+      requester_role: currentUser.role,
+      target_branch_id: b?.id || '',
+      target_branch_name: b?.name || 'All Branches',
+      type: budgetType,
+      title: budgetTitle.trim(),
+      amount: Number(budgetAmount),
+      target_date: budgetTargetDate,
+      objective: budgetObjective || 'Marketing & Exposure Campaign'
+    });
+
+    setNotification(res.message);
+    if (res.success) {
+      setIsQuickAddModalOpen(false);
+      setBudgetTitle('');
+      setBudgetObjective('');
+    }
     setTimeout(() => setNotification(null), 4000);
   };
 
@@ -338,18 +493,18 @@ export const CalendarScheduleView: React.FC = () => {
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
               {language === 'ko'
-                ? '디자인 요청 일정, 프로모션 캠페인, 현장 방문 촬영, 본사 예산 승인 및 팀 미팅 아젠다를 한눈에 관리합니다.'
-                : 'Track design deadlines, promo schedules, photoshoot visits, HQ budget disbursements, and team sync meetings.'}
+                ? '날짜를 클릭하여 회의 일정, 디자인 요청, 프로모션, 촬영 일정, 본사 예산 승인을 바로 등록하세요.'
+                : 'Click any date to schedule meetings, design requests, promo campaigns, photoshoot visits, or HQ budget allocations.'}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setIsNewMeetingModalOpen(true)}
+              onClick={() => handleDateCellClick(selectedDate, 'meeting')}
               className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>{language === 'ko' ? '회의 일정 등록' : 'Schedule Meeting'}</span>
+              <span>{language === 'ko' ? '일정 / 활동 등록' : 'Schedule Activity'}</span>
             </button>
           </div>
         </div>
@@ -405,11 +560,11 @@ export const CalendarScheduleView: React.FC = () => {
               className="bg-transparent font-bold text-[11px] text-slate-700 dark:text-slate-200 outline-none px-1.5 py-0.5 cursor-pointer"
             >
               <option value="all">{language === 'ko' ? '전체 항목 (All)' : 'All Channels'}</option>
-              <option value="design">{language === 'ko' ? '디자인 요청 (Design)' : 'Design Requests'}</option>
-              <option value="promo">{language === 'ko' ? '프로모션 캠페인 (Promo)' : 'Promo Campaigns'}</option>
-              <option value="shoot">{language === 'ko' ? '현장 촬영 (Shoots)' : 'Photoshoot Visits'}</option>
-              <option value="budget">{language === 'ko' ? '예산 승인 (Budgets)' : 'Budget Requests'}</option>
-              <option value="meeting">{language === 'ko' ? '팀 회의 (Meetings)' : 'Meeting Agendas'}</option>
+              <option value="meeting">{language === 'ko' ? '🗓️ 팀 회의 (Meetings)' : '🗓️ Meeting Agendas'}</option>
+              <option value="design">{language === 'ko' ? '🎨 디자인 요청 (Design)' : '🎨 Design Requests'}</option>
+              <option value="promo">{language === 'ko' ? '🏷️ 프로모션 (Promo)' : '🏷️ Promo Campaigns'}</option>
+              <option value="shoot">{language === 'ko' ? '📸 현장 촬영 (Shoots)' : '📸 Photoshoot Visits'}</option>
+              <option value="budget">{language === 'ko' ? '💰 예산 승인 (Budgets)' : '💰 Budget Requests'}</option>
             </select>
           </div>
 
@@ -460,8 +615,8 @@ export const CalendarScheduleView: React.FC = () => {
               return (
                 <div
                   key={cell.dateStr}
-                  onClick={() => setSelectedDate(cell.dateStr)}
-                  className={`min-h-[90px] sm:min-h-[110px] p-1.5 sm:p-2 transition flex flex-col justify-between cursor-pointer ${
+                  onClick={() => handleDateCellClick(cell.dateStr)}
+                  className={`min-h-[90px] sm:min-h-[110px] p-1.5 sm:p-2 transition flex flex-col justify-between cursor-pointer group relative ${
                     !cell.isCurrentMonth ? 'opacity-35 bg-slate-50/50 dark:bg-slate-900/30' : ''
                   } ${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-950/20 ring-1 ring-indigo-500' : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/30'}`}
                 >
@@ -477,11 +632,16 @@ export const CalendarScheduleView: React.FC = () => {
                     >
                       {cell.dayNum}
                     </span>
-                    {dayEvents.length > 0 && (
-                      <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">
-                        {dayEvents.length}
+                    <div className="flex items-center gap-1">
+                      {dayEvents.length > 0 && (
+                        <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">
+                          {dayEvents.length}
+                        </span>
+                      )}
+                      <span className="opacity-0 group-hover:opacity-100 text-[10px] bg-indigo-600 text-white p-0.5 rounded transition">
+                        <Plus className="w-3 h-3" />
                       </span>
-                    )}
+                    </div>
                   </div>
 
                   {/* Badges */}
@@ -523,7 +683,11 @@ export const CalendarScheduleView: React.FC = () => {
               const isToday = w.dateStr === simulatedDate;
 
               return (
-                <div key={w.dateStr} className="p-3 min-h-[260px] flex flex-col">
+                <div 
+                  key={w.dateStr} 
+                  onClick={() => handleDateCellClick(w.dateStr)}
+                  className="p-3 min-h-[260px] flex flex-col cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition"
+                >
                   <div className={`p-2 rounded-xl text-center mb-3 ${
                     isToday ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200'
                   }`}>
@@ -533,14 +697,18 @@ export const CalendarScheduleView: React.FC = () => {
 
                   <div className="space-y-2 flex-1 overflow-y-auto">
                     {dayEvents.length === 0 ? (
-                      <div className="text-[11px] text-slate-400 text-center py-4 italic">
-                        {language === 'ko' ? '일정 없음' : 'No agenda'}
+                      <div className="text-[11px] text-slate-400 text-center py-4 italic flex flex-col items-center gap-1">
+                        <span>{language === 'ko' ? '일정 없음' : 'No agenda'}</span>
+                        <span className="text-[10px] text-indigo-500 font-semibold underline">+ Add</span>
                       </div>
                     ) : (
                       dayEvents.map((ev) => (
                         <div
                           key={ev.id}
-                          onClick={() => setSelectedEvent(ev)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEvent(ev);
+                          }}
                           className={`p-2 rounded-xl border text-[11px] cursor-pointer hover:shadow-xs transition ${ev.color}`}
                         >
                           <div className="font-bold line-clamp-1">{ev.title}</div>
@@ -568,15 +736,26 @@ export const CalendarScheduleView: React.FC = () => {
                 {language === 'ko' ? `${selectedDate} 상세 일정` : `Detailed Agendas for ${selectedDate}`}
               </span>
             </h3>
-            <span className="text-xs font-bold text-slate-400">
-              {selectedDateEvents.length} {language === 'ko' ? '건 항목' : 'events scheduled'}
-            </span>
+            <button
+              onClick={() => handleDateCellClick(selectedDate)}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{language === 'ko' ? '일정 추가' : 'Add Activity'}</span>
+            </button>
           </div>
 
           <div className="space-y-3">
             {selectedDateEvents.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400">
-                {language === 'ko' ? '선택한 날짜에 예정된 일정이 없습니다.' : 'No events scheduled for this date.'}
+              <div className="p-8 text-center text-xs text-slate-400 space-y-2">
+                <p>{language === 'ko' ? '선택한 날짜에 예정된 일정이 없습니다.' : 'No events scheduled for this date.'}</p>
+                <button
+                  onClick={() => handleDateCellClick(selectedDate)}
+                  className="px-4 py-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl border border-indigo-200 dark:border-indigo-800 inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{language === 'ko' ? '새 항목 등록하기' : 'Schedule on this Date'}</span>
+                </button>
               </div>
             ) : (
               selectedDateEvents.map((ev) => (
@@ -601,16 +780,24 @@ export const CalendarScheduleView: React.FC = () => {
 
       {/* Selected Day Agenda Drawer Card */}
       <div className="bg-white dark:bg-[#15171e] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
-          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-500" />
-            <span>
+            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
               {language === 'ko' ? `선택일 일정 요약 (${selectedDate})` : `Selected Date Deliverables (${selectedDate})`}
+            </h3>
+            <span className="text-xs font-bold text-slate-400">
+              ({selectedDateEvents.length})
             </span>
-          </h3>
-          <span className="text-xs font-bold text-slate-400">
-            {selectedDateEvents.length} {language === 'ko' ? '건 등록됨' : 'Items'}
-          </span>
+          </div>
+
+          <button
+            onClick={() => handleDateCellClick(selectedDate)}
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{language === 'ko' ? '이 날짜에 활동 등록' : 'Add Activity on this Date'}</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -634,118 +821,596 @@ export const CalendarScheduleView: React.FC = () => {
       </div>
 
       {/* ========================================================== */}
-      {/* MODAL: NEW MEETING AGENDA                                  */}
+      {/* MODAL: QUICK ADD ACTIVITY FOR SELECTED DATE               */}
       {/* ========================================================== */}
-      {isNewMeetingModalOpen && createPortal(
+      {isQuickAddModalOpen && createPortal(
         <div className="fixed inset-0 z-[9999] bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-[#15171e] text-slate-900 dark:text-slate-100 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[92vh] overflow-y-auto">
+          <div className="bg-white dark:bg-[#15171e] text-slate-900 dark:text-slate-100 rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                <span>{language === 'ko' ? '새 회의 및 아젠다 등록' : 'Schedule Team Sync / Meeting'}</span>
-              </h3>
-              <button onClick={() => setIsNewMeetingModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base flex items-center gap-2">
+                  <FolderPlus className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  <span>{language === 'ko' ? '새 일정 & 활동 등록' : 'Schedule Activity / Deliverable'}</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {language === 'ko' ? `선택 날짜: ${selectedDate}` : `Selected Date: ${selectedDate}`}
+                </p>
+              </div>
+              <button onClick={() => setIsQuickAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateMeeting} className="space-y-3.5 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  {language === 'ko' ? '회의 주제' : 'Meeting Title'} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={language === 'ko' ? '예: Q4 신메뉴 론칭 브리핑 및 마케팅 전략' : 'e.g. Q4 Menu Launch & Social Strategy'}
-                  value={meetingTitle}
-                  onChange={(e) => setMeetingTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold"
-                />
-              </div>
+            {/* Category Selector Tabs */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setQuickAddTab('meeting')}
+                className={`py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 transition cursor-pointer ${
+                  quickAddTab === 'meeting'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <CalendarIcon className="w-3.5 h-3.5" />
+                <span>Meeting</span>
+              </button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setQuickAddTab('design')}
+                className={`py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 transition cursor-pointer ${
+                  quickAddTab === 'design'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Palette className="w-3.5 h-3.5" />
+                <span>Design</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setQuickAddTab('promo')}
+                className={`py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 transition cursor-pointer ${
+                  quickAddTab === 'promo'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Tag className="w-3.5 h-3.5" />
+                <span>Promo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setQuickAddTab('shoot')}
+                className={`py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 transition cursor-pointer ${
+                  quickAddTab === 'shoot'
+                    ? 'bg-sky-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Shoot</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setQuickAddTab('budget')}
+                className={`col-span-2 sm:col-span-1 py-2 px-1.5 rounded-xl flex items-center justify-center gap-1 transition cursor-pointer ${
+                  quickAddTab === 'budget'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <DollarSign className="w-3.5 h-3.5" />
+                <span>Budget (HQ)</span>
+              </button>
+            </div>
+
+            {/* TAB 1: MEETING AGENDA */}
+            {quickAddTab === 'meeting' && (
+              <form onSubmit={handleCreateMeeting} className="space-y-3.5 text-xs">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    {language === 'ko' ? '회의 일자' : 'Date'}
+                    {language === 'ko' ? '회의 주제' : 'Meeting Title'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={language === 'ko' ? '예: 주간 HQ 크리에이티브 싱크' : 'e.g. Weekly HQ Creative Sync'}
+                    value={meetingTitle}
+                    onChange={(e) => setMeetingTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '회의 일자' : 'Date'}
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={meetingDate}
+                      onChange={(e) => setMeetingDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '시작 시간' : 'Start Time'}
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '종료 시간' : 'End Time'}
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '장소 / 화상회의 링크' : 'Location / Meet Link'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://meet.google.com/... or HQ Studio 2"
+                    value={locationOrLink}
+                    onChange={(e) => setLocationOrLink(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '아젠다 및 회의 메모' : 'Agenda Notes'}
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder={language === 'ko' ? '논의할 주요 내용...' : 'Key discussion points...'}
+                    value={meetingNotes}
+                    onChange={(e) => setMeetingNotes(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAddModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CalendarIcon className="w-4 h-4" />
+                    <span>{language === 'ko' ? '회의 등록' : 'Schedule Meeting'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 2: DESIGN REQUEST */}
+            {quickAddTab === 'design' && (
+              <form onSubmit={handleCreateDesign} className="space-y-3.5 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '대상 지점' : 'Branch'} <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={designBranchId}
+                      onChange={(e) => setDesignBranchId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                    >
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '콘텐츠 필러 (카테고리)' : 'Content Pillar'}
+                    </label>
+                    <select
+                      value={designCategory}
+                      onChange={(e) => setDesignCategory(e.target.value as ContentPillar)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="Food">Food / Menu Hero</option>
+                      <option value="Vibes">Vibes / Store Ambience</option>
+                      <option value="Creative">Creative / Trendy Meme</option>
+                      <option value="Promo">Promo / Event Banner</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '디자인 제목' : 'Design Request Title'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. October Super Deal Instagram Feed & Story"
+                    value={designTitle}
+                    onChange={(e) => setDesignTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '납기 목표일 (Target Date)' : 'Target Date'} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
                     required
-                    value={meetingDate}
-                    onChange={(e) => setMeetingDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                    value={designTargetDate}
+                    onChange={(e) => setDesignTargetDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium"
                   />
                 </div>
+
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    {language === 'ko' ? '시작 시간' : 'Start Time'}
+                    {language === 'ko' ? '디자인 설명 및 요청 사항' : 'Brief / Description'}
                   </label>
-                  <input
-                    type="time"
-                    required
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
+                  <textarea
+                    rows={3}
+                    placeholder="Include design text copy, mandatory logos, color accents..."
+                    value={designDescription}
+                    onChange={(e) => setDesignDescription(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                   />
                 </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAddModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Palette className="w-4 h-4" />
+                    <span>{language === 'ko' ? '디자인 요청 접수' : 'Submit Design Request'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 3: PROMO CAMPAIGN */}
+            {quickAddTab === 'promo' && (
+              <form onSubmit={handleCreatePromo} className="space-y-3.5 text-xs">
                 <div>
                   <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                    {language === 'ko' ? '종료 시간' : 'End Time'}
+                    {language === 'ko' ? '대상 지점' : 'Branch'} <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={promoBranchId}
+                    onChange={(e) => setPromoBranchId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  >
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '프로모션 제목' : 'Promo Title'} <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="time"
+                    type="text"
                     required
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
+                    placeholder="e.g. Buy 1 Get 1 Ramen Weekend Special"
+                    value={promoTitle}
+                    onChange={(e) => setPromoTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '시작일' : 'Start Date'} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={promoStartDate}
+                      onChange={(e) => setPromoStartDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '종료일' : 'End Date'} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={promoEndDate}
+                      onChange={(e) => setPromoEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '프로모션 메커니즘 (혜택)' : 'Mechanic / Offer'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Diskon 25% untuk pemesanan via Dine-in jam 14.00-17.00"
+                    value={promoMechanic}
+                    onChange={(e) => setPromoMechanic(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  {language === 'ko' ? '장소 / 화상회의 링크' : 'Location / Meet Link'}
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://meet.google.com/abc-xyz or HQ Studio 2"
-                  value={locationOrLink}
-                  onChange={(e) => setLocationOrLink(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                />
-              </div>
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '이용 약관 (T&C)' : 'Terms & Conditions'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Syarat & ketentuan berlaku..."
+                    value={promoTerms}
+                    onChange={(e) => setPromoTerms(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
 
-              <div>
-                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  {language === 'ko' ? '아젠다 및 회의 메모' : 'Agenda Notes'}
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder={language === 'ko' ? '논의할 주요 내용...' : 'Key discussion points...'}
-                  value={meetingNotes}
-                  onChange={(e) => setMeetingNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                />
-              </div>
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAddModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Tag className="w-4 h-4" />
+                    <span>{language === 'ko' ? '프로모션 등록' : 'Launch Promo'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsNewMeetingModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
-                >
-                  {t('cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
-                >
-                  <CalendarIcon className="w-4 h-4" />
-                  <span>{language === 'ko' ? '일정 캘린더 등록' : 'Schedule on Calendar'}</span>
-                </button>
-              </div>
-            </form>
+            {/* TAB 4: SHOOT REQUEST */}
+            {quickAddTab === 'shoot' && (
+              <form onSubmit={handleCreateShoot} className="space-y-3.5 text-xs">
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '촬영 대상 지점' : 'Branch Location'} <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={shootBranchId}
+                    onChange={(e) => setShootBranchId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  >
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '촬영 세션 제목' : 'Shoot Session Title'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. October Menu Photoshoot & Reel Content Capture"
+                    value={shootTitle}
+                    onChange={(e) => setShootTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '방문 희망 일자' : 'Preferred Shoot Date'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={shootDate}
+                    onChange={(e) => setShootDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '포커스 메뉴 / 소품 (쉼표 구분)' : 'Focus Products / Highlights'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Signature Ramen, Mocktails, Ambience, Chef Action"
+                    value={shootFocusProducts}
+                    onChange={(e) => setShootFocusProducts(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '촬영 상세 요청' : 'Shoot Instructions / Notes'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Key shots needed, timing, store preparation..."
+                    value={shootDetails}
+                    onChange={(e) => setShootDetails(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAddModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>{language === 'ko' ? '촬영 일정 등록' : 'Schedule Shoot'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB 5: BUDGET REQUEST (HQ) */}
+            {quickAddTab === 'budget' && (
+              <form onSubmit={handleCreateBudget} className="space-y-3.5 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '대상 지점' : 'Target Branch'} <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={budgetBranchId}
+                      onChange={(e) => setBudgetBranchId(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                    >
+                      {branches.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '예산 유형' : 'Budget Type'}
+                    </label>
+                    <select
+                      value={budgetType}
+                      onChange={(e) => setBudgetType(e.target.value as BudgetRequestType)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                    >
+                      <option value="meta_ads">Meta Ads (Instagram/FB)</option>
+                      <option value="tiktok_ads">TikTok Ads & Spark Ads</option>
+                      <option value="influencer_fee">Influencer Endorsement Fee</option>
+                      <option value="photo_prop">Photoshoot Props / Equipment</option>
+                      <option value="printing_collateral">Printing & Table Tent / Menu</option>
+                      <option value="other">Other Operational Marketing</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '예산 요청 제목' : 'Campaign Title'} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. October Meta Discovery Ads"
+                      value={budgetTitle}
+                      onChange={(e) => setBudgetTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      {language === 'ko' ? '신청 금액' : 'Amount'} ({whitelabelConfig.currency_symbol}) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      step="50000"
+                      value={budgetAmount}
+                      onChange={(e) => setBudgetAmount(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '집행 예정일' : 'Execution / Target Date'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={budgetTargetDate}
+                    onChange={(e) => setBudgetTargetDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {language === 'ko' ? '예산 사용 목적 & 예상 효과' : 'Campaign Objective & Expected Reach'}
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Expected impressions, target radius, conversions..."
+                    value={budgetObjective}
+                    onChange={(e) => setBudgetObjective(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickAddModalOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold cursor-pointer"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <DollarSign className="w-4 h-4" />
+                    <span>{language === 'ko' ? '예산 승인 요청' : 'Request HQ Budget'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>,
         document.body

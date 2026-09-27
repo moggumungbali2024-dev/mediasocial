@@ -24,7 +24,9 @@ import {
   Lock,
   Key,
   Eye,
-  EyeOff
+  EyeOff,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 export const UserManager: React.FC = () => {
@@ -36,6 +38,7 @@ export const UserManager: React.FC = () => {
     canAccessUserManagement,
     addUser, 
     updateUser, 
+    deleteUser,
     switchUser, 
     t, 
     language 
@@ -45,6 +48,7 @@ export const UserManager: React.FC = () => {
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [userToDelete, setUserToDelete] = useState<UserProfile | null>(null);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Form State
@@ -156,6 +160,17 @@ export const UserManager: React.FC = () => {
 
     setMessage({ text: t('userUpdatedSuccess'), type: 'success' });
     setEditingUser(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!userToDelete) return;
+    const res = deleteUser(userToDelete.id);
+    if (res.success) {
+      setMessage({ text: res.message, type: 'success' });
+      setUserToDelete(null);
+    } else {
+      setMessage({ text: res.message, type: 'error' });
+    }
   };
 
   // Filtered users
@@ -381,14 +396,24 @@ export const UserManager: React.FC = () => {
                       </button>
 
                       {!isCurrent && (
-                        <button
-                          onClick={() => switchUser(user.id)}
-                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-semibold text-[11px] transition inline-flex items-center gap-1 cursor-pointer"
-                          title="Switch active user session"
-                        >
-                          <UserCheck className="w-3 h-3 text-amber-400" />
-                          <span>{language === 'ko' ? '전환' : 'Switch'}</span>
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setUserToDelete(user)}
+                            className="p-1.5 rounded-lg border border-red-200 dark:border-red-800/60 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 transition cursor-pointer"
+                            title={language === 'ko' ? '사용자 삭제' : 'Delete User'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => switchUser(user.id)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-semibold text-[11px] transition inline-flex items-center gap-1 cursor-pointer"
+                            title="Switch active user session"
+                          >
+                            <UserCheck className="w-3 h-3 text-amber-400" />
+                            <span>{language === 'ko' ? '전환' : 'Switch'}</span>
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -709,6 +734,53 @@ export const UserManager: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-red-200 dark:border-red-900/50 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {language === 'ko' ? '사용자 삭제 확인' : 'Delete User Confirmation'}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {language === 'ko' ? '정말로 이 사용자를 삭제하시겠습니까?' : 'Are you sure you want to delete this user?'}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
+              <div className="font-bold text-slate-900 dark:text-white">{userToDelete.full_name}</div>
+              <div className="text-slate-500 dark:text-slate-400">{userToDelete.email} • {getRoleLabel(userToDelete.role)}</div>
+              <div className="text-[11px] text-red-500 font-semibold pt-1">
+                {language === 'ko' ? '⚠️ 삭제 후 이 사용자는 더 이상 로그인하거나 시스템에 접근할 수 없습니다.' : '⚠️ This user will no longer be able to log in or access the portal.'}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold cursor-pointer"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-600/20 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{language === 'ko' ? '사용자 삭제' : 'Confirm Delete'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -183,6 +183,7 @@ interface PortalContextType {
   users: UserProfile[];
   addUser: (data: Omit<UserProfile, 'id' | 'joined_date'>) => { success: boolean; message: string };
   updateUser: (id: string, updates: Partial<UserProfile>) => void;
+  deleteUser: (id: string) => { success: boolean; message: string };
   switchUser: (userId: string) => void;
 
   // Attendance Module (HQ Creative team)
@@ -467,6 +468,8 @@ function cleanMockBudgetRequests(list: BudgetRequest[], currentSlug?: string): B
 function cleanMockMeetingAgendas(list: MeetingAgenda[], currentSlug?: string): MeetingAgenda[] {
   if (!Array.isArray(list)) return [];
   return list.filter((m) => {
+    if (!m || !m.id) return false;
+    if (m.id.startsWith('meet-') && m.id.length > 10) return true;
     const text = `${m.title || ''} ${m.notes || ''} ${m.agenda || ''} ${m.location_or_link || ''}`;
     if (currentSlug !== 'moggumung') {
       if (
@@ -823,7 +826,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Authentication State (Brand-specific)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() =>
-    loadBrandStorage<boolean>(activeTenantSlug, 'is_authenticated', true)
+    loadBrandStorage<boolean>(activeTenantSlug, 'is_authenticated', false)
   );
 
   const [currentUserId, setCurrentUserId] = useState<string>(() =>
@@ -1858,20 +1861,44 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 13. Fetch Meeting Agendas
       const meetRes = await SupabaseService.fetchFromSupabase<any>('meeting_agendas', `brand_slug=eq.${activeTenantSlug}&order=date.asc`);
       if (meetRes.success && meetRes.data) {
-        const remoteMeets: MeetingAgenda[] = cleanMockMeetingAgendas(meetRes.data.map((m: any) => ({
-          id: m.id,
-          title: m.title,
-          host_name: m.host_name || '',
-          date: m.date,
-          start_time: m.start_time,
-          end_time: m.end_time,
-          type: m.type || 'hq_sync',
-          location_or_link: m.location_or_link || '',
-          attendees: m.attendees || [],
-          notes: m.notes || ''
-        })), activeTenantSlug);
-        setMeetingAgendas(remoteMeets);
-        saveBrandStorage(activeTenantSlug, 'meeting_agendas', remoteMeets);
+        if (meetRes.data.length > 0) {
+          const remoteMeets: MeetingAgenda[] = cleanMockMeetingAgendas(meetRes.data.map((m: any) => ({
+            id: m.id,
+            title: m.title,
+            host_name: m.host_name || '',
+            date: m.date ? (m.date.includes('T') ? m.date.split('T')[0] : m.date) : simulatedDate,
+            start_time: m.start_time || m.time || '10:00',
+            end_time: m.end_time || '11:00',
+            type: m.type || 'hq_sync',
+            location_or_link: m.location_or_link || m.meeting_url || '',
+            attendees: Array.isArray(m.attendees) ? m.attendees : (Array.isArray(m.participants) ? m.participants : []),
+            notes: m.notes || m.agenda || ''
+          })), activeTenantSlug);
+          setMeetingAgendas(remoteMeets);
+          saveBrandStorage(activeTenantSlug, 'meeting_agendas', remoteMeets);
+        } else {
+          // If remote is empty but local has meetings, sync local to Supabase
+          const currentLocal = loadBrandStorage<MeetingAgenda[]>(activeTenantSlug, 'meeting_agendas', []);
+          if (currentLocal && currentLocal.length > 0) {
+            SupabaseService.exportDataToSupabase('meeting_agendas', currentLocal.map((m) => ({
+              id: m.id,
+              brand_slug: activeTenantSlug,
+              title: m.title,
+              host_name: m.host_name || currentUser.full_name,
+              date: m.date,
+              start_time: m.start_time,
+              end_time: m.end_time,
+              time: m.start_time,
+              type: m.type || 'hq_sync',
+              location_or_link: m.location_or_link,
+              meeting_url: m.location_or_link,
+              attendees: m.attendees || [],
+              participants: m.attendees || [],
+              notes: m.notes || '',
+              agenda: m.notes || m.title
+            }))).catch(() => {});
+          }
+        }
       }
     } catch (e) {
       console.warn('Sync from Supabase:', e);
@@ -2103,6 +2130,39 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       saveBrandStorage(activeTenantSlug, 'users', updated);
       return updated;
     });
+  };
+
+  const deleteUser = (id: string): { success: boolean; message: string } => {
+    if (id === currentUser.id) {
+      return { success: false, message: 'Anda tidak dapat menghapus akun Anda sendiri saat sedang aktif.' };
+    }
+    const target = users.find((u) => u.id === id);
+    if (!target) {
+      return { success: false, message: 'User tidak ditemukan.' };
+    }
+    if (target.role === 'platform_owner') {
+      return { success: false, message: 'Platform Superadmin tidak dapat dihapus.' };
+    }
+
+    setUsers((prev) => {
+      const updated = prev.filter((u) => u.id !== id);
+      saveBrandStorage(activeTenantSlug, 'users', updated);
+      return updated;
+    });
+
+    // Also remove from Supabase
+    SupabaseService.deleteRecord('users', id).catch((err) => console.warn('Sync deleteUser to Supabase:', err));
+
+    addActivity({
+      user_name: currentUser.full_name,
+      action_type: 'request_status_changed',
+      title: `User Deleted: ${target.full_name}`,
+      description: `User ${target.full_name} (${target.role} - ${target.phone}) dihapus dari sistem.`,
+      severity: 'warning',
+      link_tab: 'users'
+    });
+
+    return { success: true, message: `User ${target.full_name} berhasil dihapus.` };
   };
 
   const setSimulatedDate = (date: string) => {
@@ -3026,10 +3086,14 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       date: newMeet.date,
       start_time: newMeet.start_time,
       end_time: newMeet.end_time,
+      time: newMeet.start_time,
       type: newMeet.type || 'hq_sync',
       location_or_link: newMeet.location_or_link,
+      meeting_url: newMeet.location_or_link,
       attendees: newMeet.attendees || [],
-      notes: newMeet.notes || ''
+      participants: newMeet.attendees || [],
+      notes: newMeet.notes || '',
+      agenda: newMeet.notes || newMeet.title
     }]).catch(err => console.warn('Sync meeting to Supabase:', err));
 
     addActivity({
@@ -4195,7 +4259,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const loadedExposure = cleanMockExposureSlots(loadBrandStorage(normalizedSlug, 'exposure_slots', dataset.exposureSlots || []));
     setExposureSlots(loadedExposure);
 
-    const authVal = autoLogin ? true : loadBrandStorage(normalizedSlug, 'is_authenticated', true);
+    const authVal = autoLogin ? true : loadBrandStorage(normalizedSlug, 'is_authenticated', false);
     const userVal = autoLogin ? (loadedUsers[0]?.id || '') : loadBrandStorage(normalizedSlug, 'user_id', loadedUsers[0]?.id || '');
 
     setIsAuthenticated(authVal);
@@ -4697,6 +4761,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         users,
         addUser,
         updateUser,
+        deleteUser,
         switchUser,
 
         // Attendance

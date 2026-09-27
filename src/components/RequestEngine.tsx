@@ -161,6 +161,7 @@ export const RequestEngine: React.FC = () => {
   const [budgetTitle, setBudgetTitle] = useState('');
   const [budgetType, setBudgetType] = useState<BudgetRequestType>('meta_ads');
   const [budgetAmount, setBudgetAmount] = useState<number>(1500000);
+  const [budgetTargetDate, setBudgetTargetDate] = useState<string>(simulatedDate);
   const [budgetBranchId, setBudgetBranchId] = useState<string>(branches[0]?.id || '');
   const [budgetObjective, setBudgetObjective] = useState('');
   const [budgetFormAlert, setBudgetFormAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -337,6 +338,7 @@ export const RequestEngine: React.FC = () => {
       type: budgetType,
       title: budgetTitle,
       amount: Number(budgetAmount),
+      target_date: budgetTargetDate,
       objective: budgetObjective
     });
 
@@ -1644,6 +1646,19 @@ export const RequestEngine: React.FC = () => {
                   placeholder="e.g. October Instagram Reels Boost & Discovery Ads"
                   value={budgetTitle}
                   onChange={(e) => setBudgetTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none font-medium"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  {language === 'ko' ? '집행 예정일 (캘린더 연동)' : 'Execution / Target Date'} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={budgetTargetDate}
+                  onChange={(e) => setBudgetTargetDate(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg focus:ring-2 focus:ring-emerald-400 outline-none font-medium"
                   required
                 />

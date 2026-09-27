@@ -382,6 +382,7 @@ export interface BudgetRequest {
   transfer_note?: string;
   acknowledged_at?: string;
   completion_report?: BudgetCompletionReport;
+  target_date?: string; // Execution/target date for the budget
   created_at: string;
 }
 
