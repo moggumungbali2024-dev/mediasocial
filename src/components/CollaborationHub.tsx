@@ -86,11 +86,22 @@ export const CollaborationHub: React.FC = () => {
   // Image Lightbox zoom modal
   const [selectedZoomImage, setSelectedZoomImage] = useState<string | null>(null);
 
+  // Messages in active channel
+  const channelMessages = useMemo(() => {
+    return teamChatMessages.filter((msg) => {
+      const matchChannel = msg.channel === activeChannel;
+      const matchSearch = searchQuery.trim() === '' || 
+        msg.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        msg.sender_name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchChannel && matchSearch;
+    });
+  }, [teamChatMessages, activeChannel, searchQuery]);
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevChannelRef = useRef(activeChannel);
-  const prevMsgCountRef = useRef(channelMessages.length);
+  const prevMsgCountRef = useRef(0);
 
   // Auto mark channel as read
   useEffect(() => {
@@ -242,17 +253,6 @@ export const CollaborationHub: React.FC = () => {
     setIsEmojiOpen(false);
     setTimeout(() => inputRef.current?.focus(), 50);
   };
-
-  // Messages in active channel
-  const channelMessages = useMemo(() => {
-    return teamChatMessages.filter((msg) => {
-      const matchChannel = msg.channel === activeChannel;
-      const matchSearch = searchQuery.trim() === '' || 
-        msg.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msg.sender_name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchChannel && matchSearch;
-    });
-  }, [teamChatMessages, activeChannel, searchQuery]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
