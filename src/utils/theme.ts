@@ -118,10 +118,10 @@ export function getContrastColor(hexColor: string): string {
 }
 
 export function getThemeColors(config: WhitelabelConfig): ThemeColors {
-  if (config.theme_accent === 'custom' && config.custom_primary_hex) {
+  if (config.custom_primary_hex && (config.theme_accent === 'custom' || !THEME_PRESETS[config.theme_accent] || config.custom_primary_hex !== THEME_PRESETS[config.theme_accent]?.primary)) {
     const hex = config.custom_primary_hex;
     return {
-      id: 'custom',
+      id: config.theme_accent || 'custom',
       primary: hex,
       primaryHover: hex,
       primaryLight: `${hex}22`,
@@ -134,13 +134,6 @@ export function getThemeColors(config: WhitelabelConfig): ThemeColors {
   }
 
   const preset = THEME_PRESETS[config.theme_accent] || THEME_PRESETS.kinetic_orange;
-  if (config.custom_primary_hex && config.theme_accent === 'custom') {
-    return {
-      ...preset,
-      primary: config.custom_primary_hex,
-      textOnPrimary: getContrastColor(config.custom_primary_hex)
-    };
-  }
   return preset;
 }
 

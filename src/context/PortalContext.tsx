@@ -415,6 +415,179 @@ function cleanMockWithdrawals(list: PlatformWalletWithdrawal[]): PlatformWalletW
   });
 }
 
+function cleanMockActivities(list: ActivityItem[], currentSlug?: string): ActivityItem[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((act) => {
+    const text = `${act.title || ''} ${act.description || ''} ${act.user_name || ''} ${act.branch_name || ''}`;
+    if (currentSlug !== 'moggumung') {
+      if (
+        text.includes('Moggumung') ||
+        text.includes('INV/MGG') ||
+        text.includes('Ubud Foodie Pass') ||
+        text.includes('Budi Santoso') ||
+        text.includes('Super Admin Bali') ||
+        text.includes('Opening Jakarta Influencer') ||
+        text.includes('Buy 1 Get 1 Ramen') ||
+        text.includes('Autumn Truffle') ||
+        text.includes('Sunset Terrace') ||
+        text.includes('Lighting & Sound') ||
+        text.includes('Seminyak') ||
+        text.includes('Canggu') ||
+        text.includes('Senopati') ||
+        (act.branch_id && act.branch_id.startsWith('mgg-')) ||
+        (act.target_id && (act.target_id.startsWith('req-0') || act.target_id.startsWith('inv-00') || act.target_id.startsWith('prm-00')))
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function cleanMockBudgetRequests(list: BudgetRequest[], currentSlug?: string): BudgetRequest[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((b) => {
+    const text = `${b.title || ''} ${b.objective || ''}`;
+    if (currentSlug !== 'moggumung') {
+      if (
+        ['bgt-001', 'bgt-002', 'bgt-003'].includes(b.id) ||
+        text.includes('Autumn Truffle') ||
+        text.includes('Lighting & Sound') ||
+        text.includes('Instagram Boost Post') ||
+        text.includes('Moggumung') ||
+        text.includes('Badung/Seminyak')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function cleanMockMeetingAgendas(list: MeetingAgenda[], currentSlug?: string): MeetingAgenda[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((m) => {
+    const text = `${m.title || ''} ${m.notes || ''} ${m.agenda || ''} ${m.location_or_link || ''}`;
+    if (currentSlug !== 'moggumung') {
+      if (
+        ['meet-001', 'meet-002', 'meet-003'].includes(m.id) ||
+        text.includes('Weekly HQ Creative') ||
+        text.includes('Monthly Promo Alignment') ||
+        text.includes('Sunset Terrace') ||
+        text.includes('Moggumung')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function cleanMockInvoices(list: Invoice[], currentSlug?: string): Invoice[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((inv) => {
+    if (currentSlug !== 'moggumung') {
+      if (
+        (inv.invoice_number || '').includes('INV/MGG') ||
+        ['inv-001', 'inv-002', 'inv-003', 'inv-004'].includes(inv.id) ||
+        (inv.branch_id && inv.branch_id.startsWith('mgg-'))
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function cleanMockDesignRequests(list: DesignRequest[], currentSlug?: string): DesignRequest[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((d) => {
+    const text = `${d.title || ''} ${d.description || ''}`;
+    if (currentSlug !== 'moggumung') {
+      if (
+        ['req-001', 'req-002', 'req-003', 'req-004'].includes(d.id) ||
+        text.includes('Banner Promo Ubud Foodie') ||
+        text.includes('Opening Jakarta Influencer Teaser') ||
+        text.includes('Moggumung')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function cleanMockPromos(list: PromoRequest[], currentSlug?: string): PromoRequest[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((p) => {
+    const text = `${p.title || ''} ${p.mechanic || ''}`;
+    if (currentSlug !== 'moggumung') {
+      if (
+        ['prm-001', 'prm-002'].includes(p.id) ||
+        text.includes('Ubud Foodie Pass') ||
+        text.includes('Buy 1 Get 1 Ramen') ||
+        text.includes('Moggumung')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function cleanMockShootRequests(list: ShootRequest[], currentSlug?: string): ShootRequest[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((s) => {
+    const text = `${s.title || ''} ${s.details || ''} ${s.branch_name || ''}`;
+    if (currentSlug !== 'moggumung') {
+      if (
+        ['sht-001', 'sht-002', 'sht-003'].includes(s.id) ||
+        text.includes('Menu Seasonal') ||
+        text.includes('Reels Aesthetic') ||
+        text.includes('Moggumung') ||
+        (s.branch_id && s.branch_id.startsWith('mgg-'))
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function cleanMockHqTodos(list: HqTodoItem[], currentSlug?: string): HqTodoItem[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((t) => {
+    const text = `${t.title || ''} ${t.user_name || ''}`;
+    if (currentSlug !== 'moggumung') {
+      if (
+        ['todo-1', 'todo-2', 'todo-3', 'todo-4', 'todo-5'].includes(t.id) ||
+        text.includes('Review batch reels Ubud') ||
+        text.includes('KOL Bali') ||
+        text.includes('Monthly Retainer Invoices') ||
+        text.includes('Moggumung')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function cleanMockAttendances(list: AttendanceRecord[], currentSlug?: string): AttendanceRecord[] {
+  if (!Array.isArray(list)) return [];
+  return list.filter((a) => {
+    if (currentSlug !== 'moggumung') {
+      if (
+        ['att-001', 'att-002', 'att-003'].includes(a.id) ||
+        ['Joon-ho Lee', 'Ji-won Park', 'Dewa Aditya'].includes(a.user_name)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
 // Global storage sanitizer on module load
 (function runSanitizer() {
   if (typeof window === 'undefined') return;
@@ -424,43 +597,60 @@ function cleanMockWithdrawals(list: PlatformWalletWithdrawal[]): PlatformWalletW
       'smp_exposure_slots',
       'smp_users',
       'smp_platform_withdrawals',
+      'smp_activities',
+      'smp_budget_requests',
+      'smp_meeting_agendas',
+      'smp_invoices',
+      'smp_promos',
+      'smp_design_requests',
       'smp_v3_influencers',
       'smp_v3_exposure_slots',
       'smp_v3_platform_withdrawals',
+      'smp_v3_activities',
+      'smp_v3_budget_requests',
+      'smp_v3_meeting_agendas',
       'smp_b_moggumung_influencers',
       'smp_b_moggumung_exposure_slots',
       'smp_b_moggumung_platform_withdrawals'
     ];
     staleKeys.forEach((k) => localStorage.removeItem(k));
 
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-      if (key.includes('influencers')) {
-        const raw = localStorage.getItem(key);
-        if (raw && (raw.includes('gitasaras') || raw.includes('alexwanderlust'))) {
-          localStorage.removeItem(key);
-        }
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach((key) => {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+
+      if (key.includes('influencers') && (raw.includes('gitasaras') || raw.includes('alexwanderlust'))) {
+        localStorage.removeItem(key);
       }
-      if (key.includes('exposure_slots')) {
-        const raw = localStorage.getItem(key);
-        if (raw && (raw.includes('Slow Cooking') || raw.includes('Torched to Perfection'))) {
-          localStorage.removeItem(key);
-        }
+      if (key.includes('exposure_slots') && (raw.includes('Slow Cooking') || raw.includes('Torched to Perfection'))) {
+        localStorage.removeItem(key);
       }
-      if (key.includes('platform_withdrawals')) {
-        const raw = localStorage.getItem(key);
-        if (raw && (raw.includes('Alexandre Tan') || raw.includes('TRX-WD-20260915'))) {
-          localStorage.removeItem(key);
-        }
+      if (key.includes('platform_withdrawals') && (raw.includes('Alexandre Tan') || raw.includes('TRX-WD-20260915'))) {
+        localStorage.removeItem(key);
       }
-      if (key.includes('users') && !key.includes('platform_users')) {
-        const raw = localStorage.getItem(key);
-        if (raw && (raw.includes('joonho.lead') || raw.includes('jiwon.creative') || raw.includes('dewa.motion'))) {
-          localStorage.removeItem(key);
-        }
+      if (key.includes('users') && !key.includes('platform_users') && (raw.includes('joonho.lead') || raw.includes('jiwon.creative') || raw.includes('dewa.motion'))) {
+        localStorage.removeItem(key);
       }
-    }
+      if (key.includes('activities') && (raw.includes('Ubud Foodie Pass') || raw.includes('INV/MGG') || raw.includes('Budi Santoso (Ubud)') || raw.includes('Moggumung'))) {
+        localStorage.removeItem(key);
+      }
+      if (key.includes('budget_requests') && (raw.includes('Autumn Truffle') || raw.includes('Lighting & Sound') || raw.includes('Instagram Boost'))) {
+        localStorage.removeItem(key);
+      }
+      if (key.includes('meeting_agendas') && (raw.includes('Weekly HQ Creative') || raw.includes('Sunset Terrace') || raw.includes('Monthly Promo Alignment'))) {
+        localStorage.removeItem(key);
+      }
+      if (key.includes('invoices') && (raw.includes('INV/MGG') || raw.includes('mgg-'))) {
+        localStorage.removeItem(key);
+      }
+      if (key.includes('design_requests') && (raw.includes('Banner Promo Ubud') || raw.includes('Opening Jakarta Influencer'))) {
+        localStorage.removeItem(key);
+      }
+      if (key.includes('promos') && (raw.includes('Ubud Foodie') || raw.includes('Buy 1 Get 1 Ramen'))) {
+        localStorage.removeItem(key);
+      }
+    });
   } catch (e) {
     // ignore
   }
@@ -1161,49 +1351,49 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loadBrandStorage(activeTenantSlug, 'quotas', INITIAL_QUOTAS)
   );
   const [designRequests, setDesignRequests] = useState<DesignRequest[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'design_requests', initialDataset.designRequests)
+    cleanMockDesignRequests(loadBrandStorage(activeTenantSlug, 'design_requests', initialDataset.designRequests || []), activeTenantSlug)
   );
   const [promos, setPromos] = useState<PromoRequest[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'promos', initialDataset.promos)
+    cleanMockPromos(loadBrandStorage(activeTenantSlug, 'promos', initialDataset.promos || []), activeTenantSlug)
   );
   const [invoices, setInvoices] = useState<Invoice[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'invoices', initialDataset.invoices)
+    cleanMockInvoices(loadBrandStorage(activeTenantSlug, 'invoices', initialDataset.invoices || []), activeTenantSlug)
   );
   const [exposureSlots, setExposureSlots] = useState<ExposureSlot[]>(() =>
-    cleanMockExposureSlots(loadBrandStorage(activeTenantSlug, 'exposure_slots', INITIAL_EXPOSURE_SLOTS))
+    cleanMockExposureSlots(loadBrandStorage(activeTenantSlug, 'exposure_slots', initialDataset.exposureSlots || []))
   );
   const [influencers, setInfluencers] = useState<Influencer[]>(() =>
-    cleanMockInfluencers(loadBrandStorage(activeTenantSlug, 'influencers', initialDataset.influencers))
+    cleanMockInfluencers(loadBrandStorage(activeTenantSlug, 'influencers', initialDataset.influencers || []))
   );
   const [voucherCampaigns, setVoucherCampaigns] = useState<InfluencerVoucherCampaign[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'voucher_campaigns', INITIAL_VOUCHER_CAMPAIGNS)
+    loadBrandStorage(activeTenantSlug, 'voucher_campaigns', initialDataset.voucherCampaigns || [])
   );
   const [activities, setActivities] = useState<ActivityItem[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'activities', INITIAL_ACTIVITIES)
+    cleanMockActivities(loadBrandStorage(activeTenantSlug, 'activities', initialDataset.activities || []), activeTenantSlug)
   );
   const [attendances, setAttendances] = useState<AttendanceRecord[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'attendances', INITIAL_ATTENDANCE)
+    cleanMockAttendances(loadBrandStorage(activeTenantSlug, 'attendances', initialDataset.attendances || []), activeTenantSlug)
   );
   const [budgetRequests, setBudgetRequests] = useState<BudgetRequest[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'budget_requests', INITIAL_BUDGET_REQUESTS)
+    cleanMockBudgetRequests(loadBrandStorage(activeTenantSlug, 'budget_requests', initialDataset.budgetRequests || []), activeTenantSlug)
   );
   const [shootRequests, setShootRequests] = useState<ShootRequest[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'shoot_requests', INITIAL_SHOOT_REQUESTS)
+    cleanMockShootRequests(loadBrandStorage(activeTenantSlug, 'shoot_requests', initialDataset.shootRequests || []), activeTenantSlug)
   );
   const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'wallet_transactions', INITIAL_WALLET_TRANSACTIONS)
+    loadBrandStorage(activeTenantSlug, 'wallet_transactions', initialDataset.walletTransactions || [])
   );
   const [hqReimbursements, setHqReimbursements] = useState<HqReimbursementRequest[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'hq_reimbursements', INITIAL_HQ_REIMBURSEMENTS)
+    loadBrandStorage(activeTenantSlug, 'hq_reimbursements', initialDataset.hqReimbursements || [])
   );
   const [hqTodos, setHqTodos] = useState<HqTodoItem[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'hq_todos', INITIAL_HQ_TODOS)
+    cleanMockHqTodos(loadBrandStorage(activeTenantSlug, 'hq_todos', initialDataset.hqTodos || []), activeTenantSlug)
   );
   const [teamChatMessages, setTeamChatMessages] = useState<TeamChatMessage[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'team_chat_messages', INITIAL_TEAM_CHAT_MESSAGES)
+    loadBrandStorage(activeTenantSlug, 'team_chat_messages', initialDataset.teamChatMessages || [])
   );
   const [meetingAgendas, setMeetingAgendas] = useState<MeetingAgenda[]>(() =>
-    loadBrandStorage(activeTenantSlug, 'meeting_agendas', INITIAL_MEETING_AGENDAS)
+    cleanMockMeetingAgendas(loadBrandStorage(activeTenantSlug, 'meeting_agendas', initialDataset.meetingAgendas || []), activeTenantSlug)
   );
 
   // Platform Multi-Tenant & Super-Admin States
@@ -1224,10 +1414,65 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     loadStorage('subscription_reminders', INITIAL_REMINDER_LOGS)
   );
 
+  // Ensure active brand and branches exist in Supabase
+  const ensureBrandInSupabase = async (brandSlug?: string) => {
+    const slug = (brandSlug || activeTenantSlug || 'chub').toLowerCase().trim();
+    const brandObj = platformBrands.find((b) => b.slug.toLowerCase() === slug);
+    if (brandObj) {
+      await SupabaseService.exportDataToSupabase('platform_brands', [{
+        id: brandObj.id,
+        slug: brandObj.slug,
+        name: brandObj.name,
+        tagline: brandObj.tagline || 'Social Media Management & Quota Portal',
+        primary_color: brandObj.primary_color || '#FF5B14',
+        hq_owner_name: brandObj.hq_owner_name,
+        hq_owner_email: brandObj.hq_owner_email,
+        hq_owner_phone: brandObj.hq_owner_phone,
+        subscription_plan_id: brandObj.subscription_plan_id || 'growth',
+        subscription_status: brandObj.subscription_status || 'active',
+        subscription_start_date: brandObj.subscription_start_date || '2026-09-27',
+        subscription_end_date: brandObj.subscription_end_date || '2026-12-31',
+        monthly_fee: brandObj.monthly_fee || 4890000,
+        branches_count: brandObj.branches_count || 1,
+        wallet_balance: brandObj.wallet_balance || 0,
+        is_verified: true
+      }]).catch(() => {});
+    }
+
+    if (branches.length > 0) {
+      await SupabaseService.exportDataToSupabase('branches', branches.map((b) => ({
+        id: b.id,
+        brand_slug: slug,
+        name: b.name,
+        code: b.code || '',
+        location: b.location || 'Pusat',
+        city: b.city || 'Jakarta',
+        contract_status: b.contract_status || 'active',
+        contact_person: b.contact_person || b.owner_name || 'Branch Manager',
+        phone: b.phone || b.owner_phone || '',
+        custom_retainer_fee: b.custom_retainer_fee || 5000000,
+        package_tier: b.package_tier || 'Standard',
+        wallet_balance: b.wallet_balance || 0,
+        max_monthly_design_requests: b.max_monthly_design_requests || 12,
+        max_monthly_active_promos: b.max_monthly_active_promos || 4,
+        lead_days: b.lead_days || 5,
+        pic_name: b.pic_name || '',
+        pic_phone: b.pic_phone || '',
+        pic_email: b.pic_email || '',
+        owner_name: b.owner_name || '',
+        owner_phone: b.owner_phone || '',
+        owner_email: b.owner_email || ''
+      }))).catch(() => {});
+    }
+  };
+
   // Live Supabase Sync Engine
   const syncFromSupabase = async () => {
     try {
-      // 0. Fetch Whitelabel Config for active brand
+      // 0. Ensure Brand exists in Supabase
+      await ensureBrandInSupabase(activeTenantSlug);
+
+      // 0b. Fetch Whitelabel Config for active brand
       const wlRes = await SupabaseService.fetchFromSupabase<any>('whitelabel_configs', `brand_slug=eq.${activeTenantSlug}`);
       if (wlRes.success && wlRes.data && wlRes.data.length > 0) {
         const w = wlRes.data[0];
@@ -1237,9 +1482,9 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           brand_subtitle: w.brand_subtitle || 'Media Social Team Portal',
           brand_monogram: w.brand_monogram || (w.brand_name ? w.brand_name.substring(0, 2).toUpperCase() : 'MS'),
           brand_logo_url: w.brand_logo_url || '',
-          theme_accent: w.theme_accent || 'kinetic_orange',
+          theme_accent: w.theme_accent || 'custom',
           custom_primary_hex: w.custom_primary_hex || '#FF5B14',
-          company_legal_name: w.company_legal_name || `PT ${w.brand_name} `,
+          company_legal_name: w.company_legal_name || `PT ${w.brand_name || activeTenantSlug} Multi Nusantara`,
           hq_location: w.hq_location || '',
           hq_address: w.hq_address || '',
           contact_email: w.contact_email || '',
@@ -1255,6 +1500,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         };
         setWhitelabelConfig(remoteWhitelabel);
         saveBrandStorage(activeTenantSlug, 'whitelabel', remoteWhitelabel);
+        applyThemeVariables(remoteWhitelabel);
       }
 
       // 1. Fetch Users
@@ -1283,10 +1529,10 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           });
         }
 
-        const bUsers = remoteUsers.filter((u: any) => {
+        const bUsers = cleanMockUsers(remoteUsers.filter((u: any) => {
           const raw = usersRes.data?.find((r: any) => r.id === u.id);
           return raw?.brand_slug === activeTenantSlug || (!raw?.brand_slug && !['platform_owner', 'platform_finance', 'platform_admin'].includes(u.role));
-        });
+        }));
         if (bUsers.length > 0) {
           setUsers(bUsers);
           saveBrandStorage(activeTenantSlug, 'users', bUsers);
@@ -1418,7 +1664,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 6. Fetch Design Requests
       const reqsRes = await SupabaseService.fetchFromSupabase<any>('design_requests', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
       if (reqsRes.success && reqsRes.data) {
-        const remoteReqs: DesignRequest[] = reqsRes.data.map((r: any) => ({
+        const remoteReqs: DesignRequest[] = cleanMockDesignRequests(reqsRes.data.map((r: any) => ({
           id: r.id,
           branch_id: r.branch_id,
           title: r.title,
@@ -1439,7 +1685,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           assigned_to_name: r.assigned_to_name || undefined,
           approval_mode: r.approval_mode || 'self_approved',
           created_at: r.created_at ? r.created_at.split('T')[0] : '2026-09-27'
-        }));
+        })), activeTenantSlug);
         setDesignRequests(remoteReqs);
         saveBrandStorage(activeTenantSlug, 'design_requests', remoteReqs);
       }
@@ -1447,7 +1693,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 7. Fetch Promos
       const promosRes = await SupabaseService.fetchFromSupabase<any>('promos', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
       if (promosRes.success && promosRes.data) {
-        const remotePromos: PromoRequest[] = promosRes.data.map((p: any) => ({
+        const remotePromos: PromoRequest[] = cleanMockPromos(promosRes.data.map((p: any) => ({
           id: p.id,
           branch_id: p.branch_id,
           title: p.title,
@@ -1458,7 +1704,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           terms: p.terms || '',
           status: p.status as PromoRequest['status'],
           created_at: p.created_at ? p.created_at.split('T')[0] : '2026-09-27'
-        }));
+        })), activeTenantSlug);
         setPromos(remotePromos);
         saveBrandStorage(activeTenantSlug, 'promos', remotePromos);
       }
@@ -1466,7 +1712,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 8. Fetch Invoices
       const invsRes = await SupabaseService.fetchFromSupabase<any>('invoices', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
       if (invsRes.success && invsRes.data) {
-        const remoteInvs: Invoice[] = invsRes.data.map((i: any) => ({
+        const remoteInvs: Invoice[] = cleanMockInvoices(invsRes.data.map((i: any) => ({
           id: i.id,
           branch_id: i.branch_id,
           invoice_number: i.invoice_number,
@@ -1481,7 +1727,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           due_date: i.due_date,
           payment_date: i.payment_date || undefined,
           created_at: i.created_at ? i.created_at.split('T')[0] : '2026-09-27'
-        }));
+        })), activeTenantSlug);
         setInvoices(remoteInvs);
         saveBrandStorage(activeTenantSlug, 'invoices', remoteInvs);
       }
@@ -1489,7 +1735,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 9. Fetch Attendances
       const attRes = await SupabaseService.fetchFromSupabase<any>('attendances', `brand_slug=eq.${activeTenantSlug}&order=date.desc`);
       if (attRes.success && attRes.data) {
-        const remoteAtt: AttendanceRecord[] = attRes.data.map((a: any) => ({
+        const remoteAtt: AttendanceRecord[] = cleanMockAttendances(attRes.data.map((a: any) => ({
           id: a.id,
           user_id: a.user_id,
           user_name: a.user_name,
@@ -1501,7 +1747,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           work_log: a.work_log || '',
           target_branch_id: a.target_branch_id || undefined,
           total_hours: a.total_hours ? Number(a.total_hours) : undefined
-        }));
+        })), activeTenantSlug);
         setAttendances(remoteAtt);
         saveBrandStorage(activeTenantSlug, 'attendances', remoteAtt);
       }
@@ -1509,7 +1755,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 10. Fetch HQ Todos
       const todosRes = await SupabaseService.fetchFromSupabase<any>('hq_todos', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
       if (todosRes.success && todosRes.data) {
-        const remoteTodos: HqTodoItem[] = todosRes.data.map((t: any) => ({
+        const remoteTodos: HqTodoItem[] = cleanMockHqTodos(todosRes.data.map((t: any) => ({
           id: t.id,
           user_id: t.user_id || '',
           user_name: t.user_name || '',
@@ -1521,7 +1767,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           completed_at: t.completed_at || undefined,
           included_in_work_log: Boolean(t.included_in_work_log),
           created_at: t.created_at ? (t.created_at.includes('T') ? t.created_at.split('T')[0] : t.created_at) : '2026-09-27'
-        }));
+        })), activeTenantSlug);
         setHqTodos(remoteTodos);
         saveBrandStorage(activeTenantSlug, 'hq_todos', remoteTodos);
       }
@@ -1529,7 +1775,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // 11. Fetch Shoot Requests
       const shootsRes = await SupabaseService.fetchFromSupabase<any>('shoot_requests', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
       if (shootsRes.success && shootsRes.data) {
-        const remoteShoots: ShootRequest[] = shootsRes.data.map((s: any) => ({
+        const remoteShoots: ShootRequest[] = cleanMockShootRequests(shootsRes.data.map((s: any) => ({
           id: s.id,
           branch_id: s.branch_id,
           branch_name: s.branch_name,
@@ -1546,9 +1792,50 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           assigned_creative_name: s.assigned_creative_name || undefined,
           notes: s.notes || undefined,
           created_at: s.created_at ? s.created_at.split('T')[0] : '2026-09-27'
-        }));
+        })), activeTenantSlug);
         setShootRequests(remoteShoots);
         saveBrandStorage(activeTenantSlug, 'shoot_requests', remoteShoots);
+      }
+
+      // 12. Fetch Budget Requests
+      const budgetRes = await SupabaseService.fetchFromSupabase<any>('budget_requests', `brand_slug=eq.${activeTenantSlug}&order=created_at.desc`);
+      if (budgetRes.success && budgetRes.data) {
+        const remoteBudgets: BudgetRequest[] = cleanMockBudgetRequests(budgetRes.data.map((b: any) => ({
+          id: b.id,
+          branch_id: b.branch_id || undefined,
+          branch_name: b.branch_name || undefined,
+          type: b.type || 'meta_ads',
+          title: b.title,
+          amount: Number(b.amount) || 0,
+          target_date: b.target_date,
+          status: b.status || 'pending',
+          objective: b.objective || '',
+          target_reach: b.target_reach ? Number(b.target_reach) : undefined,
+          disbursement_proof_url: b.disbursement_proof_url || undefined,
+          transfer_proof_url: b.transfer_proof_url || undefined,
+          created_at: b.created_at ? b.created_at.split('T')[0] : '2026-09-27'
+        })), activeTenantSlug);
+        setBudgetRequests(remoteBudgets);
+        saveBrandStorage(activeTenantSlug, 'budget_requests', remoteBudgets);
+      }
+
+      // 13. Fetch Meeting Agendas
+      const meetRes = await SupabaseService.fetchFromSupabase<any>('meeting_agendas', `brand_slug=eq.${activeTenantSlug}&order=date.asc`);
+      if (meetRes.success && meetRes.data) {
+        const remoteMeets: MeetingAgenda[] = cleanMockMeetingAgendas(meetRes.data.map((m: any) => ({
+          id: m.id,
+          title: m.title,
+          host_name: m.host_name || '',
+          date: m.date,
+          start_time: m.start_time,
+          end_time: m.end_time,
+          type: m.type || 'hq_sync',
+          location_or_link: m.location_or_link || '',
+          attendees: m.attendees || [],
+          notes: m.notes || ''
+        })), activeTenantSlug);
+        setMeetingAgendas(remoteMeets);
+        saveBrandStorage(activeTenantSlug, 'meeting_agendas', remoteMeets);
       }
     } catch (e) {
       console.warn('Sync from Supabase:', e);
@@ -1559,9 +1846,43 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     syncFromSupabase();
     const handleFocus = () => syncFromSupabase();
     window.addEventListener('focus', handleFocus);
-    const interval = setInterval(syncFromSupabase, 4000);
+    const interval = setInterval(syncFromSupabase, 2000);
+
+    // Multi-Window / Multi-Tab instant cross-sync via storage event
+    const handleStorage = (e: StorageEvent) => {
+      if (!e.key) return;
+      const slug = activeTenantSlug;
+      if (e.key === `smp_b_${slug}_team_chat_messages`) {
+        setTeamChatMessages(loadBrandStorage(slug, 'team_chat_messages', []));
+      } else if (e.key === `smp_b_${slug}_invoices`) {
+        setInvoices(cleanMockInvoices(loadBrandStorage(slug, 'invoices', []), slug));
+      } else if (e.key === `smp_b_${slug}_whitelabel`) {
+        const wl = loadBrandStorage<WhitelabelConfig>(slug, 'whitelabel', DEFAULT_WHITELABEL_CONFIG);
+        setWhitelabelConfig(wl);
+        applyThemeVariables(wl);
+      } else if (e.key === `smp_b_${slug}_activities`) {
+        setActivities(cleanMockActivities(loadBrandStorage(slug, 'activities', []), slug));
+      } else if (e.key === `smp_b_${slug}_design_requests`) {
+        setDesignRequests(cleanMockDesignRequests(loadBrandStorage(slug, 'design_requests', []), slug));
+      } else if (e.key === `smp_b_${slug}_promos`) {
+        setPromos(cleanMockPromos(loadBrandStorage(slug, 'promos', []), slug));
+      } else if (e.key === `smp_b_${slug}_budget_requests`) {
+        setBudgetRequests(cleanMockBudgetRequests(loadBrandStorage(slug, 'budget_requests', []), slug));
+      } else if (e.key === `smp_b_${slug}_meeting_agendas`) {
+        setMeetingAgendas(cleanMockMeetingAgendas(loadBrandStorage(slug, 'meeting_agendas', []), slug));
+      } else if (e.key === `smp_b_${slug}_branches`) {
+        setBranches(loadBrandStorage(slug, 'branches', []));
+      } else if (e.key === `smp_b_${slug}_users`) {
+        setUsers(cleanMockUsers(loadBrandStorage(slug, 'users', [])));
+      } else if (e.key === 'smp_platform_brands') {
+        setPlatformBrands(loadStorage('platform_brands', []));
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
     return () => {
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorage);
       clearInterval(interval);
     };
   }, [activeTenantSlug]);
@@ -3445,14 +3766,24 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetInv) {
+      const invToSync = targetInv;
+      const periodMonthDate = invToSync.period_month.length === 7 ? `${invToSync.period_month}-01` : invToSync.period_month;
+      const dueDateVal = invToSync.due_date.length === 7 ? `${invToSync.due_date}-28` : invToSync.due_date;
       SupabaseService.exportDataToSupabase('invoices', [{
-        id: targetInv.id,
+        id: invToSync.id,
         brand_slug: activeTenantSlug,
-        retainer_fee: targetInv.retainer_fee,
-        visit_fee: targetInv.visit_fee,
-        ad_budget: targetInv.ad_budget,
-        total_amount: targetInv.total_amount,
-        status: targetInv.status
+        branch_id: invToSync.branch_id,
+        invoice_number: invToSync.invoice_number,
+        period_month: periodMonthDate,
+        retainer_fee: invToSync.retainer_fee,
+        visit_fee: invToSync.visit_fee || 0,
+        ad_budget: invToSync.ad_budget || 0,
+        total_amount: invToSync.total_amount,
+        status: invToSync.status,
+        proof_url: invToSync.proof_url || null,
+        proof_notes: invToSync.proof_notes || null,
+        due_date: dueDateVal,
+        payment_date: invToSync.payment_date || null
       }]).catch(err => console.warn('Sync updateInvoiceCharges to Supabase:', err));
 
       const branch = branches.find((b) => b.id === targetInv?.branch_id);
@@ -3489,12 +3820,24 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetInv) {
+      const invToSync = targetInv;
+      const periodMonthDate = invToSync.period_month.length === 7 ? `${invToSync.period_month}-01` : invToSync.period_month;
+      const dueDateVal = invToSync.due_date.length === 7 ? `${invToSync.due_date}-28` : invToSync.due_date;
       SupabaseService.exportDataToSupabase('invoices', [{
-        id: targetInv.id,
+        id: invToSync.id,
         brand_slug: activeTenantSlug,
-        status: 'proof_uploaded',
-        proof_url: targetInv.proof_url || null,
-        proof_notes: targetInv.proof_notes || null
+        branch_id: invToSync.branch_id,
+        invoice_number: invToSync.invoice_number,
+        period_month: periodMonthDate,
+        retainer_fee: invToSync.retainer_fee,
+        visit_fee: invToSync.visit_fee || 0,
+        ad_budget: invToSync.ad_budget || 0,
+        total_amount: invToSync.total_amount,
+        status: invToSync.status,
+        proof_url: invToSync.proof_url || null,
+        proof_notes: invToSync.proof_notes || null,
+        due_date: dueDateVal,
+        payment_date: invToSync.payment_date || null
       }]).catch(err => console.warn('Sync uploadPaymentProof to Supabase:', err));
 
       const branch = branches.find((b) => b.id === targetInv?.branch_id);
@@ -3530,11 +3873,24 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
 
     if (targetInv) {
+      const invToSync = targetInv;
+      const periodMonthDate = invToSync.period_month.length === 7 ? `${invToSync.period_month}-01` : invToSync.period_month;
+      const dueDateVal = invToSync.due_date.length === 7 ? `${invToSync.due_date}-28` : invToSync.due_date;
       SupabaseService.exportDataToSupabase('invoices', [{
-        id: targetInv.id,
+        id: invToSync.id,
         brand_slug: activeTenantSlug,
-        status: targetInv.status,
-        payment_date: targetInv.payment_date || null
+        branch_id: invToSync.branch_id,
+        invoice_number: invToSync.invoice_number,
+        period_month: periodMonthDate,
+        retainer_fee: invToSync.retainer_fee,
+        visit_fee: invToSync.visit_fee || 0,
+        ad_budget: invToSync.ad_budget || 0,
+        total_amount: invToSync.total_amount,
+        status: invToSync.status,
+        proof_url: invToSync.proof_url || null,
+        proof_notes: invToSync.proof_notes || null,
+        due_date: dueDateVal,
+        payment_date: invToSync.payment_date || null
       }]).catch(err => console.warn('Sync verifyPayment to Supabase:', err));
 
       const branch = branches.find((b) => b.id === targetInv?.branch_id);
@@ -3725,6 +4081,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const loadedWhitelabel = loadBrandStorage(normalizedSlug, 'whitelabel', dataset.whitelabel);
     setWhitelabelConfig(loadedWhitelabel);
+    applyThemeVariables(loadedWhitelabel);
 
     const loadedBranches = loadBrandStorage(normalizedSlug, 'branches', dataset.branches);
     setBranches(loadedBranches);
@@ -3732,13 +4089,13 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const loadedUsers = cleanMockUsers(loadBrandStorage(normalizedSlug, 'users', dataset.users));
     setUsers(loadedUsers);
 
-    const loadedDesign = loadBrandStorage(normalizedSlug, 'design_requests', dataset.designRequests || []);
+    const loadedDesign = cleanMockDesignRequests(loadBrandStorage(normalizedSlug, 'design_requests', dataset.designRequests || []), normalizedSlug);
     setDesignRequests(loadedDesign);
 
-    const loadedPromos = loadBrandStorage(normalizedSlug, 'promos', dataset.promos || []);
+    const loadedPromos = cleanMockPromos(loadBrandStorage(normalizedSlug, 'promos', dataset.promos || []), normalizedSlug);
     setPromos(loadedPromos);
 
-    const loadedInvoices = loadBrandStorage(normalizedSlug, 'invoices', dataset.invoices || []);
+    const loadedInvoices = cleanMockInvoices(loadBrandStorage(normalizedSlug, 'invoices', dataset.invoices || []), normalizedSlug);
     setInvoices(loadedInvoices);
 
     const loadedInfluencers = cleanMockInfluencers(loadBrandStorage(normalizedSlug, 'influencers', dataset.influencers || []));
@@ -3747,16 +4104,16 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const loadedQuotas = loadBrandStorage(normalizedSlug, 'quotas', dataset.quotas || []);
     setQuotas(loadedQuotas);
 
-    const loadedActivities = loadBrandStorage(normalizedSlug, 'activities', dataset.activities || []);
+    const loadedActivities = cleanMockActivities(loadBrandStorage(normalizedSlug, 'activities', dataset.activities || []), normalizedSlug);
     setActivities(loadedActivities);
 
-    const loadedAttendances = loadBrandStorage(normalizedSlug, 'attendances', dataset.attendances || []);
+    const loadedAttendances = cleanMockAttendances(loadBrandStorage(normalizedSlug, 'attendances', dataset.attendances || []), normalizedSlug);
     setAttendances(loadedAttendances);
 
-    const loadedBudget = loadBrandStorage(normalizedSlug, 'budget_requests', dataset.budgetRequests || []);
+    const loadedBudget = cleanMockBudgetRequests(loadBrandStorage(normalizedSlug, 'budget_requests', dataset.budgetRequests || []), normalizedSlug);
     setBudgetRequests(loadedBudget);
 
-    const loadedShoots = loadBrandStorage(normalizedSlug, 'shoot_requests', dataset.shootRequests || []);
+    const loadedShoots = cleanMockShootRequests(loadBrandStorage(normalizedSlug, 'shoot_requests', dataset.shootRequests || []), normalizedSlug);
     setShootRequests(loadedShoots);
 
     const loadedWallet = loadBrandStorage(normalizedSlug, 'wallet_transactions', dataset.walletTransactions || []);
@@ -3765,13 +4122,13 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const loadedReimburse = loadBrandStorage(normalizedSlug, 'hq_reimbursements', dataset.hqReimbursements || []);
     setHqReimbursements(loadedReimburse);
 
-    const loadedTodos = loadBrandStorage(normalizedSlug, 'hq_todos', dataset.hqTodos || []);
+    const loadedTodos = cleanMockHqTodos(loadBrandStorage(normalizedSlug, 'hq_todos', dataset.hqTodos || []), normalizedSlug);
     setHqTodos(loadedTodos);
 
     const loadedChat = loadBrandStorage(normalizedSlug, 'team_chat_messages', dataset.teamChatMessages || []);
     setTeamChatMessages(loadedChat);
 
-    const loadedAgendas = loadBrandStorage(normalizedSlug, 'meeting_agendas', dataset.meetingAgendas || []);
+    const loadedAgendas = cleanMockMeetingAgendas(loadBrandStorage(normalizedSlug, 'meeting_agendas', dataset.meetingAgendas || []), normalizedSlug);
     setMeetingAgendas(loadedAgendas);
 
     const loadedVouchers = loadBrandStorage(normalizedSlug, 'voucher_campaigns', dataset.voucherCampaigns || []);
