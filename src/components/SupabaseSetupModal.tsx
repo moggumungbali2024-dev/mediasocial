@@ -168,7 +168,7 @@ create table if not exists public.branches (
 
 -- 5. USERS PROFILE TABLE (Multi-Role Support)
 create table if not exists public.users (
-  id text primary key,
+  id text primary key default ('user-' || substr(md5(random()::text), 1, 8)),
   brand_slug text references public.platform_brands(slug) on delete set null,
   branch_id text references public.branches(id) on delete set null,
   role text check (role in (
@@ -179,7 +179,7 @@ create table if not exists public.users (
   full_name text not null,
   email text not null,
   phone text unique not null,
-  password_hash text not null default '1',
+  password_hash text not null default 'Media',
   job_title text,
   avatar_url text,
   status text default 'active',
@@ -189,7 +189,7 @@ create table if not exists public.users (
 
 -- 6. DESIGN & CREATIVE PRODUCTION REQUESTS (H+5 Validation)
 create table if not exists public.design_requests (
-  id text primary key,
+  id text primary key default ('req-' || substr(md5(random()::text), 1, 8)),
   brand_slug text not null references public.platform_brands(slug) on delete cascade,
   branch_id text not null references public.branches(id) on delete cascade,
   title text not null,
@@ -212,7 +212,7 @@ create table if not exists public.design_requests (
 
 -- 7. DESIGN COMMENTS & FEEDBACK THREAD
 create table if not exists public.design_comments (
-  id text primary key,
+  id text primary key default ('comment-' || substr(md5(random()::text), 1, 8)),
   request_id text not null references public.design_requests(id) on delete cascade,
   user_id text not null references public.users(id) on delete cascade,
   user_name text not null,
@@ -224,7 +224,7 @@ create table if not exists public.design_comments (
 
 -- 8. PROMOS & CAMPAIGNS TABLE
 create table if not exists public.promos (
-  id text primary key,
+  id text primary key default ('promo-' || substr(md5(random()::text), 1, 8)),
   brand_slug text not null references public.platform_brands(slug) on delete cascade,
   branch_id text not null references public.branches(id) on delete cascade,
   title text not null,
@@ -239,7 +239,7 @@ create table if not exists public.promos (
 
 -- 9. MONTHLY INVOICES TABLE
 create table if not exists public.invoices (
-  id text primary key,
+  id text primary key default ('inv-' || substr(md5(random()::text), 1, 8)),
   brand_slug text not null references public.platform_brands(slug) on delete cascade,
   branch_id text not null references public.branches(id) on delete cascade,
   invoice_number text unique not null,
@@ -258,7 +258,7 @@ create table if not exists public.invoices (
 
 -- 10. SOCIAL MEDIA CHANNELS TABLE (Instagram & TikTok Multi-Tenant)
 create table if not exists public.social_channels (
-  id text primary key,
+  id text primary key default ('channel-' || substr(md5(random()::text), 1, 8)),
   brand_slug text not null references public.platform_brands(slug) on delete cascade,
   platform text check (platform in ('instagram', 'tiktok', 'facebook', 'youtube', 'threads', 'twitter', 'linkedin')) not null,
   name text not null,
@@ -273,7 +273,7 @@ create table if not exists public.social_channels (
 
 -- 11. SOCIAL MEDIA POSTS TABLE (Omnipost Auto-Publish Engine)
 create table if not exists public.social_posts (
-  id text primary key,
+  id text primary key default ('post-' || substr(md5(random()::text), 1, 8)),
   brand_slug text not null references public.platform_brands(slug) on delete cascade,
   title text,
   content text not null,
@@ -290,7 +290,7 @@ create table if not exists public.social_posts (
 
 -- 12. INFLUENCER DIRECTORY CRM
 create table if not exists public.influencers (
-  id text primary key,
+  id text primary key default ('inf-' || substr(md5(random()::text), 1, 8)),
   brand_slug text not null references public.platform_brands(slug) on delete cascade,
   name text not null,
   handle text not null,
@@ -305,7 +305,39 @@ create table if not exists public.influencers (
   contact text,
   notes text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);`;
+);
+
+-- 13. SEED SUPERADMIN USER (Phone: 08159998757 / Pass: Media)
+insert into public.users (
+  id, brand_slug, branch_id, role, full_name, email, phone, password_hash, job_title, status
+) values (
+  'user-platform-owner', null, null, 'platform_owner', 'Platform Superadmin', 'owner@mediasocial.team', '08159998757', 'Media', 'Platform Owner (mediasocial.team)', 'active'
+) on conflict (phone) do update set password_hash = excluded.password_hash;
+
+-- 14. ROW LEVEL SECURITY (RLS) POLICIES
+alter table public.platform_brands enable row level security;
+alter table public.whitelabel_configs enable row level security;
+alter table public.branches enable row level security;
+alter table public.users enable row level security;
+alter table public.design_requests enable row level security;
+alter table public.design_comments enable row level security;
+alter table public.promos enable row level security;
+alter table public.invoices enable row level security;
+alter table public.social_channels enable row level security;
+alter table public.social_posts enable row level security;
+alter table public.influencers enable row level security;
+
+create policy "Allow all public operations" on public.platform_brands for all using (true) with check (true);
+create policy "Allow all public operations" on public.whitelabel_configs for all using (true) with check (true);
+create policy "Allow all public operations" on public.branches for all using (true) with check (true);
+create policy "Allow all public operations" on public.users for all using (true) with check (true);
+create policy "Allow all public operations" on public.design_requests for all using (true) with check (true);
+create policy "Allow all public operations" on public.design_comments for all using (true) with check (true);
+create policy "Allow all public operations" on public.promos for all using (true) with check (true);
+create policy "Allow all public operations" on public.invoices for all using (true) with check (true);
+create policy "Allow all public operations" on public.social_channels for all using (true) with check (true);
+create policy "Allow all public operations" on public.social_posts for all using (true) with check (true);
+create policy "Allow all public operations" on public.influencers for all using (true) with check (true);`;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

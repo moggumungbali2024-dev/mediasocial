@@ -102,6 +102,41 @@ interface PortalContextType {
   sendSubscriptionReminder: (brandId: string, channel?: 'whatsapp' | 'email') => { success: boolean; message: string; waUrl?: string };
   jumpToBrandAsHQOwner: (brandSlug: string) => void;
 
+  // Platform Team Users & Self Password
+  platformUsers: UserProfile[];
+  addPlatformUser: (data: Omit<UserProfile, 'id' | 'joined_date'>) => { success: boolean; message: string };
+  updatePlatformUser: (id: string, updates: Partial<UserProfile>) => { success: boolean; message: string };
+  registerBrand: (data: {
+    name: string;
+    slug?: string;
+    hq_owner_name: string;
+    hq_owner_phone: string;
+    hq_owner_email: string;
+    password?: string;
+    city?: string;
+    location?: string;
+    primary_color?: string;
+    plan_id?: string;
+  }) => { success: boolean; message: string; brandSlug?: string; user?: UserProfile };
+  inviteBranch: (data: {
+    name: string;
+    code?: string;
+    city: string;
+    location: string;
+    address?: string;
+    pic_name: string;
+    pic_phone: string;
+    pic_email?: string;
+    pic_password?: string;
+    owner_name: string;
+    owner_phone: string;
+    owner_email?: string;
+    package_tier?: 'Starter' | 'Standard' | 'Premium';
+    retainer_fee?: number;
+    max_designs?: number;
+    max_promos?: number;
+  }) => { success: boolean; message: string; branchId?: string; inviteLink?: string; waText?: string };
+
   currentBranch: Branch | null;
   selectedBranchFilter: string; // 'all' or branch.id
   simulatedDate: string; // YYYY-MM-DD
@@ -425,6 +460,28 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     saveBrandStorage(activeTenantSlug, 'whitelabel', initialDataset.whitelabel);
   };
 
+  // Platform Team Users (Superadmin: 08159998757 / Media)
+  const [platformUsers, setPlatformUsers] = useState<UserProfile[]>(() =>
+    loadStorage<UserProfile[]>('platform_users', [
+      {
+        id: 'user-platform-owner',
+        branch_id: null,
+        role: 'platform_owner',
+        full_name: 'Platform Superadmin',
+        email: 'owner@mediasocial.team',
+        job_title: 'Founder & Platform Superadmin (mediasocial.team)',
+        status: 'active',
+        phone: '08159998757',
+        password: 'Media',
+        joined_date: '2024-01-01'
+      }
+    ])
+  );
+
+  useEffect(() => {
+    saveStorage('platform_users', platformUsers);
+  }, [platformUsers]);
+
   // User Management (Brand-specific)
   const [users, setUsers] = useState<UserProfile[]>(() =>
     loadBrandStorage(activeTenantSlug, 'users', initialDataset.users)
@@ -440,41 +497,93 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 
   const login = (phone: string, password: string): { success: boolean; message: string; user?: UserProfile } => {
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const user = users.find((u) => {
-      const uClean = (u.phone || '').replace(/[^0-9]/g, '');
-      return uClean === cleanPhone;
-    });
+    const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
 
-    if (!user) {
-      return { 
-        success: false, 
-        message: language === 'ko' ? '등록되지 않은 전화번호입니다.' : 'Phone number is not registered in this brand.' 
+    if (!cleanPhone) {
+      return {
+        success: false,
+        message: 'Silakan masukkan nomor handphone Anda.'
       };
     }
 
-    const userPassword = user.password || '1';
+    // 1. Check Platform Users (Superadmin & Platform Team)
+    const platformUser = platformUsers.find(
+      (u) => (u.phone || '').replace(/[^0-9]/g, '') === cleanPhone
+    );
+    if (platformUser) {
+      const userPass = platformUser.password || 'Media';
+      if (password !== userPass) {
+        return {
+          success: false,
+          message: 'Nomor HP atau kata sandi platform salah.'
+        };
+      }
+      // Add to active users so currentUser resolves properly
+      setUsers((prev) => {
+        if (!prev.some((u) => u.id === platformUser.id)) {
+          return [platformUser, ...prev];
+        }
+        return prev;
+      });
+      setCurrentUserId(platformUser.id);
+      setIsAuthenticated(true);
+      return {
+        success: true,
+        message: `Selamat datang, ${platformUser.full_name}!`,
+        user: platformUser
+      };
+    }
+
+    // 2. Check current brand users
+    let targetUser = users.find(
+      (u) => (u.phone || '').replace(/[^0-9]/g, '') === cleanPhone
+    );
+
+    // 3. Cross-brand lookup
+    if (!targetUser) {
+      const allTenants = loadStorage<PlatformBrandTenant[]>('platform_brands', INITIAL_PLATFORM_BRANDS);
+      for (const brand of allTenants) {
+        const brandUsers = loadBrandStorage<UserProfile[]>(brand.slug, 'users', []);
+        const found = brandUsers.find(
+          (u) => (u.phone || '').replace(/[^0-9]/g, '') === cleanPhone
+        );
+        if (found) {
+          switchTenantBrand(brand.slug);
+          targetUser = found;
+          break;
+        }
+      }
+    }
+
+    if (!targetUser) {
+      return {
+        success: false,
+        message: 'Nomor HP belum terdaftar di sistem.'
+      };
+    }
+
+    const userPassword = targetUser.password || 'Media';
     if (password !== userPassword) {
-      return { 
-        success: false, 
-        message: language === 'ko' ? '비밀번호가 일치하지 않습니다. (기본 비밀번호: 1)' : 'Incorrect password. (Default password: 1)' 
+      return {
+        success: false,
+        message: 'Nomor HP atau kata sandi tidak sesuai.'
       };
     }
 
-    setCurrentUserId(user.id);
+    setCurrentUserId(targetUser.id);
     setIsAuthenticated(true);
     saveBrandStorage(activeTenantSlug, 'is_authenticated', true);
-    saveBrandStorage(activeTenantSlug, 'user_id', user.id);
-    if (user.branch_id) {
-      setSelectedBranchFilter(user.branch_id);
+    saveBrandStorage(activeTenantSlug, 'user_id', targetUser.id);
+    if (targetUser.branch_id) {
+      setSelectedBranchFilter(targetUser.branch_id);
     } else {
       setSelectedBranchFilter('all');
     }
 
-    return { 
-      success: true, 
-      message: language === 'ko' ? `환영합니다, ${user.full_name}님!` : `Welcome back, ${user.full_name}!`,
-      user 
+    return {
+      success: true,
+      message: `Selamat datang, ${targetUser.full_name}!`,
+      user: targetUser
     };
   };
 
@@ -487,15 +596,251 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!newPassword.trim()) {
       return { 
         success: false, 
-        message: language === 'ko' ? '새 비밀번호를 입력해주세요.' : 'New password cannot be empty.' 
+        message: 'Kata sandi baru tidak boleh kosong.' 
       };
     }
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, password: newPassword.trim() } : u))
     );
+    // Also update in platformUsers if it is a platform user
+    setPlatformUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, password: newPassword.trim() } : u))
+    );
     return { 
       success: true, 
-      message: language === 'ko' ? '비밀번호가 성공적으로 변경되었습니다.' : 'Password updated successfully!' 
+      message: 'Kata sandi berhasil diperbarui!' 
+    };
+  };
+
+  const addPlatformUser = (data: Omit<UserProfile, 'id' | 'joined_date'>): { success: boolean; message: string } => {
+    if (!data.full_name || !data.phone) {
+      return { success: false, message: 'Nama lengkap dan nomor HP wajib diisi.' };
+    }
+    const cleanPhone = data.phone.replace(/[^0-9]/g, '');
+    if (platformUsers.some((u) => (u.phone || '').replace(/[^0-9]/g, '') === cleanPhone)) {
+      return { success: false, message: 'Nomor HP ini sudah terdaftar sebagai pengguna platform.' };
+    }
+
+    const newUser: UserProfile = {
+      ...data,
+      id: `user-platform-${Date.now().toString().slice(-6)}`,
+      joined_date: '2026-09-27',
+      password: data.password || 'Media',
+      status: 'active'
+    };
+
+    setPlatformUsers((prev) => [...prev, newUser]);
+    return { success: true, message: `Pengguna platform ${data.full_name} (${data.role}) berhasil ditambahkan!` };
+  };
+
+  const updatePlatformUser = (id: string, updates: Partial<UserProfile>): { success: boolean; message: string } => {
+    setPlatformUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, ...updates } : u))
+    );
+    return { success: true, message: 'Data pengguna platform berhasil diperbarui!' };
+  };
+
+  // Register New Brand HQ
+  const registerBrand = (data: {
+    name: string;
+    slug?: string;
+    hq_owner_name: string;
+    hq_owner_phone: string;
+    hq_owner_email: string;
+    password?: string;
+    city?: string;
+    location?: string;
+    primary_color?: string;
+    plan_id?: string;
+  }): { success: boolean; message: string; brandSlug?: string; user?: UserProfile } => {
+    if (!data.name || !data.hq_owner_name || !data.hq_owner_phone) {
+      return { success: false, message: 'Nama Brand, Nama HQ Owner, dan Nomor WhatsApp wajib diisi.' };
+    }
+
+    const cleanSlug = (data.slug || data.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'brand').trim();
+
+    if (platformBrands.some((b) => b.slug === cleanSlug)) {
+      return { success: false, message: `Brand dengan slug "${cleanSlug}" sudah terdaftar. Silakan gunakan nama lain.` };
+    }
+
+    const newBrandTenant: PlatformBrandTenant = {
+      id: `brand-${cleanSlug}`,
+      slug: cleanSlug,
+      name: data.name,
+      tagline: 'Brand F&B & Quota Portal',
+      logo_url: '',
+      primary_color: data.primary_color || '#FF5B14',
+      hq_owner_name: data.hq_owner_name,
+      hq_owner_email: data.hq_owner_email || `${cleanSlug}@mediasocial.team`,
+      hq_owner_phone: data.hq_owner_phone,
+      subscription_plan_id: data.plan_id || 'growth',
+      subscription_status: 'active',
+      subscription_start_date: '2026-09-27',
+      subscription_end_date: '2026-12-31',
+      monthly_fee: 4890000,
+      branches_count: 1,
+      is_verified: true,
+      created_at: '2026-09-27',
+      last_active_at: '2026-09-27 12:00',
+      wallet_balance: 0,
+      notes: 'Brand baru terdaftar via Register Portal.'
+    };
+
+    const newHqOwnerUser: UserProfile = {
+      id: `user-${cleanSlug}-owner`,
+      branch_id: null,
+      role: 'hq_owner',
+      full_name: data.hq_owner_name,
+      email: data.hq_owner_email || `${cleanSlug}@mediasocial.team`,
+      phone: data.hq_owner_phone,
+      password: data.password || 'Media',
+      job_title: `Brand Owner & Founder (${data.name})`,
+      status: 'active',
+      joined_date: '2026-09-27'
+    };
+
+    const newInitialBranch: Branch = {
+      id: `branch-${cleanSlug}-central`,
+      name: `${data.name} Pusat / Central`,
+      code: `${cleanSlug.substring(0, 3).toUpperCase()}-01`,
+      location: data.location || data.city || 'Pusat',
+      city: data.city || 'Jakarta',
+      contract_status: 'active',
+      contact_person: data.hq_owner_name,
+      phone: data.hq_owner_phone,
+      custom_retainer_fee: 5000000,
+      package_tier: 'Standard',
+      wallet_balance: 0,
+      max_monthly_design_requests: 12,
+      max_monthly_active_promos: 4,
+      lead_days: 5,
+      pic_name: `${data.hq_owner_name} (HQ Owner)`,
+      pic_phone: data.hq_owner_phone,
+      pic_email: data.hq_owner_email,
+      owner_name: data.hq_owner_name,
+      owner_phone: data.hq_owner_phone,
+      owner_email: data.hq_owner_email,
+      created_at: '2026-09-27'
+    };
+
+    const newWhitelabel: WhitelabelConfig = {
+      ...DEFAULT_WHITELABEL_CONFIG,
+      brand_name: data.name,
+      brand_subtitle: 'Social Media Management & Quota Portal',
+      brand_monogram: data.name.substring(0, 2).toUpperCase(),
+      company_legal_name: `PT ${data.name} Multi Nusantara`,
+      hq_location: data.city || 'Indonesia',
+      contact_email: data.hq_owner_email,
+      contact_whatsapp: data.hq_owner_phone,
+      custom_primary_hex: data.primary_color || '#FF5B14'
+    };
+
+    // Save brand datasets to storage
+    saveBrandStorage(cleanSlug, 'whitelabel', newWhitelabel);
+    saveBrandStorage(cleanSlug, 'users', [newHqOwnerUser]);
+    saveBrandStorage(cleanSlug, 'branches', [newInitialBranch]);
+    saveBrandStorage(cleanSlug, 'design_requests', []);
+    saveBrandStorage(cleanSlug, 'promos', []);
+    saveBrandStorage(cleanSlug, 'invoices', []);
+    saveBrandStorage(cleanSlug, 'influencers', []);
+    saveBrandStorage(cleanSlug, 'is_authenticated', true);
+    saveBrandStorage(cleanSlug, 'user_id', newHqOwnerUser.id);
+
+    // Add to platform brands
+    setPlatformBrands((prev) => [newBrandTenant, ...prev]);
+
+    // Switch tenant
+    switchTenantBrand(cleanSlug);
+    setCurrentUserId(newHqOwnerUser.id);
+    setIsAuthenticated(true);
+
+    return {
+      success: true,
+      message: `Brand "${data.name}" berhasil didaftarkan! Selamat datang di portal.`,
+      brandSlug: cleanSlug,
+      user: newHqOwnerUser
+    };
+  };
+
+  // Invite Branch by HQ Owner
+  const inviteBranch = (data: {
+    name: string;
+    code?: string;
+    city: string;
+    location: string;
+    address?: string;
+    pic_name: string;
+    pic_phone: string;
+    pic_email?: string;
+    pic_password?: string;
+    owner_name: string;
+    owner_phone: string;
+    owner_email?: string;
+    package_tier?: 'Starter' | 'Standard' | 'Premium';
+    retainer_fee?: number;
+    max_designs?: number;
+    max_promos?: number;
+  }): { success: boolean; message: string; branchId?: string; inviteLink?: string; waText?: string } => {
+    if (!data.name || !data.city || !data.pic_name || !data.pic_phone) {
+      return { success: false, message: 'Nama Cabang, Kota, Nama Store Manager (PIC), dan Nomor WhatsApp wajib diisi.' };
+    }
+
+    const branchSlug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'branch';
+    const branchId = `branch-${activeTenantSlug}-${branchSlug}-${Date.now().toString().slice(-4)}`;
+    const branchCode = data.code || branchSlug.substring(0, 3).toUpperCase();
+    const managerPassword = data.pic_password || 'Media';
+
+    const newBranch: Branch = {
+      id: branchId,
+      name: data.name,
+      code: branchCode,
+      location: data.location || data.city,
+      city: data.city,
+      address: data.address || `${data.location || data.city}, ${data.city}`,
+      contract_status: 'active',
+      contact_person: data.pic_name,
+      phone: data.pic_phone,
+      custom_retainer_fee: data.retainer_fee || 5000000,
+      package_tier: data.package_tier || 'Standard',
+      wallet_balance: 0,
+      max_monthly_design_requests: data.max_designs || 12,
+      max_monthly_active_promos: data.max_promos || 4,
+      lead_days: 5,
+      pic_name: `${data.pic_name} (Store Manager)`,
+      pic_phone: data.pic_phone,
+      pic_email: data.pic_email || `store.${branchSlug}@mediasocial.team`,
+      owner_name: data.owner_name ? `${data.owner_name} (Owner)` : `${data.pic_name} (Owner)`,
+      owner_phone: data.owner_phone || data.pic_phone,
+      owner_email: data.owner_email || data.pic_email || `owner.${branchSlug}@mediasocial.team`,
+      created_at: '2026-09-27'
+    };
+
+    const managerUserId = `user-${branchId}-mgr`;
+    const newManagerUser: UserProfile = {
+      id: managerUserId,
+      branch_id: branchId,
+      role: 'branch_manager',
+      full_name: `${data.pic_name} (Store Manager ${data.name})`,
+      email: data.pic_email || `mgr.${branchSlug}@mediasocial.team`,
+      phone: data.pic_phone,
+      password: managerPassword,
+      job_title: `Store Operations Manager - ${data.name}`,
+      status: 'active',
+      joined_date: '2026-09-27'
+    };
+
+    setBranches((prev) => [...prev, newBranch]);
+    setUsers((prev) => [...prev, newManagerUser]);
+
+    const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/${activeTenantSlug}` : `https://mediasocial.team/${activeTenantSlug}`;
+    const waText = `Halo ${data.pic_name}! 👋%0A%0AAnda telah diundang untuk mengelola cabang *${data.name}* di Portal Brand *${whitelabelConfig.brand_name}*.%0A%0A🔗 *Link Portal:* ${portalUrl}%0A📱 *Nomor HP Login:* ${data.pic_phone}%0A🔑 *Password:* ${managerPassword}%0A%0ASilakan masuk untuk request desain, upload promo, dan pantau status jadwal cabang Anda.`;
+
+    return {
+      success: true,
+      message: `Cabang ${data.name} berhasil ditambahkan dan undangan siap dikirim!`,
+      branchId,
+      inviteLink: portalUrl,
+      waText
     };
   };
 
@@ -2717,6 +3062,13 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateWithdrawalStatus,
         sendSubscriptionReminder,
         jumpToBrandAsHQOwner,
+
+        // Platform Team Users & Self Password
+        platformUsers,
+        addPlatformUser,
+        updatePlatformUser,
+        registerBrand,
+        inviteBranch,
 
         currentBranch,
         selectedBranchFilter,

@@ -57,11 +57,15 @@ export const PlatformMasterConsole: React.FC = () => {
     sendSubscriptionReminder,
     jumpToBrandAsHQOwner,
     switchTenantBrand,
+    platformUsers,
+    addPlatformUser,
+    updatePlatformUser,
+    changePassword,
     themeMode
   } = usePortal();
 
   // Active Tab
-  type PlatformTab = 'overview' | 'brands' | 'plans' | 'wallet' | 'reminders';
+  type PlatformTab = 'overview' | 'brands' | 'plans' | 'wallet' | 'reminders' | 'users';
   const [activeTab, setActiveTab] = useState<PlatformTab>(() => {
     if (isPlatformFinance && !isPlatformOwner) return 'reminders';
     if (isPlatformAdmin && !isPlatformOwner) return 'brands';
@@ -76,6 +80,21 @@ export const PlatformMasterConsole: React.FC = () => {
   const [showAddBrandModal, setShowAddBrandModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showEditPlanModal, setShowEditPlanModal] = useState<BrandSubscriptionPlan | null>(null);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+
+  // New Platform User State
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserPhone, setNewUserPhone] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('Media');
+  const [newUserRole, setNewUserRole] = useState<'platform_admin' | 'platform_finance'>('platform_admin');
+  const [newUserJobTitle, setNewUserJobTitle] = useState('');
+  const [userFormMsg, setUserFormMsg] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+
+  // Superadmin Password Change State
+  const [adminNewPass, setAdminNewPass] = useState('');
+  const [adminConfirmPass, setAdminConfirmPass] = useState('');
+  const [passMsg, setPassMsg] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   // New Brand Form State
   const [newBrandName, setNewBrandName] = useState('');
@@ -331,6 +350,18 @@ export const PlatformMasterConsole: React.FC = () => {
               >
                 <Wallet className="w-4 h-4" />
                 Wallet & Tarik Dana
+              </button>
+
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition-all ${
+                  activeTab === 'users'
+                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Tim Platform & Akun ({platformUsers?.length || 1})
               </button>
             </>
           )}
@@ -1180,7 +1211,339 @@ export const PlatformMasterConsole: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* ===================== TAB 6: TIM PLATFORM & AKUN ===================== */}
+        {activeTab === 'users' && isPlatformOwner && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-2">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Platform Superadmin & Team RBAC</span>
+                </div>
+                <h2 className="text-xl font-black text-white">Kelola Pengguna Platform & Akun Superadmin</h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Atur kredensial Superadmin (08159998757) dan tambahkan anggota tim internal Platform Finance & Platform Admin.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setNewUserName('');
+                  setNewUserPhone('');
+                  setNewUserEmail('');
+                  setNewUserPassword('Media');
+                  setNewUserRole('platform_admin');
+                  setNewUserJobTitle('');
+                  setUserFormMsg(null);
+                  setShowAddUserModal(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-orange-500/20 transition cursor-pointer self-start sm:self-auto"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Tambah Pengguna Platform</span>
+              </button>
+            </div>
+
+            {/* Change Superadmin Password Card */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-800">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 font-bold">
+                  🔒
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Ubah Password Superadmin / Platform Owner</h3>
+                  <p className="text-xs text-slate-400">
+                    Akun Superadmin Login: <span className="text-orange-400 font-mono font-bold">08159998757</span> (Default Password: <span className="text-orange-400 font-mono">Media</span>)
+                  </p>
+                </div>
+              </div>
+
+              {passMsg && (
+                <div
+                  className={`p-3 rounded-xl mb-4 text-xs flex items-center gap-2 ${
+                    passMsg.type === 'success'
+                      ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                      : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                  }`}
+                >
+                  {passMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                  <span>{passMsg.text}</span>
+                </div>
+              )}
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setPassMsg(null);
+                  if (!adminNewPass.trim()) {
+                    setPassMsg({ type: 'error', text: 'Password baru tidak boleh kosong.' });
+                    return;
+                  }
+                  if (adminNewPass !== adminConfirmPass) {
+                    setPassMsg({ type: 'error', text: 'Konfirmasi password tidak cocok.' });
+                    return;
+                  }
+                  const res = changePassword(currentUser.id, adminNewPass);
+                  if (res.success) {
+                    setPassMsg({ type: 'success', text: 'Password Superadmin berhasil diperbarui!' });
+                    setAdminNewPass('');
+                    setAdminConfirmPass('');
+                  } else {
+                    setPassMsg({ type: 'error', text: res.message });
+                  }
+                }}
+                className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end"
+              >
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Password Baru</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Masukkan password baru"
+                    value={adminNewPass}
+                    onChange={(e) => setAdminNewPass(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Ulangi Password Baru</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Konfirmasi password baru"
+                    value={adminConfirmPass}
+                    onChange={(e) => setAdminConfirmPass(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition"
+                >
+                  Simpan Password Baru
+                </button>
+              </form>
+            </div>
+
+            {/* Platform Users Table */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-sm text-white">Daftar Pengguna Platform</h3>
+                  <p className="text-xs text-slate-400">Pengguna dengan akses ke Platform Master Console mediasocial.team</p>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300">
+                  {platformUsers.length} Users
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-850 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th className="py-3 px-4">Nama Lengkap</th>
+                      <th className="py-3 px-4">Role Akses</th>
+                      <th className="py-3 px-4">Nomor HP (Login)</th>
+                      <th className="py-3 px-4">Email</th>
+                      <th className="py-3 px-4">Jabatan</th>
+                      <th className="py-3 px-4 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-slate-300">
+                    {platformUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-slate-800/40 transition">
+                        <td className="py-3.5 px-4 font-bold text-white flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center font-black text-xs">
+                            {u.full_name.charAt(0)}
+                          </div>
+                          <span>{u.full_name}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              u.role === 'platform_owner'
+                                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                : u.role === 'platform_finance'
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                            }`}
+                          >
+                            {u.role.replace('platform_', 'Platform ')}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-mono text-orange-300">{u.phone}</td>
+                        <td className="py-3.5 px-4 text-slate-400">{u.email}</td>
+                        <td className="py-3.5 px-4 text-slate-400">{u.job_title || '-'}</td>
+                        <td className="py-3.5 px-4 text-right">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Aktif
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* ===================== MODAL: TAMBAH USER PLATFORM ===================== */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl my-8">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-orange-400" />
+                  Tambah Pengguna Platform Baru
+                </h3>
+                <p className="text-xs text-slate-400">Buat akun untuk Platform Finance atau Platform Admin</p>
+              </div>
+              <button
+                onClick={() => setShowAddUserModal(false)}
+                className="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {userFormMsg && (
+              <div
+                className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                  userFormMsg.type === 'error'
+                    ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                    : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                }`}
+              >
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{userFormMsg.text}</span>
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setUserFormMsg(null);
+                if (!newUserName.trim() || !newUserPhone.trim()) {
+                  setUserFormMsg({ type: 'error', text: 'Nama dan Nomor HP wajib diisi.' });
+                  return;
+                }
+                const res = addPlatformUser({
+                  full_name: newUserName.trim(),
+                  phone: newUserPhone.trim(),
+                  email: newUserEmail.trim() || `${newUserName.toLowerCase().replace(/\s+/g, '')}@mediasocial.team`,
+                  role: newUserRole,
+                  password: newUserPassword.trim() || 'Media',
+                  job_title: newUserJobTitle.trim() || (newUserRole === 'platform_finance' ? 'Platform Finance Officer' : 'Platform Operations Admin'),
+                  branch_id: null,
+                  status: 'active'
+                });
+                if (!res.success) {
+                  setUserFormMsg({ type: 'error', text: res.message });
+                } else {
+                  setUserFormMsg({ type: 'success', text: res.message });
+                  setTimeout(() => {
+                    setShowAddUserModal(false);
+                  }, 800);
+                }
+              }}
+              className="space-y-3.5"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Role / Peran Platform *</label>
+                <select
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value as any)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500 font-bold"
+                >
+                  <option value="platform_admin">Platform Admin (Onboarding & Brand Management)</option>
+                  <option value="platform_finance">Platform Finance (Subscription & Invoicing)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Nama Lengkap *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Nama Lengkap User"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Nomor Handphone (WhatsApp Login) *</label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="0812-xxxx-xxxx"
+                  value={newUserPhone}
+                  onChange={(e) => setNewUserPhone(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Email Platform</label>
+                <input
+                  type="email"
+                  placeholder="nama@mediasocial.team"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Jabatan / Job Title</label>
+                  <input
+                    type="text"
+                    placeholder="SaaS Ops Lead"
+                    value={newUserJobTitle}
+                    onChange={(e) => setNewUserJobTitle(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">Password Awal</label>
+                  <input
+                    type="text"
+                    placeholder="Media"
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddUserModal(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-bold"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20"
+                >
+                  Simpan User Platform
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ===================== MODAL: ONBOARD BRAND BARU ===================== */}
       {showAddBrandModal && (

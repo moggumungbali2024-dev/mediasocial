@@ -14,10 +14,10 @@ export interface SupabaseConfig {
 }
 
 export const DEFAULT_SUPABASE_CONFIG: SupabaseConfig = {
-  url: '',
-  anonKey: '',
-  isConnected: false,
-  autoSync: false
+  url: (import.meta as any).env?.VITE_SUPABASE_URL || 'https://db.mediasocial.team',
+  anonKey: (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc5MDQ3OTU2MCwiZXhwIjo0OTQ2MTUzMTYwLCJyb2xlIjoiYW5vbiJ9.R0ZVq13UDWX019DRE4jrYVE4cOBQuZmdAYXY0exNHY8',
+  isConnected: true,
+  autoSync: true
 };
 
 export const getSupabaseConfig = (): SupabaseConfig => {
@@ -25,7 +25,10 @@ export const getSupabaseConfig = (): SupabaseConfig => {
   try {
     const saved = localStorage.getItem('smp_supabase_config');
     if (saved) {
-      return { ...DEFAULT_SUPABASE_CONFIG, ...JSON.parse(saved) };
+      const parsed = JSON.parse(saved);
+      if (parsed.url && parsed.anonKey) {
+        return { ...DEFAULT_SUPABASE_CONFIG, ...parsed };
+      }
     }
   } catch (e) {
     console.warn('Failed to load Supabase config from storage', e);
