@@ -25,10 +25,11 @@ export const PrintableInvoiceModal: React.FC<PrintableInvoiceModalProps> = ({
   onClose,
   invoice
 }) => {
-  const { whitelabelConfig, branches, themeColors } = usePortal();
+  const { whitelabelConfig, branches, themeColors, language } = usePortal();
 
   if (!isOpen || !invoice) return null;
 
+  const isKo = language === 'ko';
   const branch = branches.find((b) => b.id === invoice.branch_id) || branches[0];
   const isPaid = invoice.status === 'paid';
 
@@ -50,7 +51,7 @@ export const PrintableInvoiceModal: React.FC<PrintableInvoiceModalProps> = ({
                 isPaid ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300'
               }`}
             >
-              {isPaid ? 'PAID / LUNAS' : 'UNPAID'}
+              {isPaid ? (isKo ? 'PAID / 결제완료' : 'PAID / SETTLED') : (isKo ? '미결제 (UNPAID)' : 'UNPAID')}
             </span>
           </div>
 
@@ -60,7 +61,7 @@ export const PrintableInvoiceModal: React.FC<PrintableInvoiceModalProps> = ({
               className="px-4 py-2 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Print / Save as PDF</span>
+              <span>{isKo ? '인쇄 / PDF 저장' : 'Print / Save as PDF'}</span>
             </button>
             <button
               onClick={onClose}
@@ -80,7 +81,7 @@ export const PrintableInvoiceModal: React.FC<PrintableInvoiceModalProps> = ({
                 isPaid ? 'border-emerald-600 text-emerald-600' : 'border-red-600 text-red-600'
               }`}
             >
-              {isPaid ? 'PAID / LUNAS' : 'OFFICIAL INVOICE'}
+              {isPaid ? (isKo ? 'PAID / 결제완료' : 'PAID / SETTLED') : 'OFFICIAL INVOICE'}
             </div>
           </div>
 
@@ -265,7 +266,9 @@ export const PrintableInvoiceModal: React.FC<PrintableInvoiceModalProps> = ({
               <span className="font-bold text-slate-800 block mb-1">Important Notice:</span>
               <p className="leading-relaxed">
                 {whitelabelConfig.invoice_note_footer ||
-                  'Harap cantumkan Nomor Invoice pada berita transfer pembayaran. Bukti transfer wajib diunggah ke portal selambat-lambatnya 7 hari sejak tanggal terbit.'}
+                  (isKo 
+                    ? '송금 시 이체 메모에 청구서 번호를 기재해주세요. 영수증은 발행일로부터 7일 이내에 포털에 업로드해야 합니다.' 
+                    : 'Please include the Invoice Number in your bank transfer description. Payment slips must be uploaded to the portal within 7 days of invoice issuance.')}
               </p>
             </div>
 

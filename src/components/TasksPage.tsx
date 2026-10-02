@@ -47,6 +47,8 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onSelectRequest }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [mockupRequest, setMockupRequest] = useState<DesignRequest | null>(null);
   const [whatsappRequest, setWhatsappRequest] = useState<DesignRequest | null>(null);
+  const [draggedRequestId, setDraggedRequestId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<RequestStatus | null>(null);
 
   const columns: { id: RequestStatus; title: string; countBadge: string; borderAccent: string; desc: string }[] = [
     {
@@ -222,12 +224,38 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onSelectRequest }) => {
       {/* Kanban Board Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-start">
         {columns.map((col) => {
-          const colRequests = filteredRequests.filter((r) => r.status === col.id);
+          const colRequests = filteredRequests.filter((r) => 
+            col.id === 'review' ? (r.status === 'review' || r.status === 'rejected') : r.status === col.id
+          );
+          const isOver = dragOverCol === col.id;
 
           return (
             <div
               key={col.id}
-              className={`bg-slate-50 dark:bg-slate-900/60 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-4 flex flex-col min-h-[460px] shadow-xs border-t-4 ${col.borderAccent}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragOverCol !== col.id) setDragOverCol(col.id);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setDragOverCol(null);
+                }
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverCol(null);
+                const reqId = e.dataTransfer.getData('text/plain') || draggedRequestId;
+                if (reqId) {
+                  updateDesignRequestStatus(reqId, col.id);
+                }
+                setDraggedRequestId(null);
+              }}
+              className={`border rounded-3xl p-4 flex flex-col min-h-[460px] shadow-xs border-t-4 transition-all duration-150 ${col.borderAccent} ${
+                isOver
+                  ? 'bg-orange-500/10 border-orange-500 ring-2 ring-orange-500/50 scale-[1.01]'
+                  : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200/90 dark:border-slate-800'
+              }`}
             >
               {/* Column Header */}
               <div className="flex items-center justify-between mb-3 px-1">
@@ -243,20 +271,37 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onSelectRequest }) => {
               {/* Card List */}
               <div className="space-y-3.5 flex-1 mt-1">
                 {colRequests.length === 0 ? (
-                  <div className="py-12 px-4 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/20 text-slate-400 text-xs">
-                    No requests in this stage
+                  <div className={`py-12 px-4 text-center rounded-2xl border border-dashed transition-colors text-xs ${
+                    isOver
+                      ? 'border-orange-400 text-orange-600 bg-orange-50/50 dark:bg-orange-950/20'
+                      : 'border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/20 text-slate-400'
+                  }`}>
+                    {isOver ? (language === 'ko' ? '여기에 드롭하여 상태 변경' : 'Drop here to change status') : 'No requests in this stage'}
                   </div>
                 ) : (
                   colRequests.map((req) => {
                     const branchName = getBranchName(req.branch_id);
                     const hasComments = req.comments && req.comments.length > 0;
                     const hasWorkingLinks = req.canva_url || req.figma_url || req.drive_url;
+                    const isDragging = draggedRequestId === req.id;
 
                     return (
                       <div
                         key={req.id}
+                        draggable={true}
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', req.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                          setDraggedRequestId(req.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedRequestId(null);
+                          setDragOverCol(null);
+                        }}
                         onClick={() => onSelectRequest && onSelectRequest(req)}
-                        className="group bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 hover:border-orange-500/50 dark:hover:border-orange-500/50 hover:shadow-md transition-all cursor-pointer space-y-3"
+                        className={`group bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 hover:border-orange-500/50 dark:hover:border-orange-500/50 hover:shadow-md transition-all cursor-grab active:cursor-grabbing space-y-3 ${
+                          isDragging ? 'opacity-40 scale-95 border-dashed border-orange-500' : ''
+                        }`}
                       >
                         {/* Top Badges */}
                         <div className="flex items-center justify-between gap-2">

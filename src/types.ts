@@ -240,6 +240,34 @@ export interface DesignComment {
   created_at: string;
 }
 
+export interface VisualPinAnnotation {
+  id: string;
+  pin_number: number;
+  x_percent: number; // 0 - 100%
+  y_percent: number; // 0 - 100%
+  author_id: string;
+  author_name: string;
+  author_role: UserRole;
+  author_avatar?: string;
+  comment: string;
+  tag?: string; // e.g. 'Price' | 'Logo' | 'Typo' | 'Color' | 'General'
+  created_at: string;
+  resolved: boolean;
+  resolved_by?: string;
+  resolved_at?: string;
+}
+
+export interface DeliverableVersion {
+  id: string;
+  version_number: number;
+  title?: string;
+  media_url: string;
+  media_type: 'image' | 'video';
+  uploaded_by_name: string;
+  uploaded_at: string;
+  change_notes?: string;
+}
+
 export interface DesignRequest {
   id: string;
   branch_id: string;
@@ -261,6 +289,9 @@ export interface DesignRequest {
   brief_attachment_name?: string;
   feedback_notes?: string;
   comments?: DesignComment[];
+  pin_annotations?: VisualPinAnnotation[];
+  deliverable_versions?: DeliverableVersion[];
+  sla_hours?: number;
   created_at: string;
   assigned_to_user_id?: string; // HQ Creative staff assigned
   assigned_to_id?: string;

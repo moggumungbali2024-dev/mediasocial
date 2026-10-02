@@ -57,6 +57,7 @@ export const BillingManager: React.FC = () => {
     currentBranch, 
     branches, 
     invoices, 
+    deleteInvoice,
     generateMonthlyInvoices, 
     updateBranchCustomPricing,
     updateInvoiceCharges, 
@@ -626,6 +627,19 @@ export const BillingManager: React.FC = () => {
                                     <span>{language === 'ko' ? '입금 확인 및 승인' : 'Verify Receipt'}</span>
                                   </button>
                                 )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(language === 'ko' ? `${inv.invoice_number} 청구서를 삭제하시겠습니까?` : `Are you sure you want to delete invoice ${inv.invoice_number}?`)) {
+                                      deleteInvoice(inv.id);
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-red-500 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
+                                  title={language === 'ko' ? '청구서 삭제' : 'Delete Invoice'}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               </>
                             )}
                           </td>

@@ -73,18 +73,18 @@ export class SupabaseService {
 
       if (response.ok || response.status === 200) {
         saveSupabaseConfig({ url: cleanUrl, anonKey: cleanKey, isConnected: true, lastSyncedAt: new Date().toISOString() });
-        return { success: true, message: 'Berhasil terhubung ke Supabase PostgreSQL!', status: response.status };
+        return { success: true, message: 'Successfully connected to Supabase PostgreSQL!', status: response.status };
       } else {
         return { 
           success: false, 
-          message: `Koneksi ditolak (HTTP ${response.status}). Periksa kembali Supabase URL & Anon Key.`,
+          message: `Connection rejected (HTTP ${response.status}). Please check your Supabase URL & Anon Key.`,
           status: response.status 
         };
       }
     } catch (err: any) {
       return { 
         success: false, 
-        message: `Gagal menjangkau server Supabase: ${err.message || 'Network error'}` 
+        message: `Failed to reach Supabase server: ${err.message || 'Network error'}` 
       };
     }
   }
@@ -189,7 +189,7 @@ export class SupabaseService {
     const key = customKey || config.anonKey;
 
     if (!url || !key) {
-      return { success: false, error: 'Supabase URL dan Anon Key belum dikonfigurasi.' };
+      return { success: false, error: 'Supabase URL and Anon Key are not configured.' };
     }
 
     const cleanUrl = url.trim().replace(/\/+$/, '');
@@ -212,5 +212,17 @@ export class SupabaseService {
     } catch (err: any) {
       return { success: false, error: err.message || 'Delete error' };
     }
+  }
+
+  /**
+   * Delete single record by ID
+   */
+  static async deleteRecord(
+    tableName: string,
+    id: string,
+    customUrl?: string,
+    customKey?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.deleteFromSupabase(tableName, `id=eq.${id}`, customUrl, customKey);
   }
 }

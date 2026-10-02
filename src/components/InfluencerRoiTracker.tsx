@@ -86,6 +86,8 @@ export const InfluencerRoiTracker: React.FC = () => {
     setNewCode('');
   };
 
+  const isKo = language === 'ko';
+
   return (
     <div className="space-y-5">
       {/* Top Banner & Actions */}
@@ -94,11 +96,13 @@ export const InfluencerRoiTracker: React.FC = () => {
           <div className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <h2 className="font-extrabold text-base text-slate-900 dark:text-white font-['Space_Grotesk']">
-              {language === 'ko' ? '인플루언서 ROI & 바우처 전환 추적기' : 'Influencer ROI & Voucher Redemption Analytics'}
+              {isKo ? '인플루언서 ROI & 바우처 전환 추적기' : 'Influencer ROI & Voucher Redemption Analytics'}
             </h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Lacak performa konversi voucher diskon yang dibagikan influencer ke omzet riil per outlet
+            {isKo
+              ? '인플루언서 할인 바우처가 지점별 실제 매출로 전환되는 성과를 실시간으로 추적합니다'
+              : 'Track discount voucher conversion from influencers to real sales per outlet'}
           </p>
         </div>
 
@@ -110,7 +114,7 @@ export const InfluencerRoiTracker: React.FC = () => {
             className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            <span>Simulasi Kasir (Redeem Code)</span>
+            <span>{isKo ? 'POS 결제 시뮬레이터 (바우처 사용)' : 'POS Cashier Simulation (Redeem)'}</span>
           </button>
 
           {/* New Campaign Button */}
@@ -121,7 +125,7 @@ export const InfluencerRoiTracker: React.FC = () => {
             className="px-4 py-2 rounded-2xl text-xs font-bold transition shadow-md flex items-center gap-1.5 hover:opacity-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Buat Voucher Baru</span>
+            <span>{isKo ? '새 바우처 생성' : 'Create Voucher'}</span>
           </button>
         </div>
       </div>
@@ -131,7 +135,7 @@ export const InfluencerRoiTracker: React.FC = () => {
         {/* Total Sales */}
         <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
-            <span>Omzet Dari Influencer</span>
+            <span>{isKo ? '인플루언서 유도 매출' : 'Influencer Revenue'}</span>
             <div className="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold">
               <DollarSign className="w-4 h-4" />
             </div>
@@ -147,13 +151,13 @@ export const InfluencerRoiTracker: React.FC = () => {
         {/* Total Redemptions */}
         <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
-            <span>Total Voucher Diklaim</span>
+            <span>{isKo ? '총 바우처 사용 수' : 'Total Vouchers Redeemed'}</span>
             <div className="p-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 font-bold">
               <Tag className="w-4 h-4" />
             </div>
           </div>
           <div className="text-xl font-black text-slate-900 dark:text-white font-['Space_Grotesk']">
-            {totalRedemptions} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Pelanggan</span>
+            {totalRedemptions} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">{isKo ? '건' : 'Orders'}</span>
           </div>
           <span className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold">Across all active branches</span>
         </div>
@@ -161,7 +165,7 @@ export const InfluencerRoiTracker: React.FC = () => {
         {/* Total Cost */}
         <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
-            <span>Biaya KOL / Barter Meals</span>
+            <span>{isKo ? 'KOL / 바터 식사 비용' : 'KOL & Barter Costs'}</span>
             <div className="p-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold">
               <Users2 className="w-4 h-4" />
             </div>
@@ -169,7 +173,7 @@ export const InfluencerRoiTracker: React.FC = () => {
           <div className="text-xl font-black text-slate-900 dark:text-white font-['Space_Grotesk']">
             Rp{totalCostSpent.toLocaleString('id-ID')}
           </div>
-          <span className="text-[10px] text-slate-400 font-medium">{voucherCampaigns.length} Campaign Aktif</span>
+          <span className="text-[10px] text-slate-400 font-medium">{voucherCampaigns.length} {isKo ? '개 활성 캠페인' : 'Active Campaigns'}</span>
         </div>
 
         {/* ROI Multiplier */}
@@ -184,7 +188,7 @@ export const InfluencerRoiTracker: React.FC = () => {
           <div className="text-2xl font-black text-white font-['Space_Grotesk']">
             {overallRoiMultiplier}x ROI
           </div>
-          <span className="text-[10px] text-white/90 font-bold">Rp1 Modal = Rp{overallRoiMultiplier} Omzet</span>
+          <span className="text-[10px] text-white/90 font-bold">{isKo ? `투자 대비 ${overallRoiMultiplier}배 매출 창출` : `1 Cost = ${overallRoiMultiplier}x Revenue`}</span>
         </div>
       </div>
 
@@ -192,7 +196,7 @@ export const InfluencerRoiTracker: React.FC = () => {
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <span className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider font-['Space_Grotesk']">
-            Daftar Kode Promo &amp; Performa Cabang
+            {isKo ? '프로모션 코드 목록 및 지점별 성과' : 'Promo Codes & Branch Performance'}
           </span>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">Live POS Integration</span>
         </div>
@@ -201,14 +205,14 @@ export const InfluencerRoiTracker: React.FC = () => {
           <table className="w-full text-xs text-left">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold">
-                <th className="py-3 px-4">KODE VOUCHER</th>
-                <th className="py-3 px-4">INFLUENCER / KOL</th>
-                <th className="py-3 px-4">TARGET CABANG</th>
-                <th className="py-3 px-4 text-center">DISKON</th>
-                <th className="py-3 px-4 text-center">REDEEM</th>
-                <th className="py-3 px-4 text-right">TOTAL OMZET</th>
-                <th className="py-3 px-4 text-center">EST. ROI</th>
-                <th className="py-3 px-4 text-center">STATUS</th>
+                <th className="py-3 px-4">{isKo ? '바우처 코드' : 'VOUCHER CODE'}</th>
+                <th className="py-3 px-4">{isKo ? '인플루언서 / KOL' : 'INFLUENCER / KOL'}</th>
+                <th className="py-3 px-4">{isKo ? '대상 지점' : 'TARGET BRANCH'}</th>
+                <th className="py-3 px-4 text-center">{isKo ? '할인율' : 'DISCOUNT'}</th>
+                <th className="py-3 px-4 text-center">{isKo ? '사용 수' : 'REDEEM'}</th>
+                <th className="py-3 px-4 text-right">{isKo ? '총 매출' : 'TOTAL REVENUE'}</th>
+                <th className="py-3 px-4 text-center">{isKo ? '예상 ROI' : 'EST. ROI'}</th>
+                <th className="py-3 px-4 text-center">{isKo ? '상태' : 'STATUS'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
@@ -274,7 +278,7 @@ export const InfluencerRoiTracker: React.FC = () => {
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 <h3 className="font-extrabold text-sm text-slate-900 dark:text-white font-['Space_Grotesk']">
-                  Simulasi Kasir POS (Redeem Voucher)
+                  {isKo ? 'POS 계산 시뮬레이션 (바우처 사용)' : 'POS Cashier Simulator (Redeem Voucher)'}
                 </h3>
               </div>
               <button
@@ -301,7 +305,7 @@ export const InfluencerRoiTracker: React.FC = () => {
             <form onSubmit={handleRedeemSubmit} className="space-y-3 text-xs">
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Masukkan Kode Voucher (Contoh: MANDABALI15 / HUNTERCANGGU)
+                  {isKo ? '바우처 코드 입력 (예: MANDABALI15 / CHUB15)' : 'Enter Voucher Code (e.g. MANDABALI15 / CHUB15)'}
                 </label>
                 <input
                   type="text"
@@ -315,7 +319,7 @@ export const InfluencerRoiTracker: React.FC = () => {
 
               <div>
                 <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
-                  Nilai Transaksi Pesanan Pelanggan (Rp)
+                  {isKo ? '고객 주문 결제 금액' : 'Customer Order Total Amount'}
                 </label>
                 <input
                   type="number"
@@ -334,14 +338,14 @@ export const InfluencerRoiTracker: React.FC = () => {
                   onClick={() => setIsCashierModalOpen(false)}
                   className="px-4 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
                 >
-                  Batal
+                  {isKo ? '취소' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   style={{ backgroundColor: themeColors.primary, color: themeColors.textOnPrimary }}
                   className="px-5 py-2 rounded-2xl font-bold shadow-md cursor-pointer"
                 >
-                  Proses Diskon &amp; Rekam ROI
+                  {isKo ? '할인 적용 및 ROI 기록' : 'Process Discount & Record ROI'}
                 </button>
               </div>
             </form>
@@ -357,7 +361,7 @@ export const InfluencerRoiTracker: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Tag className="w-5 h-5 text-amber-500" />
                 <h3 className="font-extrabold text-sm text-slate-900 dark:text-white font-['Space_Grotesk']">
-                  Buat Campaign Voucher Influencer Baru
+                  {isKo ? '신규 인플루언서 바우처 캠페인 생성' : 'Create New Influencer Voucher Campaign'}
                 </h3>
               </div>
               <button
@@ -371,7 +375,9 @@ export const InfluencerRoiTracker: React.FC = () => {
             <form onSubmit={handleCreateCampaign} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Pilih Influencer</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {isKo ? '인플루언서 선택' : 'Select Influencer'}
+                  </label>
                   <select
                     value={newInfluencerId}
                     onChange={(e) => {
@@ -393,7 +399,9 @@ export const InfluencerRoiTracker: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Target Cabang</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {isKo ? '대상 지점' : 'Target Branch'}
+                  </label>
                   <select
                     value={newBranchId}
                     onChange={(e) => setNewBranchId(e.target.value)}
@@ -410,7 +418,9 @@ export const InfluencerRoiTracker: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Kode Voucher</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {isKo ? '바우처 코드' : 'Voucher Code'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -422,7 +432,9 @@ export const InfluencerRoiTracker: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Diskon (%)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {isKo ? '할인율 (%)' : 'Discount (%)'}
+                  </label>
                   <input
                     type="number"
                     min={5}
@@ -436,7 +448,9 @@ export const InfluencerRoiTracker: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Biaya Kolaborasi (Rp)</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {isKo ? '협업 비용' : 'Collaboration Cost'}
+                  </label>
                   <input
                     type="number"
                     min={0}
@@ -448,7 +462,9 @@ export const InfluencerRoiTracker: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Berlaku Hingga</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    {isKo ? '유효 기간' : 'Valid Until'}
+                  </label>
                   <input
                     type="date"
                     required
@@ -465,14 +481,14 @@ export const InfluencerRoiTracker: React.FC = () => {
                   onClick={() => setIsNewModalOpen(false)}
                   className="px-4 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition cursor-pointer"
                 >
-                  Batal
+                  {isKo ? '취소' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   style={{ backgroundColor: themeColors.primary, color: themeColors.textOnPrimary }}
                   className="px-5 py-2 rounded-2xl font-bold shadow-md cursor-pointer"
                 >
-                  Simpan Campaign
+                  {isKo ? '캠페인 저장' : 'Save Campaign'}
                 </button>
               </div>
             </form>

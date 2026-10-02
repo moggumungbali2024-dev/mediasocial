@@ -15,6 +15,7 @@ import {
   Tag, 
   DollarSign, 
   CheckCircle2, 
+  AlertCircle,
   X, 
   CalendarDays,
   CalendarRange,
@@ -43,9 +44,14 @@ export const CalendarScheduleView: React.FC = () => {
     addMeetingAgenda, 
     deleteMeetingAgenda,
     addDesignRequest,
+    deleteDesignRequest,
     addPromoRequest,
+    deletePromoRequest,
     addShootRequest,
+    deleteShootRequest,
     addBudgetRequest,
+    deleteBudgetRequest,
+    selectedBranchFilter,
     simulatedDate,
     whitelabelConfig,
     t,
@@ -61,6 +67,7 @@ export const CalendarScheduleView: React.FC = () => {
   // Quick Action Modal for Selected Date (Add Meeting / Design / Promo / Shoot / Budget)
   const [isQuickAddModalOpen, setIsQuickAddModalOpen] = useState(false);
   const [quickAddTab, setQuickAddTab] = useState<'meeting' | 'design' | 'promo' | 'shoot' | 'budget'>('meeting');
+  const [modalError, setModalError] = useState<string | null>(null);
 
   // 1. Meeting Form State
   const [meetingTitle, setMeetingTitle] = useState('');
@@ -164,6 +171,14 @@ export const CalendarScheduleView: React.FC = () => {
     setShootDate(dateStr);
     setBudgetTargetDate(dateStr);
     setQuickAddTab(defaultTab);
+    setModalError(null);
+
+    const defaultBranchId = selectedBranchFilter !== 'all' ? selectedBranchFilter : (branches[0]?.id || '');
+    if (!designBranchId && defaultBranchId) setDesignBranchId(defaultBranchId);
+    if (!promoBranchId && defaultBranchId) setPromoBranchId(defaultBranchId);
+    if (!shootBranchId && defaultBranchId) setShootBranchId(defaultBranchId);
+    if (!budgetBranchId && defaultBranchId) setBudgetBranchId(defaultBranchId);
+
     setIsQuickAddModalOpen(true);
   };
 
@@ -351,66 +366,106 @@ export const CalendarScheduleView: React.FC = () => {
       host_name: currentUser.full_name
     });
 
-    setNotification(res.message);
-    setIsQuickAddModalOpen(false);
-    setMeetingTitle('');
-    setMeetingNotes('');
-    setTimeout(() => setNotification(null), 4000);
+    if (res.success) {
+      setNotification(res.message);
+      setIsQuickAddModalOpen(false);
+      setMeetingTitle('');
+      setMeetingNotes('');
+      setModalError(null);
+      setTimeout(() => setNotification(null), 4000);
+    } else {
+      setModalError(res.message);
+    }
   };
 
   const handleCreateDesign = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!designTitle.trim()) return;
+    if (!designTitle.trim()) {
+      setModalError(language === 'ko' ? '디자인 제목을 입력해주세요.' : 'Please enter a design title.');
+      return;
+    }
+
+    const effectiveBranchId = designBranchId || (selectedBranchFilter !== 'all' ? selectedBranchFilter : branches[0]?.id);
+    if (!effectiveBranchId) {
+      setModalError(language === 'ko' ? '지점을 선택해주세요.' : 'Please select a branch.');
+      return;
+    }
 
     const res = addDesignRequest({
-      branch_id: designBranchId || branches[0]?.id || '',
+      branch_id: effectiveBranchId,
       title: designTitle.trim(),
       description: designDescription || 'Design deliverables request',
       target_date: designTargetDate,
-      category: designCategory
+      category: designCategory,
+      bypassLeadTime: true
     });
 
-    setNotification(res.message);
     if (res.success) {
+      setNotification(res.message);
       setIsQuickAddModalOpen(false);
       setDesignTitle('');
       setDesignDescription('');
+      setModalError(null);
+      setTimeout(() => setNotification(null), 4000);
+    } else {
+      setModalError(res.message);
     }
-    setTimeout(() => setNotification(null), 4000);
   };
 
   const handleCreatePromo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!promoTitle.trim()) return;
+    if (!promoTitle.trim()) {
+      setModalError(language === 'ko' ? '프로모션 제목을 입력해주세요.' : 'Please enter a promo title.');
+      return;
+    }
+
+    const effectiveBranchId = promoBranchId || (selectedBranchFilter !== 'all' ? selectedBranchFilter : branches[0]?.id);
+    if (!effectiveBranchId) {
+      setModalError(language === 'ko' ? '지점을 선택해주세요.' : 'Please select a branch.');
+      return;
+    }
 
     const res = addPromoRequest({
-      branch_id: promoBranchId || branches[0]?.id || '',
+      branch_id: effectiveBranchId,
       title: promoTitle.trim(),
       mechanic: promoMechanic || 'Special Discount Campaign',
       target_month: promoStartDate.substring(0, 7),
       start_date: promoStartDate,
       end_date: promoEndDate,
-      terms: promoTerms || 'Syarat & ketentuan promo berlaku.'
+      terms: promoTerms || 'Standard campaign terms & conditions apply.',
+      bypassCutoff: true
     });
 
-    setNotification(res.message);
     if (res.success) {
+      setNotification(res.message);
       setIsQuickAddModalOpen(false);
       setPromoTitle('');
       setPromoMechanic('');
       setPromoTerms('');
+      setModalError(null);
+      setTimeout(() => setNotification(null), 4000);
+    } else {
+      setModalError(res.message);
     }
-    setTimeout(() => setNotification(null), 4000);
   };
 
   const handleCreateShoot = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shootTitle.trim()) return;
+    if (!shootTitle.trim()) {
+      setModalError(language === 'ko' ? '촬영 요청 제목을 입력해주세요.' : 'Please enter a shoot title.');
+      return;
+    }
 
-    const b = branches.find((x) => x.id === shootBranchId) || branches[0];
+    const effectiveBranchId = shootBranchId || (selectedBranchFilter !== 'all' ? selectedBranchFilter : branches[0]?.id);
+    const b = branches.find((x) => x.id === effectiveBranchId) || branches[0];
+    if (!b?.id) {
+      setModalError(language === 'ko' ? '지점을 선택해주세요.' : 'Please select a branch.');
+      return;
+    }
+
     const res = addShootRequest({
-      branch_id: b?.id || '',
-      branch_name: b?.name || '',
+      branch_id: b.id,
+      branch_name: b.name || '',
       requester_id: currentUser.id,
       requester_name: currentUser.full_name,
       requester_role: currentUser.role,
@@ -421,20 +476,27 @@ export const CalendarScheduleView: React.FC = () => {
       focus_products: shootFocusProducts ? shootFocusProducts.split(',').map((s) => s.trim()) : ['Menu', 'Ambiance']
     });
 
-    setNotification(res.message);
     if (res.success) {
+      setNotification(res.message);
       setIsQuickAddModalOpen(false);
       setShootTitle('');
       setShootDetails('');
+      setModalError(null);
+      setTimeout(() => setNotification(null), 4000);
+    } else {
+      setModalError(res.message);
     }
-    setTimeout(() => setNotification(null), 4000);
   };
 
   const handleCreateBudget = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!budgetTitle.trim()) return;
+    if (!budgetTitle.trim()) {
+      setModalError(language === 'ko' ? '예산 요청 제목을 입력해주세요.' : 'Please enter a budget request title.');
+      return;
+    }
 
-    const b = branches.find((x) => x.id === budgetBranchId) || branches[0];
+    const effectiveBranchId = budgetBranchId || (selectedBranchFilter !== 'all' ? selectedBranchFilter : branches[0]?.id);
+    const b = branches.find((x) => x.id === effectiveBranchId) || branches[0];
     const res = addBudgetRequest({
       requester_id: currentUser.id,
       requester_name: currentUser.full_name,
@@ -448,13 +510,16 @@ export const CalendarScheduleView: React.FC = () => {
       objective: budgetObjective || 'Marketing & Exposure Campaign'
     });
 
-    setNotification(res.message);
     if (res.success) {
+      setNotification(res.message);
       setIsQuickAddModalOpen(false);
       setBudgetTitle('');
       setBudgetObjective('');
+      setModalError(null);
+      setTimeout(() => setNotification(null), 4000);
+    } else {
+      setModalError(res.message);
     }
-    setTimeout(() => setNotification(null), 4000);
   };
 
   // Month Name Formatter
@@ -910,6 +975,13 @@ export const CalendarScheduleView: React.FC = () => {
               </button>
             </div>
 
+            {modalError && (
+              <div className="p-3 bg-red-950/80 border border-red-600 rounded-xl text-red-300 text-xs flex items-center gap-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
             {/* TAB 1: MEETING AGENDA */}
             {quickAddTab === 'meeting' && (
               <form onSubmit={handleCreateMeeting} className="space-y-3.5 text-xs">
@@ -1170,7 +1242,7 @@ export const CalendarScheduleView: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Diskon 25% untuk pemesanan via Dine-in jam 14.00-17.00"
+                    placeholder={language === 'ko' ? '예: 14시~17시 매장 식사 주문 시 25% 할인' : 'e.g. 25% Off for Dine-in orders between 2 PM - 5 PM'}
                     value={promoMechanic}
                     onChange={(e) => setPromoMechanic(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
@@ -1183,7 +1255,7 @@ export const CalendarScheduleView: React.FC = () => {
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Syarat & ketentuan berlaku..."
+                    placeholder={language === 'ko' ? '이용 약관 및 유의사항...' : 'Terms and conditions apply...'}
                     value={promoTerms}
                     onChange={(e) => setPromoTerms(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
@@ -1452,18 +1524,78 @@ export const CalendarScheduleView: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-              {selectedEvent.type === 'meeting' && isHQ && (
-                <button
-                  onClick={() => {
-                    deleteMeetingAgenda(selectedEvent.id);
-                    setSelectedEvent(null);
-                  }}
-                  className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl font-bold flex items-center gap-1 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{language === 'ko' ? '회의 삭제' : 'Delete'}</span>
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {selectedEvent.type === 'meeting' && isHQ && (
+                  <button
+                    onClick={() => {
+                      deleteMeetingAgenda(selectedEvent.id);
+                      setSelectedEvent(null);
+                      setNotification(language === 'ko' ? '회의가 삭제되었습니다.' : 'Meeting deleted successfully.');
+                      setTimeout(() => setNotification(null), 4000);
+                    }}
+                    className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{language === 'ko' ? '회의 삭제' : 'Delete Meeting'}</span>
+                  </button>
+                )}
+                {selectedEvent.type === 'design' && (
+                  <button
+                    onClick={() => {
+                      const res = deleteDesignRequest(selectedEvent.id);
+                      if (res.message) setNotification(res.message);
+                      setSelectedEvent(null);
+                      setTimeout(() => setNotification(null), 4000);
+                    }}
+                    className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{language === 'ko' ? '디자인 삭제' : 'Delete Design'}</span>
+                  </button>
+                )}
+                {selectedEvent.type === 'promo' && (
+                  <button
+                    onClick={() => {
+                      const res = deletePromoRequest(selectedEvent.id);
+                      if (res.message) setNotification(res.message);
+                      setSelectedEvent(null);
+                      setTimeout(() => setNotification(null), 4000);
+                    }}
+                    className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{language === 'ko' ? '프로모션 삭제' : 'Delete Promo'}</span>
+                  </button>
+                )}
+                {selectedEvent.type === 'shoot' && (
+                  <button
+                    onClick={() => {
+                      const res = deleteShootRequest(selectedEvent.id);
+                      if (res.message) setNotification(res.message);
+                      setSelectedEvent(null);
+                      setTimeout(() => setNotification(null), 4000);
+                    }}
+                    className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{language === 'ko' ? '촬영 요청 삭제' : 'Delete Shoot'}</span>
+                  </button>
+                )}
+                {selectedEvent.type === 'budget' && (
+                  <button
+                    onClick={() => {
+                      const res = deleteBudgetRequest(selectedEvent.id);
+                      if (res.message) setNotification(res.message);
+                      setSelectedEvent(null);
+                      setTimeout(() => setNotification(null), 4000);
+                    }}
+                    className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{language === 'ko' ? '예산 요청 삭제' : 'Delete Budget'}</span>
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => setSelectedEvent(null)}
                 className="ml-auto px-5 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold rounded-xl text-xs cursor-pointer"

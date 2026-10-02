@@ -255,7 +255,7 @@ export const AttendanceManager: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Rekap_Jadwal_Kerja_${whitelabelConfig.brand_name.replace(/\s+/g, '_')}_${simulatedDate}.csv`);
+    link.setAttribute('download', `Staff_Attendance_Report_${whitelabelConfig.brand_name.replace(/\s+/g, '_')}_${simulatedDate}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -478,14 +478,14 @@ export const AttendanceManager: React.FC = () => {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 dark:text-slate-400">{t('clockedInAt')}:</span>
                   <span className="font-bold text-slate-900 dark:text-white font-mono">
-                    {todayAttendance.clock_in_time} WITA
+                    {todayAttendance.clock_in_time} {whitelabelConfig?.timezone_label || (Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Jakarta' ? 'WIB' : 'WITA')}
                   </span>
                 </div>
                 {todayAttendance.clock_out_time && (
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-500 dark:text-slate-400">{t('clockedOutAt')}:</span>
                     <span className="font-bold text-slate-900 dark:text-white font-mono">
-                      {todayAttendance.clock_out_time} WITA
+                      {todayAttendance.clock_out_time} {whitelabelConfig?.timezone_label || (Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Jakarta' ? 'WIB' : 'WITA')}
                     </span>
                   </div>
                 )}

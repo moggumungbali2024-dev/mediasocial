@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePortal } from '../context/PortalContext.tsx';
 import { getOfficeTimeInfo, OfficeTimeInfo } from '../utils/timezone.ts';
-import { Clock, Globe2, MapPin, ArrowRightLeft, Info, Settings, ChevronDown } from 'lucide-react';
+import { Clock, Globe2, MapPin, ArrowRightLeft, Settings, ChevronDown, Check } from 'lucide-react';
 
 interface OfficeClockProps {
   compact?: boolean;
@@ -14,9 +14,25 @@ export const OfficeClock: React.FC<OfficeClockProps> = ({
   onOpenSettings,
   className = ''
 }) => {
-  const { whitelabelConfig, themeColors, language, setActiveTab } = usePortal();
+  const { whitelabelConfig, language } = usePortal();
   const [now, setNow] = useState<Date>(new Date());
   const [showPopover, setShowPopover] = useState(false);
+  const [clockMode, setClockMode] = useState<'user' | 'office'>(() => {
+    try {
+      return (localStorage.getItem('preferred_clock_mode') as 'user' | 'office') || 'user';
+    } catch {
+      return 'user';
+    }
+  });
+
+  const handleSetClockMode = (mode: 'user' | 'office') => {
+    setClockMode(mode);
+    try {
+      localStorage.setItem('preferred_clock_mode', mode);
+    } catch {
+      // ignore
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -39,6 +55,10 @@ export const OfficeClock: React.FC<OfficeClockProps> = ({
     language as any
   );
 
+  const displayTime = clockMode === 'user' ? timeInfo.localTimeString : timeInfo.officeTimeString;
+  const displayLabel = clockMode === 'user' ? timeInfo.localLabel : timeInfo.officeLabel;
+  const displayCity = clockMode === 'user' ? timeInfo.localCity : officeCity;
+
   return (
     <div className={`relative inline-block ${className}`}>
       <button
@@ -49,7 +69,7 @@ export const OfficeClock: React.FC<OfficeClockProps> = ({
             ? 'px-2.5 py-1 text-xs bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border border-slate-700/80'
             : 'px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700/80 text-slate-800 dark:text-slate-100 shadow-2xs'
         }`}
-        title={`Office Time (${timeInfo.officeLocation}): ${timeInfo.officeTimeString} ${timeInfo.officeLabel}`}
+        title={`${clockMode === 'user' ? 'Your Local Time' : 'Office HQ Time'}: ${displayTime} ${displayLabel} (${displayCity})`}
       >
         {/* Glowing Clock Icon */}
         <div className="relative flex items-center justify-center">
@@ -57,20 +77,20 @@ export const OfficeClock: React.FC<OfficeClockProps> = ({
           <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
         </div>
 
-        {/* Office Time & Label */}
+        {/* Display Time & Label */}
         <div className="flex items-center gap-1.5 font-mono">
           <span className="font-bold tracking-tight">
-            {timeInfo.officeTimeString}
+            {displayTime}
           </span>
           <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-            {timeInfo.officeLabel}
+            {displayLabel}
           </span>
         </div>
 
-        {/* Office City Tag */}
+        {/* City Tag */}
         <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-sans border-l border-slate-200 dark:border-slate-700 pl-2">
           <MapPin className="w-3 h-3 text-slate-400" />
-          <span>{officeCity}</span>
+          <span>{displayCity}</span>
         </span>
 
         {/* Time difference badge if viewer device is in a different timezone */}
@@ -92,7 +112,7 @@ export const OfficeClock: React.FC<OfficeClockProps> = ({
             <div className="flex items-center gap-2">
               <Globe2 className="w-4 h-4 text-amber-500" />
               <span className="font-bold text-slate-900 dark:text-white">
-                {language === 'ko' ? '본사 리전 & 시차 안내' : 'Office Region & Timezone'}
+                {language === 'ko' ? '시계 & 타임존 설정' : 'Clock & Timezone Settings'}
               </span>
             </div>
             <button
@@ -100,52 +120,96 @@ export const OfficeClock: React.FC<OfficeClockProps> = ({
               onClick={() => setShowPopover(false)}
               className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-medium cursor-pointer"
             >
-              {language === 'ko' ? '닫기' : 'Tutup'}
+              {language === 'ko' ? '닫기' : 'Close'}
             </button>
           </div>
 
-          {/* Office HQ Time Card */}
-          <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                <span>{language === 'ko' ? '본사 기준 시간 (Office HQ)' : 'Waktu Kantor Pusat (HQ)'}</span>
-              </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 font-mono">
-                {timeInfo.officeLabel}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <div className="text-xl font-black font-mono text-slate-900 dark:text-white">
-                {timeInfo.officeTimeString}
-              </div>
-              <div className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
-                {timeInfo.officeDateString}
-              </div>
-            </div>
-            <div className="text-[11px] text-amber-900 dark:text-amber-200 font-semibold">
-              📍 {timeInfo.officeLocation} ({officeTz})
-            </div>
+          {/* Mode Switcher Buttons */}
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => handleSetClockMode('user')}
+              className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                clockMode === 'user'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <span>{language === 'ko' ? '내 기기 시간' : 'User Local Time'}</span>
+              {clockMode === 'user' && <Check className="w-3 h-3 text-emerald-500" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetClockMode('office')}
+              className={`py-1.5 px-2 rounded-lg flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                clockMode === 'office'
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+              <span>{language === 'ko' ? '본사 HQ 시간' : 'Office HQ Time'}</span>
+              {clockMode === 'office' && <Check className="w-3 h-3 text-emerald-500" />}
+            </button>
           </div>
 
           {/* User Local Device Time Card */}
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 space-y-1.5">
+          <div
+            onClick={() => handleSetClockMode('user')}
+            className={`p-3 rounded-xl border transition cursor-pointer space-y-1.5 ${
+              clockMode === 'user'
+                ? 'bg-amber-50/90 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 ring-1 ring-amber-400/30'
+                : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700/80 hover:bg-slate-100/70'
+            }`}
+          >
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>{language === 'ko' ? '내 기기/브라우저 로컬 시간' : 'Waktu Perangkat / Browser Anda'}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-500" />
+                <span>{language === 'ko' ? '내 기기 / 브라우저 로컬 시간' : 'Your Device / Local Time'}</span>
               </span>
               <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono">
                 {timeInfo.localLabel}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
-              <div className="text-lg font-bold font-mono text-slate-800 dark:text-slate-200">
+              <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
                 {timeInfo.localTimeString}
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate max-w-[140px]" title={timeInfo.localTimezoneId}>
-                {timeInfo.localTimezoneId}
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate max-w-[150px]" title={timeInfo.localTimezoneId}>
+                📍 {timeInfo.localCity} ({timeInfo.localTimezoneId})
               </div>
+            </div>
+          </div>
+
+          {/* Office HQ Time Card */}
+          <div
+            onClick={() => handleSetClockMode('office')}
+            className={`p-3 rounded-xl border transition cursor-pointer space-y-1.5 ${
+              clockMode === 'office'
+                ? 'bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 ring-1 ring-indigo-400/30'
+                : 'bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700/80 hover:bg-slate-100/70'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-indigo-500" />
+                <span>{language === 'ko' ? '본사 기준 시간 (Office HQ)' : 'Office HQ Time (Studio)'}</span>
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-200 font-mono">
+                {timeInfo.officeLabel}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <div className="text-lg font-bold font-mono text-slate-900 dark:text-white">
+                {timeInfo.officeTimeString}
+              </div>
+              <div className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+                {timeInfo.officeDateString}
+              </div>
+            </div>
+            <div className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+              📍 {timeInfo.officeLocation} ({officeTz})
             </div>
           </div>
 
@@ -163,15 +227,15 @@ export const OfficeClock: React.FC<OfficeClockProps> = ({
                 {timeInfo.isDifferent
                   ? language === 'ko'
                     ? `시차: ${timeInfo.diffDescription}`
-                    : `Selisih Waktu: ${timeInfo.diffDescription}`
+                    : `Time Difference: ${timeInfo.diffDescription}`
                   : language === 'ko'
                   ? '동일 시간대 (시차 없음)'
-                  : 'Zona waktu sama dengan kantor (Tidak ada selisih)'}
+                  : 'Same timezone as office (No difference)'}
               </span>
             </div>
             {timeInfo.isDifferent && (
               <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-200 dark:bg-sky-900 text-sky-900 dark:text-sky-100 font-mono">
-                {timeInfo.diffHours > 0 ? `+${timeInfo.diffHours} Jam` : `${timeInfo.diffHours} Jam`}
+                {timeInfo.diffHours > 0 ? `+${timeInfo.diffHours}h` : `${timeInfo.diffHours}h`}
               </span>
             )}
           </div>
@@ -184,14 +248,12 @@ export const OfficeClock: React.FC<OfficeClockProps> = ({
                 setShowPopover(false);
                 if (onOpenSettings) {
                   onOpenSettings();
-                } else if (setActiveTab) {
-                  setActiveTab('whitelabel');
                 }
               }}
               className="px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs flex items-center gap-1.5 hover:opacity-90 transition cursor-pointer"
             >
               <Settings className="w-3 h-3" />
-              <span>{language === 'ko' ? '본사 리전 설정 변경' : 'Ubah Region Kantor'}</span>
+              <span>{language === 'ko' ? '본사 리전 설정 변경' : 'Configure Office Region'}</span>
             </button>
           </div>
         </div>

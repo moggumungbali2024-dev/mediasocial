@@ -31,7 +31,9 @@ import {
   BrandSubscriptionPlan,
   PlatformBrandTenant,
   PlatformWalletWithdrawal,
-  SubscriptionReminderLog
+  SubscriptionReminderLog,
+  VisualPinAnnotation,
+  DeliverableVersion
 } from '../types.ts';
 import {
   INITIAL_BRANCHES,
@@ -107,6 +109,7 @@ interface PortalContextType {
   platformUsers: UserProfile[];
   addPlatformUser: (data: Omit<UserProfile, 'id' | 'joined_date'>) => { success: boolean; message: string };
   updatePlatformUser: (id: string, updates: Partial<UserProfile>) => { success: boolean; message: string };
+  deletePlatformUser: (id: string) => { success: boolean; message: string };
   registerBrand: (data: {
     name: string;
     slug?: string;
@@ -206,6 +209,7 @@ interface PortalContextType {
   // Budget Requests (HQ Creative, Leader & Owner)
   budgetRequests: BudgetRequest[];
   addBudgetRequest: (data: Omit<BudgetRequest, 'id' | 'created_at' | 'status' | 'approved_by'>) => { success: boolean; message: string };
+  deleteBudgetRequest: (id: string) => { success: boolean; message: string };
   approveBudgetRequest: (id: string) => void;
   rejectBudgetRequest: (id: string) => void;
   disburseBudgetRequest: (id: string, transferProofUrl: string, transferReference?: string, transferNote?: string) => { success: boolean; message: string };
@@ -250,6 +254,7 @@ interface PortalContextType {
   shootRequests: ShootRequest[];
   addShootRequest: (data: Omit<ShootRequest, 'id' | 'created_at' | 'status'>) => { success: boolean; message: string };
   updateShootRequestStatus: (id: string, status: ShootRequest['status'], assignedCreativeId?: string) => void;
+  deleteShootRequest: (id: string) => { success: boolean; message: string };
 
   // Navigation & Control Actions
   setSelectedBranchFilter: (branchId: string) => void;
@@ -272,6 +277,8 @@ interface PortalContextType {
     target_date: string;
     category: ContentPillar;
     brief_attachment_name?: string;
+    bypassLeadTime?: boolean;
+    bypassQuota?: boolean;
   }) => { success: boolean; message: string };
   updateDesignRequestStatus: (
     requestId: string,
@@ -299,8 +306,29 @@ interface PortalContextType {
     status?: RequestStatus,
     approval_mode?: 'self_approved' | 'leader_approved' | 'pending_leader'
   ) => void;
+  deleteDesignRequest: (id: string) => { success: boolean; message: string };
   addDesignComment: (requestId: string, message: string, tag?: string) => void;
   updateDesignCaption: (requestId: string, caption: string) => void;
+  addPinAnnotation: (
+    requestId: string,
+    pin: {
+      x_percent: number;
+      y_percent: number;
+      comment: string;
+      tag?: string;
+    }
+  ) => void;
+  togglePinResolution: (requestId: string, pinId: string) => void;
+  deletePinAnnotation: (requestId: string, pinId: string) => void;
+  addDeliverableVersion: (
+    requestId: string,
+    version: {
+      media_url: string;
+      media_type?: 'image' | 'video';
+      title?: string;
+      change_notes?: string;
+    }
+  ) => void;
 
   // Promo Engine
   addPromoRequest: (data: {
@@ -311,8 +339,11 @@ interface PortalContextType {
     start_date: string;
     end_date: string;
     terms: string;
+    bypassCutoff?: boolean;
+    bypassQuota?: boolean;
   }) => { success: boolean; message: string };
   updatePromoStatus: (promoId: string, status: PromoRequest['status']) => void;
+  deletePromoRequest: (id: string) => { success: boolean; message: string };
 
   // Invoicing & Custom Pricing
   generateMonthlyInvoices: (periodMonth?: string) => { generatedCount: number; message: string };
@@ -331,6 +362,7 @@ interface PortalContextType {
   ) => void;
   uploadPaymentProof: (invoiceId: string, proofUrl: string, proofNotes?: string) => void;
   verifyPayment: (invoiceId: string, isPaid: boolean) => void;
+  deleteInvoice: (id: string) => { success: boolean; message: string };
 
   // Exposure Rotator
   addExposureSlot: (slot: Omit<ExposureSlot, 'id'>) => void;
@@ -389,7 +421,7 @@ const MOCK_USER_EMAILS = new Set([
 function cleanMockInfluencers(list: Influencer[]): Influencer[] {
   if (!Array.isArray(list)) return [];
   return list.filter((inf) => {
-    const handle = (inf.instagram_handle || '').replace('@', '').toLowerCase().trim();
+    const handle = (inf.handle || (inf as any).instagram_handle || '').replace('@', '').toLowerCase().trim();
     return !MOCK_INFLUENCER_HANDLES.has(handle) && !['Gita Saraswati', 'Alexander Lee', 'Dinda Kirana', 'Kadek Mahesa', 'Valerie & Kevin', 'Rian Firdaus'].includes(inf.name);
   });
 }
@@ -470,7 +502,7 @@ function cleanMockMeetingAgendas(list: MeetingAgenda[], currentSlug?: string): M
   return list.filter((m) => {
     if (!m || !m.id) return false;
     if (m.id.startsWith('meet-') && m.id.length > 10) return true;
-    const text = `${m.title || ''} ${m.notes || ''} ${m.agenda || ''} ${m.location_or_link || ''}`;
+    const text = `${m.title || ''} ${m.notes || ''} ${(m as any).agenda || ''} ${m.location_or_link || ''}`;
     if (currentSlug !== 'moggumung') {
       if (
         ['meet-001', 'meet-002', 'meet-003'].includes(m.id) ||
@@ -959,17 +991,17 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
     return {
       success: true,
-      message: 'Kata sandi berhasil diperbarui!'
+      message: language === 'ko' ? '비밀번호가 성공적으로 업데이트되었습니다!' : 'Password updated successfully!'
     };
   };
 
   const addPlatformUser = (data: Omit<UserProfile, 'id' | 'joined_date'>): { success: boolean; message: string } => {
     if (!data.full_name || !data.phone) {
-      return { success: false, message: 'Nama lengkap dan nomor HP wajib diisi.' };
+      return { success: false, message: language === 'ko' ? '이름과 전화번호를 모두 입력해야 합니다.' : 'Full name and phone number are required.' };
     }
     const cleanPhone = data.phone.replace(/[^0-9]/g, '');
     if (platformUsers.some((u) => (u.phone || '').replace(/[^0-9]/g, '') === cleanPhone)) {
-      return { success: false, message: 'Nomor HP ini sudah terdaftar sebagai pengguna platform.' };
+      return { success: false, message: language === 'ko' ? '이 전화번호는 이미 등록되어 있습니다.' : 'This phone number is already registered.' };
     }
 
     const newUser: UserProfile = {
@@ -1000,7 +1032,12 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       status: 'active'
     }]).catch(err => console.warn('Sync user to Supabase:', err));
 
-    return { success: true, message: `Pengguna platform ${data.full_name} (${data.role}) berhasil ditambahkan!` };
+    return {
+      success: true,
+      message: language === 'ko'
+        ? `플랫폼 사용자 ${data.full_name} (${data.role}) 등록이 완료되었습니다!`
+        : `Platform user ${data.full_name} (${data.role}) successfully created!`
+    };
   };
 
   const updatePlatformUser = (id: string, updates: Partial<UserProfile>): { success: boolean; message: string } => {
@@ -1021,7 +1058,36 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       return updated;
     });
-    return { success: true, message: 'Data pengguna platform berhasil diperbarui!' };
+    return {
+      success: true,
+      message: language === 'ko' ? '플랫폼 사용자 정보가 업데이트되었습니다!' : 'Platform user profile updated successfully!'
+    };
+  };
+
+  const deletePlatformUser = (id: string): { success: boolean; message: string } => {
+    if (id === currentUserId || id === currentUser.id) {
+      return {
+        success: false,
+        message: language === 'ko' ? '현재 로그인된 본인 계정은 삭제할 수 없습니다.' : 'You cannot delete your own active platform account.'
+      };
+    }
+    const target = platformUsers.find((u) => u.id === id);
+    if (!target) {
+      return {
+        success: false,
+        message: language === 'ko' ? '플랫폼 사용자를 찾을 수 없습니다.' : 'Platform user not found.'
+      };
+    }
+    setPlatformUsers((prev) => {
+      const updated = prev.filter((u) => u.id !== id);
+      saveStorage('platform_users', updated);
+      return updated;
+    });
+    SupabaseService.deleteRecord('users', id).catch((err) => console.warn('Sync deletePlatformUser to Supabase:', err));
+    return {
+      success: true,
+      message: language === 'ko' ? `플랫폼 사용자 ${target.full_name} 계정이 삭제되었습니다.` : `Platform user ${target.full_name} deleted successfully.`
+    };
   };
 
   // Register New Brand HQ
@@ -1038,13 +1104,13 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     plan_id?: string;
   }): { success: boolean; message: string; brandSlug?: string; user?: UserProfile } => {
     if (!data.name || !data.hq_owner_name || !data.hq_owner_phone) {
-      return { success: false, message: 'Nama Brand, Nama HQ Owner, dan Nomor WhatsApp wajib diisi.' };
+      return { success: false, message: language === 'ko' ? '브랜드명, 본사 소유자명, WhatsApp 번호는 필수입니다.' : 'Brand name, HQ owner name, and WhatsApp phone are required.' };
     }
 
     const cleanSlug = (data.slug || data.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'brand').trim();
 
     if (platformBrands.some((b) => b.slug === cleanSlug)) {
-      return { success: false, message: `Brand dengan slug "${cleanSlug}" sudah terdaftar. Silakan gunakan nama lain.` };
+      return { success: false, message: language === 'ko' ? `슬러그 "${cleanSlug}"의 브랜드가 이미 존재합니다. 다른 이름을 사용하세요.` : `Brand with slug "${cleanSlug}" already exists. Please use a different name.` };
     }
 
     const newBrandTenant: PlatformBrandTenant = {
@@ -1218,7 +1284,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: true,
-      message: `Brand "${data.name}" berhasil didaftarkan! Selamat datang di portal.`,
+      message: language === 'ko' ? `브랜드 "${data.name}" 등록이 완료되었습니다! 포털에 오신 것을 환영합니다.` : `Brand "${data.name}" successfully registered! Welcome to the portal.`,
       brandSlug: cleanSlug,
       user: newHqOwnerUser
     };
@@ -1244,7 +1310,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     max_promos?: number;
   }): { success: boolean; message: string; branchId?: string; inviteLink?: string; waText?: string } => {
     if (!data.name || !data.city || !data.pic_name || !data.pic_phone) {
-      return { success: false, message: 'Nama Cabang, Kota, Nama Store Manager (PIC), dan Nomor WhatsApp wajib diisi.' };
+      return { success: false, message: language === 'ko' ? '지점명, 도시, 지점장 이름, WhatsApp 번호는 필수입니다.' : 'Branch name, city, store manager name, and WhatsApp number are required.' };
     }
 
     const branchSlug = data.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'branch';
@@ -1331,11 +1397,13 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }]).catch(err => console.warn('Sync branch user to Supabase:', err));
 
     const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/${activeTenantSlug}` : `https://mediasocial.team/${activeTenantSlug}`;
-    const waText = `Halo ${data.pic_name}! 👋%0A%0AAnda telah diundang untuk mengelola cabang *${data.name}* di Portal Brand *${whitelabelConfig.brand_name}*.%0A%0A🔗 *Link Portal:* ${portalUrl}%0A📱 *Nomor HP Login:* ${data.pic_phone}%0A🔑 *Password:* ${managerPassword}%0A%0ASilakan masuk untuk request desain, upload promo, dan pantau status jadwal cabang Anda.`;
+    const waText = language === 'ko'
+      ? `안녕하세요 ${data.pic_name}님! 👋%0A%0A*${whitelabelConfig.brand_name}* 브랜드 포털에서 *${data.name}* 지점을 관리하도록 초대되었습니다.%0A%0A🔗 *포털 링크:* ${portalUrl}%0A📱 *로그인 휴대폰 번호:* ${data.pic_phone}%0A🔑 *비밀번호:* ${managerPassword}%0A%0A로그인하여 디자인 요청, 프로모션 등록, 지점 일정을 관리하세요.`
+      : `Hello ${data.pic_name}! 👋%0A%0AYou have been invited to manage branch *${data.name}* in the *${whitelabelConfig.brand_name}* Brand Portal.%0A%0A🔗 *Portal Link:* ${portalUrl}%0A📱 *Login Phone:* ${data.pic_phone}%0A🔑 *Password:* ${managerPassword}%0A%0APlease sign in to submit design requests, upload promos, and view your calendar.`;
 
     return {
       success: true,
-      message: `Cabang ${data.name} berhasil ditambahkan dan undangan siap dikirim!`,
+      message: language === 'ko' ? `${data.name} 지점이 추가되었으며 초대장이 준비되었습니다!` : `Branch ${data.name} added successfully and invitation is ready to send!`,
       branchId,
       inviteLink: portalUrl,
       waText
@@ -1841,8 +1909,11 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (budgetRes.success && budgetRes.data) {
         const remoteBudgets: BudgetRequest[] = cleanMockBudgetRequests(budgetRes.data.map((b: any) => ({
           id: b.id,
-          branch_id: b.branch_id || undefined,
-          branch_name: b.branch_name || undefined,
+          requester_id: b.requester_id || 'user-system',
+          requester_name: b.requester_name || 'Creative Ops',
+          requester_role: (b.requester_role as UserRole) || 'hq_leader',
+          target_branch_id: b.target_branch_id || b.branch_id || 'all',
+          target_branch_name: b.target_branch_name || b.branch_name || 'All Branches',
           type: b.type || 'meta_ads',
           title: b.title,
           amount: Number(b.amount) || 0,
@@ -1872,7 +1943,8 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             type: m.type || 'hq_sync',
             location_or_link: m.location_or_link || m.meeting_url || '',
             attendees: Array.isArray(m.attendees) ? m.attendees : (Array.isArray(m.participants) ? m.participants : []),
-            notes: m.notes || m.agenda || ''
+            notes: m.notes || m.agenda || '',
+            created_at: m.created_at || simulatedDate
           })), activeTenantSlug);
           setMeetingAgendas(remoteMeets);
           saveBrandStorage(activeTenantSlug, 'meeting_agendas', remoteMeets);
@@ -1997,11 +2069,15 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Derived current user & role
   const currentUser: UserProfile = useMemo(() => {
+    const foundPlatform = platformUsers.find((p) => p.id === currentUserId);
+    if (foundPlatform) {
+      return foundPlatform;
+    }
     if (!users || users.length === 0) {
       return fallbackUser;
     }
     return users.find((u) => u.id === currentUserId) || users[0] || fallbackUser;
-  }, [users, currentUserId, fallbackUser]);
+  }, [users, platformUsers, currentUserId, fallbackUser]);
 
   const activeRole: UserRole = currentUser?.role || 'platform_owner';
 
@@ -2133,15 +2209,24 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const deleteUser = (id: string): { success: boolean; message: string } => {
-    if (id === currentUser.id) {
-      return { success: false, message: 'Anda tidak dapat menghapus akun Anda sendiri saat sedang aktif.' };
+    if (id === currentUserId || id === currentUser.id) {
+      return {
+        success: false,
+        message: language === 'ko' ? '현재 로그인된 본인 계정은 삭제할 수 없습니다.' : 'You cannot delete your own active account.'
+      };
     }
     const target = users.find((u) => u.id === id);
     if (!target) {
-      return { success: false, message: 'User tidak ditemukan.' };
+      return {
+        success: false,
+        message: language === 'ko' ? '사용자를 찾을 수 없습니다.' : 'User not found.'
+      };
     }
     if (target.role === 'platform_owner') {
-      return { success: false, message: 'Platform Superadmin tidak dapat dihapus.' };
+      return {
+        success: false,
+        message: language === 'ko' ? '플랫폼 최고관리자는 삭제할 수 없습니다.' : 'Platform Superadmin cannot be deleted.'
+      };
     }
 
     setUsers((prev) => {
@@ -2157,12 +2242,17 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       user_name: currentUser.full_name,
       action_type: 'request_status_changed',
       title: `User Deleted: ${target.full_name}`,
-      description: `User ${target.full_name} (${target.role} - ${target.phone}) dihapus dari sistem.`,
+      description: language === 'ko'
+        ? `사용자 ${target.full_name} (${target.role} - ${target.phone}) 계정이 삭제되었습니다.`
+        : `User ${target.full_name} (${target.role} - ${target.phone}) has been deleted.`,
       severity: 'warning',
       link_tab: 'users'
     });
 
-    return { success: true, message: `User ${target.full_name} berhasil dihapus.` };
+    return {
+      success: true,
+      message: language === 'ko' ? `${target.full_name} 사용자가 성공적으로 삭제되었습니다.` : `User ${target.full_name} deleted successfully.`
+    };
   };
 
   const setSimulatedDate = (date: string) => {
@@ -2420,13 +2510,15 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       branch_name: newBranch.name,
       user_name: currentUser.full_name,
       action_type: 'invoice_generated',
-      title: `Cabang Baru Terdaftar: ${newBranch.name}`,
-      description: `HQ mendaftarkan cabang baru (${newBranch.city}) dengan paket ${newBranch.package_tier} & saldo wallet Rp${newBranch.wallet_balance.toLocaleString('id-ID')}.`,
+      title: language === 'ko' ? `신규 지점 등록: ${newBranch.name}` : `New Branch Registered: ${newBranch.name}`,
+      description: language === 'ko'
+        ? `본사에서 신규 지점(${newBranch.city})을 등록했습니다. 플랜: ${newBranch.package_tier}`
+        : `HQ registered new branch (${newBranch.city}) with tier ${newBranch.package_tier}.`,
       severity: 'success',
       link_tab: 'branches'
     });
 
-    return { success: true, message: 'Cabang franchise berhasil ditambahkan!', branchId: newId };
+    return { success: true, message: language === 'ko' ? '가맹 지점이 추가되었습니다!' : 'Franchise branch added successfully!', branchId: newId };
   };
 
   const updateBranch = (id: string, updates: Partial<Branch>) => {
@@ -2438,8 +2530,10 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       branch_name: updates.name || branches.find((b) => b.id === id)?.name,
       user_name: currentUser.full_name,
       action_type: 'custom_pricing_updated',
-      title: `Profil Cabang Diperbarui: ${updates.name || id}`,
-      description: `Detail cabang dan konfigurasi paket telah diperbarui oleh ${currentUser.full_name}.`,
+      title: language === 'ko' ? `지점 프로필 업데이트: ${updates.name || id}` : `Branch Profile Updated: ${updates.name || id}`,
+      description: language === 'ko'
+        ? `${currentUser.full_name}님이 지점 세부정보를 수정했습니다.`
+        : `Branch details updated by ${currentUser.full_name}.`,
       severity: 'info',
       link_tab: 'branches'
     });
@@ -2453,13 +2547,15 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     addActivity({
       user_name: currentUser.full_name,
       action_type: 'custom_pricing_updated',
-      title: `Cabang Dihapus / Nonaktif: ${target.name}`,
-      description: `Cabang ${target.name} telah dihapus dari jaringan franchise oleh ${currentUser.full_name}.`,
+      title: language === 'ko' ? `지점 삭제 / 비활성화: ${target.name}` : `Branch Deleted / Deactivated: ${target.name}`,
+      description: language === 'ko'
+        ? `${currentUser.full_name}님이 ${target.name} 지점을 삭제했습니다.`
+        : `Branch ${target.name} removed by ${currentUser.full_name}.`,
       severity: 'warning',
       link_tab: 'branches'
     });
 
-    return { success: true, message: 'Cabang berhasil dihapus.' };
+    return { success: true, message: language === 'ko' ? '지점이 성공적으로 삭제되었습니다.' : 'Branch deleted successfully.' };
   };
 
   // Branch Wallet & Deposit System
@@ -2655,14 +2751,16 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         branch_name: targetBgt.target_branch_name,
         user_name: currentUser.full_name,
         action_type: 'budget_approved',
-        title: `Dana Ditransfer: ${targetBgt.title}`,
-        description: `HQ mentransfer ${whitelabelConfig.currency_symbol}${targetBgt.amount.toLocaleString('id-ID')} ke tim kreatif. Bukti transfer telah dilampirkan.`,
+        title: language === 'ko' ? `자금 이체 완료: ${targetBgt.title}` : `Funds Transferred: ${targetBgt.title}`,
+        description: language === 'ko'
+          ? `본사에서 크리에이티브 팀으로 ${whitelabelConfig.currency_symbol}${targetBgt.amount.toLocaleString()}을 이체했습니다. 이체 증빙이 첨부되었습니다.`
+          : `HQ transferred ${whitelabelConfig.currency_symbol}${targetBgt.amount.toLocaleString()} to creative team. Transfer proof attached.`,
         severity: 'success',
         link_tab: 'requests'
       });
     }
 
-    return { success: true, message: 'Dana berhasil ditransfer dan bukti pembayaran telah diunggah!' };
+    return { success: true, message: language === 'ko' ? '자금이 이체되었으며 결제 증빙이 업로드되었습니다!' : 'Funds successfully transferred and payment proof uploaded!' };
   };
 
   const acknowledgeBudgetDisbursement = (id: string) => {
@@ -2718,14 +2816,40 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         branch_name: targetBgt.target_branch_name,
         user_name: currentUser.full_name,
         action_type: 'request_status_changed',
-        title: `Laporan Pelaksanaan Selesai: ${targetBgt.title}`,
-        description: `Tim kreatif mengunggah laporan pertanggungjawaban (LPJ) biaya ${whitelabelConfig.currency_symbol}${report.spent_amount.toLocaleString('id-ID')} & screenshot hasil untuk ${targetBgt.target_branch_name}.`,
+        title: language === 'ko' ? `집행 완료 보고서 제출: ${targetBgt.title}` : `Budget Completion Report: ${targetBgt.title}`,
+        description: language === 'ko'
+          ? `지점(${targetBgt.target_branch_name})에 정산 금액 ${whitelabelConfig.currency_symbol}${report.spent_amount.toLocaleString()} 및 결과 보고서가 제출되었습니다.`
+          : `Creative team uploaded completion report (${whitelabelConfig.currency_symbol}${report.spent_amount.toLocaleString()}) for ${targetBgt.target_branch_name}.`,
         severity: 'success',
         link_tab: 'billing'
       });
     }
 
-    return { success: true, message: language === 'ko' ? '집행 보고서(LPJ)가 지점에 성공적으로 제출되었습니다.' : 'LPJ completion report successfully delivered to branch!' };
+    return { success: true, message: language === 'ko' ? '집행 보고서(LPJ)가 성공적으로 제출되었습니다.' : 'LPJ completion report successfully delivered to branch!' };
+  };
+
+  const deleteBudgetRequest = (id: string): { success: boolean; message: string } => {
+    const target = budgetRequests.find((b) => b.id === id);
+    if (!target) {
+      return {
+        success: false,
+        message: language === 'ko' ? '예산 요청을 찾을 수 없습니다.' : 'Budget request not found.'
+      };
+    }
+
+    setBudgetRequests((prev) => {
+      const updated = prev.filter((b) => b.id !== id);
+      saveBrandStorage(activeTenantSlug, 'budget_requests', updated);
+      return updated;
+    });
+
+    SupabaseService.deleteFromSupabase('budget_requests', `id=eq.${id}&brand_slug=eq.${activeTenantSlug}`)
+      .catch((err) => console.warn('Sync deleteBudgetRequest to Supabase:', err));
+
+    return {
+      success: true,
+      message: language === 'ko' ? '예산 요청이 삭제되었습니다.' : 'Budget request deleted successfully.'
+    };
   };
 
   // HQ Operational Reimbursements & Work Expense
@@ -3209,6 +3333,30 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const deleteShootRequest = (id: string): { success: boolean; message: string } => {
+    const target = shootRequests.find((s) => s.id === id);
+    if (!target) {
+      return {
+        success: false,
+        message: language === 'ko' ? '촬영 요청을 찾을 수 없습니다.' : 'Shoot request not found.'
+      };
+    }
+
+    setShootRequests((prev) => {
+      const updated = prev.filter((s) => s.id !== id);
+      saveBrandStorage(activeTenantSlug, 'shoot_requests', updated);
+      return updated;
+    });
+
+    SupabaseService.deleteFromSupabase('shoot_requests', `id=eq.${id}&brand_slug=eq.${activeTenantSlug}`)
+      .catch((err) => console.warn('Sync deleteShootRequest to Supabase:', err));
+
+    return {
+      success: true,
+      message: language === 'ko' ? '촬영 일정이 삭제되었습니다.' : 'Shoot request deleted successfully.'
+    };
+  };
+
   // Helper to get quota for branch & period
   const getBranchQuota = (branchId: string, periodMonth?: string): MonthlyQuota => {
     const month = periodMonth || simulatedDate.slice(0, 7);
@@ -3274,13 +3422,16 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     target_date: string;
     category: ContentPillar;
     brief_attachment_name?: string;
+    bypassLeadTime?: boolean;
+    bypassQuota?: boolean;
   }): { success: boolean; message: string } => {
     const periodMonth = simulatedDate.slice(0, 7);
     const quota = getBranchQuota(data.branch_id, periodMonth);
     const branch = branches.find((b) => b.id === data.branch_id);
     const maxDesignQuota = whitelabelConfig.max_monthly_design_requests || 3;
+    const userIsHQ = isHQ || currentUser.role === 'platform_owner' || currentUser.role === 'platform_finance' || currentUser.role === 'platform_admin' || currentUser.role === 'hq_owner' || currentUser.role === 'hq_leader' || currentUser.role === 'hq_creative' || currentUser.role === 'pusat_admin';
 
-    if (quota.design_used >= maxDesignQuota) {
+    if (!data.bypassQuota && !userIsHQ && quota.design_used >= maxDesignQuota) {
       return {
         success: false,
         message: language === 'ko'
@@ -3289,12 +3440,14 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }
 
-    const dateCheck = isTargetDateValid(data.target_date);
-    if (!dateCheck.valid) {
-      return {
-        success: false,
-        message: dateCheck.reason || 'Invalid publication date.'
-      };
+    if (!data.bypassLeadTime && !userIsHQ) {
+      const dateCheck = isTargetDateValid(data.target_date);
+      if (!dateCheck.valid) {
+        return {
+          success: false,
+          message: dateCheck.reason || 'Invalid publication date.'
+        };
+      }
     }
 
     const newRequest: DesignRequest = {
@@ -3617,6 +3770,190 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
+  const addPinAnnotation = (
+    requestId: string,
+    pin: {
+      x_percent: number;
+      y_percent: number;
+      comment: string;
+      tag?: string;
+    }
+  ) => {
+    let targetReq: DesignRequest | undefined;
+    setDesignRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          const currentPins = req.pin_annotations || [];
+          const nextPinNum = currentPins.length > 0 ? Math.max(...currentPins.map(p => p.pin_number)) + 1 : 1;
+          const newPin: VisualPinAnnotation = {
+            id: `pin-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            pin_number: nextPinNum,
+            x_percent: Math.round(pin.x_percent * 100) / 100,
+            y_percent: Math.round(pin.y_percent * 100) / 100,
+            author_id: currentUser.id,
+            author_name: currentUser.full_name,
+            author_role: currentUser.role,
+            author_avatar: currentUser.avatar_url,
+            comment: pin.comment.trim(),
+            tag: pin.tag || 'General',
+            created_at: `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
+            resolved: false
+          };
+          targetReq = {
+            ...req,
+            pin_annotations: [...currentPins, newPin]
+          };
+          return targetReq;
+        }
+        return req;
+      })
+    );
+
+    if (targetReq) {
+      addActivity({
+        branch_id: targetReq.branch_id,
+        user_name: currentUser.full_name,
+        action_type: 'request_status_changed',
+        title: language === 'ko' ? `디자인 핀 코멘트 추가: ${targetReq.title}` : `Visual Revision Pin Added: ${targetReq.title}`,
+        description: `${currentUser.full_name}: "${pin.comment.slice(0, 50)}${pin.comment.length > 50 ? '...' : ''}"`,
+        severity: 'purple',
+        target_id: requestId,
+        link_tab: 'requests'
+      });
+    }
+  };
+
+  const togglePinResolution = (requestId: string, pinId: string) => {
+    setDesignRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          const updatedPins = (req.pin_annotations || []).map((p) => {
+            if (p.id === pinId) {
+              const nextResolved = !p.resolved;
+              return {
+                ...p,
+                resolved: nextResolved,
+                resolved_by: nextResolved ? currentUser.full_name : undefined,
+                resolved_at: nextResolved ? `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : undefined
+              };
+            }
+            return p;
+          });
+          return {
+            ...req,
+            pin_annotations: updatedPins
+          };
+        }
+        return req;
+      })
+    );
+  };
+
+  const deletePinAnnotation = (requestId: string, pinId: string) => {
+    setDesignRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          return {
+            ...req,
+            pin_annotations: (req.pin_annotations || []).filter((p) => p.id !== pinId)
+          };
+        }
+        return req;
+      })
+    );
+  };
+
+  const addDeliverableVersion = (
+    requestId: string,
+    version: {
+      media_url: string;
+      media_type?: 'image' | 'video';
+      title?: string;
+      change_notes?: string;
+    }
+  ) => {
+    setDesignRequests((prev) =>
+      prev.map((req) => {
+        if (req.id === requestId) {
+          const currentVersions = req.deliverable_versions || [];
+          const nextVerNum = currentVersions.length > 0 ? Math.max(...currentVersions.map(v => v.version_number)) + 1 : (req.asset_result_url || req.preview_media_url ? 2 : 1);
+          
+          let finalVersions = [...currentVersions];
+          if (finalVersions.length === 0 && (req.asset_result_url || req.preview_media_url)) {
+            finalVersions.push({
+              id: `ver-1-${Date.now()}`,
+              version_number: 1,
+              title: 'V1: Initial Deliverable',
+              media_url: req.preview_media_url || req.asset_result_url || '',
+              media_type: req.preview_media_type || 'image',
+              uploaded_by_name: req.assigned_to_name || 'Creative Team',
+              uploaded_at: req.created_at || simulatedDate,
+              change_notes: 'Initial draft upload'
+            });
+          }
+
+          const newVer: DeliverableVersion = {
+            id: `ver-${nextVerNum}-${Date.now()}`,
+            version_number: nextVerNum,
+            title: version.title || `V${nextVerNum}: ${language === 'ko' ? '수정본' : 'Revision Draft'}`,
+            media_url: version.media_url,
+            media_type: version.media_type || 'image',
+            uploaded_by_name: currentUser.full_name,
+            uploaded_at: `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
+            change_notes: version.change_notes || (language === 'ko' ? '수정 피드백 반영본' : 'Revised draft addressing feedback')
+          };
+
+          return {
+            ...req,
+            asset_result_url: version.media_url,
+            preview_media_url: version.media_url,
+            preview_media_type: version.media_type || 'image',
+            status: 'review',
+            deliverable_versions: [...finalVersions, newVer]
+          };
+        }
+        return req;
+      })
+    );
+  };
+
+  const deleteDesignRequest = (id: string): { success: boolean; message: string } => {
+    const target = designRequests.find((r) => r.id === id);
+    if (!target) {
+      return {
+        success: false,
+        message: language === 'ko' ? '디자인 요청을 찾을 수 없습니다.' : 'Design request not found.'
+      };
+    }
+
+    const targetMonth = target.created_at ? target.created_at.slice(0, 7) : (target.target_date ? target.target_date.slice(0, 7) : simulatedDate.slice(0, 7));
+    setQuotas((prev) =>
+      prev.map((q) => {
+        if (q.branch_id === target.branch_id && q.period_month === targetMonth) {
+          return {
+            ...q,
+            design_used: Math.max(0, q.design_used - 1)
+          };
+        }
+        return q;
+      })
+    );
+
+    setDesignRequests((prev) => {
+      const updated = prev.filter((r) => r.id !== id);
+      saveBrandStorage(activeTenantSlug, 'design_requests', updated);
+      return updated;
+    });
+
+    SupabaseService.deleteFromSupabase('design_requests', `id=eq.${id}&brand_slug=eq.${activeTenantSlug}`)
+      .catch((err) => console.warn('Sync deleteDesignRequest to Supabase:', err));
+
+    return {
+      success: true,
+      message: language === 'ko' ? '디자인 요청이 삭제되었습니다 (월간 한도가 복원되었습니다).' : 'Design request deleted successfully (quota refunded).'
+    };
+  };
+
   // Promo Request submission with Quota check & Cutoff
   const addPromoRequest = (data: {
     branch_id: string;
@@ -3626,13 +3963,16 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     start_date: string;
     end_date: string;
     terms: string;
+    bypassCutoff?: boolean;
+    bypassQuota?: boolean;
   }): { success: boolean; message: string } => {
     const periodMonth = data.target_month || simulatedDate.slice(0, 7);
     const quota = getBranchQuota(data.branch_id, periodMonth);
     const branch = branches.find((b) => b.id === data.branch_id);
     const maxPromoQuota = whitelabelConfig.max_monthly_active_promos || 2;
+    const userIsHQ = isHQ || currentUser.role === 'platform_owner' || currentUser.role === 'platform_finance' || currentUser.role === 'platform_admin' || currentUser.role === 'hq_owner' || currentUser.role === 'hq_leader' || currentUser.role === 'hq_creative' || currentUser.role === 'pusat_admin';
 
-    if (quota.promo_used >= maxPromoQuota) {
+    if (!data.bypassQuota && !userIsHQ && quota.promo_used >= maxPromoQuota) {
       return {
         success: false,
         message: language === 'ko'
@@ -3641,12 +3981,14 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       };
     }
 
-    const promoCheck = isPromoSubmissionAllowed(data.target_month);
-    if (!promoCheck.allowed) {
-      return {
-        success: false,
-        message: promoCheck.reason || 'Promo submission locked.'
-      };
+    if (!data.bypassCutoff && !userIsHQ) {
+      const promoCheck = isPromoSubmissionAllowed(data.target_month);
+      if (!promoCheck.allowed) {
+        return {
+          success: false,
+          message: promoCheck.reason || 'Promo submission locked.'
+        };
+      }
     }
 
     const newPromo: PromoRequest = {
@@ -3735,6 +4077,43 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return p;
       })
     );
+  };
+
+  const deletePromoRequest = (id: string): { success: boolean; message: string } => {
+    const target = promos.find((p) => p.id === id);
+    if (!target) {
+      return {
+        success: false,
+        message: language === 'ko' ? '프로모션 항목을 찾을 수 없습니다.' : 'Promo item not found.'
+      };
+    }
+
+    const targetMonth = target.target_month || (target.created_at ? target.created_at.slice(0, 7) : simulatedDate.slice(0, 7));
+    setQuotas((prev) =>
+      prev.map((q) => {
+        if (q.branch_id === target.branch_id && q.period_month === targetMonth) {
+          return {
+            ...q,
+            promo_used: Math.max(0, q.promo_used - 1)
+          };
+        }
+        return q;
+      })
+    );
+
+    setPromos((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      saveBrandStorage(activeTenantSlug, 'promos', updated);
+      return updated;
+    });
+
+    SupabaseService.deleteFromSupabase('promos', `id=eq.${id}&brand_slug=eq.${activeTenantSlug}`)
+      .catch((err) => console.warn('Sync deletePromoRequest to Supabase:', err));
+
+    return {
+      success: true,
+      message: language === 'ko' ? '프로모션이 삭제되었습니다.' : 'Promo deleted successfully (quota restored).'
+    };
   };
 
   // Custom Pricing per Branch
@@ -4030,6 +4409,30 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         link_tab: 'billing'
       });
     }
+  };
+
+  const deleteInvoice = (id: string): { success: boolean; message: string } => {
+    const target = invoices.find((inv) => inv.id === id);
+    if (!target) {
+      return {
+        success: false,
+        message: language === 'ko' ? '청구서를 찾을 수 없습니다.' : 'Invoice not found.'
+      };
+    }
+
+    setInvoices((prev) => {
+      const updated = prev.filter((inv) => inv.id !== id);
+      saveBrandStorage(activeTenantSlug, 'invoices', updated);
+      return updated;
+    });
+
+    SupabaseService.deleteFromSupabase('invoices', `id=eq.${id}&brand_slug=eq.${activeTenantSlug}`)
+      .catch((err) => console.warn('Sync deleteInvoice to Supabase:', err));
+
+    return {
+      success: true,
+      message: language === 'ko' ? '청구서가 성공적으로 삭제되었습니다.' : 'Invoice deleted successfully.'
+    };
   };
 
   // Exposure Slots
@@ -4431,7 +4834,9 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: true,
-      message: `Brand ${newBrand.name} berhasil didaftarkan! Subdomain: mediasocial.team/${newBrand.slug}`,
+      message: language === 'ko'
+        ? `${newBrand.name} 브랜드가 등록되었습니다! 서브도메인: mediasocial.team/${newBrand.slug}`
+        : `Brand ${newBrand.name} registered! Subdomain: mediasocial.team/${newBrand.slug}`,
       brand: newBrand
     };
   };
@@ -4503,7 +4908,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (brand) {
       SupabaseService.deleteFromSupabase('platform_brands', `id=eq.${id}`).catch(err => console.warn('Delete brand from Supabase:', err));
     }
-    return { success: true, message: 'Brand berhasil dihapus dari platform.' };
+    return { success: true, message: language === 'ko' ? '플랫폼에서 브랜드가 삭제되었습니다.' : 'Brand successfully deleted from platform.' };
   };
 
   const updateSubscriptionPlan = (id: string, updates: Partial<BrandSubscriptionPlan>) => {
@@ -4540,12 +4945,14 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     notes?: string
   ): { success: boolean; message: string } => {
     if (amount <= 0) {
-      return { success: false, message: 'Jumlah penarikan harus lebih besar dari Rp 0!' };
+      return { success: false, message: language === 'ko' ? '출금 금액은 0보다 커야 합니다!' : 'Withdrawal amount must be greater than 0!' };
     }
     if (amount > platformWalletBalance) {
       return {
         success: false,
-        message: `Saldo wallet platform tidak mencukupi. (Tersedia: Rp ${platformWalletBalance.toLocaleString('id-ID')})`
+        message: language === 'ko'
+          ? `플랫폼 잔액이 부족합니다. (보유 잔액: Rp ${platformWalletBalance.toLocaleString('id-ID')})`
+          : `Insufficient platform wallet balance. (Available: Rp ${platformWalletBalance.toLocaleString('id-ID')})`
       };
     }
     const refNo = `TRX-WD-${Date.now().toString().slice(-6)}`;
@@ -4560,20 +4967,27 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       requested_by_name: currentUser.full_name,
       created_at: `${simulatedDate} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
       reference_no: refNo,
-      notes: notes || 'Pencairan manual saldo subscription (siap integrasi payment gateway API)'
+      notes: notes || 'Platform subscription withdrawal'
     };
     setPlatformWithdrawals((prev) => [newWd, ...prev]);
 
     addActivity({
       user_name: currentUser.full_name,
       action_type: 'invoice_generated',
-      title: `Penarikan Dana Diajukan: Rp ${amount.toLocaleString('id-ID')}`,
-      description: `Owner mengajukan pencairan subscription ke ${bankName} (${accountNumber} a/n ${accountHolder}). Ref: ${refNo}`,
+      title: language === 'ko' ? `출금 요청 접수: Rp ${amount.toLocaleString('id-ID')}` : `Withdrawal Requested: Rp ${amount.toLocaleString('id-ID')}`,
+      description: language === 'ko'
+        ? `출금 요청: ${bankName} (${accountNumber} / ${accountHolder}). Ref: ${refNo}`
+        : `Withdrawal request to ${bankName} (${accountNumber} a/n ${accountHolder}). Ref: ${refNo}`,
       severity: 'warning',
       link_tab: 'dashboard'
     });
 
-    return { success: true, message: `Permintaan penarikan Rp ${amount.toLocaleString('id-ID')} berhasil diajukan!` };
+    return {
+      success: true,
+      message: language === 'ko'
+        ? `출금 요청(Rp ${amount.toLocaleString('id-ID')})이 성공적으로 접수되었습니다!`
+        : `Withdrawal request of Rp ${amount.toLocaleString('id-ID')} submitted successfully!`
+    };
   };
 
   const updateWithdrawalStatus = (id: string, status: PlatformWalletWithdrawal['status'], referenceNo?: string) => {
@@ -4707,6 +5121,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         platformUsers,
         addPlatformUser,
         updatePlatformUser,
+        deletePlatformUser,
         registerBrand,
         inviteBranch,
 
@@ -4774,6 +5189,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Budget & Shoot requests
         budgetRequests,
         addBudgetRequest,
+        deleteBudgetRequest,
         approveBudgetRequest,
         rejectBudgetRequest,
         disburseBudgetRequest,
@@ -4782,6 +5198,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         shootRequests,
         addShootRequest,
         updateShootRequestStatus,
+        deleteShootRequest,
 
         // HQ Operational Reimbursements & Expenses
         hqReimbursements,
@@ -4827,12 +5244,18 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateDesignRequestStatus,
         assignDesignRequest,
         updateDesignRequestDeliverable,
+        deleteDesignRequest,
         addDesignComment,
         updateDesignCaption,
+        addPinAnnotation,
+        togglePinResolution,
+        deletePinAnnotation,
+        addDeliverableVersion,
 
         // Promos
         addPromoRequest,
         updatePromoStatus,
+        deletePromoRequest,
 
         // Invoicing
         generateMonthlyInvoices,
@@ -4840,6 +5263,7 @@ export const PortalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateInvoiceCharges,
         uploadPaymentProof,
         verifyPayment,
+        deleteInvoice,
 
         // Exposure & Influencer
         addExposureSlot,

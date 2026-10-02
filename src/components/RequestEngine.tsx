@@ -49,7 +49,8 @@ import {
   TrendingUp,
   BarChart3,
   FileCheck2,
-  ImagePlus
+  ImagePlus,
+  Trash2
 } from 'lucide-react';
 import { 
   ContentPillar, 
@@ -62,6 +63,8 @@ import { CreativeKanbanBoard } from './CreativeKanbanBoard.tsx';
 import { SocialMediaMockupModal } from './SocialMediaMockupModal.tsx';
 import { DesignWhatsAppModal } from './DesignWhatsAppModal.tsx';
 import { OmnipostPublishModal } from './OmnipostPublishModal.tsx';
+import { VisualReviewModal } from './VisualReviewModal.tsx';
+import { calculateDesignSla } from '../utils/slaCalculator.ts';
 
 export const RequestEngine: React.FC = () => {
   const { 
@@ -83,7 +86,9 @@ export const RequestEngine: React.FC = () => {
     isTargetDateValid,
     isPromoSubmissionAllowed,
     addDesignRequest,
+    deleteDesignRequest,
     addPromoRequest,
+    deletePromoRequest,
     designRequests,
     promos,
     updateDesignRequestStatus,
@@ -93,8 +98,10 @@ export const RequestEngine: React.FC = () => {
     shootRequests,
     addShootRequest,
     updateShootRequestStatus,
+    deleteShootRequest,
     budgetRequests,
     addBudgetRequest,
+    deleteBudgetRequest,
     approveBudgetRequest,
     rejectBudgetRequest,
     disburseBudgetRequest,
@@ -190,6 +197,7 @@ export const RequestEngine: React.FC = () => {
   const [mockupRequest, setMockupRequest] = useState<DesignRequest | null>(null);
   const [waModalRequest, setWaModalRequest] = useState<DesignRequest | null>(null);
   const [omnipostModalRequest, setOmnipostModalRequest] = useState<DesignRequest | null>(null);
+  const [visualReviewRequest, setVisualReviewRequest] = useState<DesignRequest | null>(null);
 
   // Expanded comments accordion state
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
@@ -614,6 +622,7 @@ export const RequestEngine: React.FC = () => {
             <CreativeKanbanBoard
               onOpenMockup={(req) => setMockupRequest(req)}
               onSelectRequest={(req) => handleOpenTaskManagement(req)}
+              onOpenVisualReview={(req) => setVisualReviewRequest(req)}
             />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
@@ -829,6 +838,8 @@ export const RequestEngine: React.FC = () => {
                         const branchObj = branches.find((b) => b.id === req.branch_id);
                         const commentsList = req.comments || [];
                         const isCommentsOpen = !!expandedComments[req.id];
+                        const slaInfo = calculateDesignSla(req, language);
+                        const openPinsCount = req.pin_annotations?.filter(p => !p.resolved).length || 0;
 
                         return (
                           <div key={req.id} className="p-4 sm:p-5 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition space-y-3">
@@ -843,7 +854,15 @@ export const RequestEngine: React.FC = () => {
                                 <h4 className="font-bold text-slate-900 dark:text-white text-sm">{req.title}</h4>
                               </div>
 
-                              <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                              <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
+                                {/* SLA Countdown Timer Badge */}
+                                <div
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1.5 shadow-2xs ${slaInfo.colorClass.bg} ${slaInfo.colorClass.border} ${slaInfo.colorClass.text}`}
+                                  title={slaInfo.badgeSubtext}
+                                >
+                                  <div className={`w-1.5 h-1.5 rounded-full ${slaInfo.colorClass.dot}`} />
+                                  <span>{slaInfo.badgeText}</span>
+                                </div>
                                 {/* Approval Mode Badge */}
                                 {req.approval_mode === 'self_approved' && (
                                   <span className="text-[9px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 px-1.5 py-0.2 rounded">
@@ -977,18 +996,34 @@ export const RequestEngine: React.FC = () => {
                                     type="button"
                                     onClick={() => setWaModalRequest(req)}
                                     className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-lg border border-emerald-200 transition flex items-center gap-1 shadow-2xs"
-                                    title="Kirim Pesan WhatsApp sesuai Status"
+                                    title={language === 'ko' ? 'WhatsApp 상태 알림 전송' : 'Send WhatsApp Status Update'}
                                   >
                                     <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
                                     <span className="hidden sm:inline">WhatsApp</span>
                                   </button>
                                 )}
 
+                                {/* Visual Review & Pin Annotations Button (Canva / Figma style) */}
+                                <button
+                                  type="button"
+                                  onClick={() => setVisualReviewRequest(req)}
+                                  className="px-2.5 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+                                  title={language === 'ko' ? '비주얼 핀 코멘트 & 비포/애프터 슬라이더 리뷰' : 'Visual Pin Annotations & Before/After Slider'}
+                                >
+                                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                                  <span>{language === 'ko' ? '비주얼 리뷰' : 'Visual Review'}</span>
+                                  {openPinsCount > 0 && (
+                                    <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">
+                                      {openPinsCount}
+                                    </span>
+                                  )}
+                                </button>
+
                                 {/* Live Mockup Preview Button */}
                                 <button
                                   type="button"
                                   onClick={() => setMockupRequest(req)}
-                                  className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-pink-50 dark:hover:bg-pink-950/40 text-slate-700 dark:text-slate-300 hover:text-pink-600 dark:hover:text-pink-400 font-bold text-xs rounded-lg border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5"
+                                  className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-pink-50 dark:hover:bg-pink-950/40 text-slate-700 dark:text-slate-300 hover:text-pink-600 dark:hover:text-pink-400 font-bold text-xs rounded-lg border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5 cursor-pointer"
                                   title="Live Instagram Feed & Reels Mockup"
                                 >
                                   <Smartphone className="w-3.5 h-3.5 text-pink-500" />
@@ -1008,36 +1043,95 @@ export const RequestEngine: React.FC = () => {
                                   </button>
                                 )}
 
-                                {/* HQ Staff Claim & Manage Button */}
+                                {/* Direct Workflow Action Buttons */}
                                 {isHQ && (
-                                  <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
                                     {!req.assigned_to_user_id && isHQCreative && (
                                       <button
                                         onClick={() => assignDesignRequest(req.id, currentUser?.id || '')}
-                                        className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg shadow-xs transition"
+                                        className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg shadow-xs transition cursor-pointer"
                                       >
                                         {t('assignToMe')}
                                       </button>
                                     )}
 
-                                    {/* HQ Leader / Owner Direct Approve button if in review */}
-                                    {(isHQOwner || isHQLeader) && req.status === 'review' && (
+                                    {/* When Pending -> Start Working */}
+                                    {req.status === 'pending' && (
                                       <button
-                                        onClick={() => updateDesignRequestStatus(req.id, 'approved', req.asset_result_url, 'Approved by HQ Leader', 'leader_approved')}
-                                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition"
+                                        onClick={() => updateDesignRequestStatus(req.id, 'in_progress')}
+                                        className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer"
                                       >
-                                        {language === 'ko' ? '팀장 즉시 승인' : 'Leader Approve'}
+                                        <Clock className="w-3.5 h-3.5" />
+                                        <span>{language === 'ko' ? '작업 시작' : 'Start Task'}</span>
                                       </button>
+                                    )}
+
+                                    {/* When In Progress -> Advance to Review or Approve */}
+                                    {req.status === 'in_progress' && (
+                                      <>
+                                        <button
+                                          onClick={() => updateDesignRequestStatus(req.id, 'review')}
+                                          className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer"
+                                          title={language === 'ko' ? '검토 단계로 전달' : 'Submit for Review'}
+                                        >
+                                          <CheckCircle2 className="w-3.5 h-3.5" />
+                                          <span>{language === 'ko' ? '검토 요청' : 'Submit Review'}</span>
+                                        </button>
+                                        <button
+                                          onClick={() => updateDesignRequestStatus(req.id, 'approved', req.asset_result_url, 'Approved', 'self_approved')}
+                                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer"
+                                          title={language === 'ko' ? '즉시 승인 완료' : 'Approve & Complete'}
+                                        >
+                                          <Check className="w-3.5 h-3.5" />
+                                          <span>{language === 'ko' ? '승인 완료' : 'Approve'}</span>
+                                        </button>
+                                      </>
+                                    )}
+
+                                    {/* When Review -> Leader Approve or Revision */}
+                                    {req.status === 'review' && (
+                                      <>
+                                        <button
+                                          onClick={() => updateDesignRequestStatus(req.id, 'approved', req.asset_result_url, 'Approved by Leader', 'leader_approved')}
+                                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer"
+                                        >
+                                          <CheckCircle2 className="w-3.5 h-3.5" />
+                                          <span>{language === 'ko' ? '승인' : 'Approve'}</span>
+                                        </button>
+                                        <button
+                                          onClick={() => updateDesignRequestStatus(req.id, 'rejected')}
+                                          className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer"
+                                        >
+                                          <X className="w-3.5 h-3.5" />
+                                          <span>{language === 'ko' ? '수정 요청' : 'Revision'}</span>
+                                        </button>
+                                      </>
                                     )}
 
                                     <button
                                       onClick={() => handleOpenTaskManagement(req)}
-                                      className="px-2.5 py-1 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1"
+                                      className="px-2.5 py-1 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer"
                                     >
                                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                                       <span>{language === 'ko' ? '작업 관리' : 'Manage'}</span>
                                     </button>
                                   </div>
+                                )}
+
+                                {/* Delete Request Button */}
+                                {(isHQ || currentUser.branch_id === req.branch_id) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.confirm(language === 'ko' ? '이 디자인 요청을 삭제하시겠습니까? (월간 한도가 복원됩니다)' : 'Are you sure you want to delete this design request? (Monthly quota will be refunded)')) {
+                                        deleteDesignRequest(req.id);
+                                      }
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition cursor-pointer"
+                                    title={language === 'ko' ? '요청 삭제' : 'Delete Request'}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 )}
                               </div>
                             </div>
@@ -1345,9 +1439,25 @@ export const RequestEngine: React.FC = () => {
                       <span className="text-[10px] font-bold text-purple-800 dark:text-purple-300 bg-purple-100 dark:bg-purple-950 px-2 py-0.5 rounded">
                         {branch?.name}
                       </span>
-                      <span className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded uppercase">
-                        {promo.status}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded uppercase">
+                          {promo.status}
+                        </span>
+                        {(isHQ || currentUser.branch_id === promo.branch_id) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(language === 'ko' ? '이 프로모션 캠페인을 삭제하시겠습니까?' : 'Are you sure you want to delete this promo campaign?')) {
+                                deletePromoRequest(promo.id);
+                              }
+                            }}
+                            className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition cursor-pointer"
+                            title={language === 'ko' ? '프로모션 삭제' : 'Delete Promo'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <h4 className="font-bold text-sm text-slate-900 dark:text-white">{promo.title}</h4>
@@ -1525,14 +1635,30 @@ export const RequestEngine: React.FC = () => {
                           <span>{t('preferredDate')}: <strong className="font-mono text-slate-700 dark:text-slate-200">{shoot.preferred_date}</strong></span>
                         </div>
 
-                        {isHQ && shoot.status === 'pending' && (
-                          <button
-                            onClick={() => updateShootRequestStatus(shoot.id, 'scheduled', currentUser?.id || '')}
-                            className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg text-xs transition cursor-pointer"
-                          >
-                            {language === 'ko' ? '일정 승인 및 담당자 배정' : 'Confirm & Schedule'}
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {isHQ && shoot.status === 'pending' && (
+                            <button
+                              onClick={() => updateShootRequestStatus(shoot.id, 'scheduled', currentUser?.id || '')}
+                              className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg text-xs transition cursor-pointer"
+                            >
+                              {language === 'ko' ? '일정 승인 및 담당자 배정' : 'Confirm & Schedule'}
+                            </button>
+                          )}
+                          {(isHQ || shoot.requester_id === currentUser.id) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(language === 'ko' ? '이 촬영 요청을 삭제하시겠습니까?' : 'Are you sure you want to delete this shoot request?')) {
+                                  deleteShootRequest(shoot.id);
+                                }
+                              }}
+                              className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition cursor-pointer"
+                              title={language === 'ko' ? '촬영 요청 삭제' : 'Delete Shoot'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -1908,6 +2034,21 @@ export const RequestEngine: React.FC = () => {
                               <span>{language === 'ko' ? '이체 영수증 및 보고서 보기' : 'View Transfer Proof & LPJ'}</span>
                             </button>
                           )}
+
+                          {(isHQ || b.requester_id === currentUser.id) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(language === 'ko' ? '이 예산 요청을 삭제하시겠습니까?' : 'Are you sure you want to delete this budget request?')) {
+                                  deleteBudgetRequest(b.id);
+                                }
+                              }}
+                              className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition cursor-pointer"
+                              title={language === 'ko' ? '예산 요청 삭제' : 'Delete Budget'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2200,7 +2341,7 @@ export const RequestEngine: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setManagingReq(null)}
@@ -2210,9 +2351,67 @@ export const RequestEngine: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-md shadow-amber-500/20 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold shadow-md shadow-amber-500/20 cursor-pointer"
                 >
-                  {language === 'ko' ? '변경사항 저장' : 'Save Deliverables'}
+                  {language === 'ko' ? '현재 상태로 저장' : 'Save Deliverables'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!managingReq) return;
+                    if (modalAssigneeId && modalAssigneeId !== managingReq.assigned_to_user_id) {
+                      assignDesignRequest(managingReq.id, modalAssigneeId);
+                    }
+                    updateDesignRequestDeliverable(
+                      managingReq.id,
+                      {
+                        asset_result_url: modalAssetUrl,
+                        preview_media_url: modalPreviewMediaUrl,
+                        preview_media_type: modalPreviewMediaType,
+                        canva_url: modalCanvaUrl,
+                        figma_url: modalFigmaUrl,
+                        drive_url: modalDriveUrl,
+                        caption: modalCaption,
+                        creative_notes: modalNotes,
+                        status: 'review',
+                        approval_mode: modalApprovalMode
+                      }
+                    );
+                    setManagingReq(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{language === 'ko' ? '저장 후 검토 요청' : 'Save & Submit Review'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!managingReq) return;
+                    if (modalAssigneeId && modalAssigneeId !== managingReq.assigned_to_user_id) {
+                      assignDesignRequest(managingReq.id, modalAssigneeId);
+                    }
+                    updateDesignRequestDeliverable(
+                      managingReq.id,
+                      {
+                        asset_result_url: modalAssetUrl,
+                        preview_media_url: modalPreviewMediaUrl,
+                        preview_media_type: modalPreviewMediaType,
+                        canva_url: modalCanvaUrl,
+                        figma_url: modalFigmaUrl,
+                        drive_url: modalDriveUrl,
+                        caption: modalCaption,
+                        creative_notes: modalNotes,
+                        status: 'approved',
+                        approval_mode: 'self_approved'
+                      }
+                    );
+                    setManagingReq(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{language === 'ko' ? '저장 후 즉시 승인' : 'Save & Approve'}</span>
                 </button>
               </div>
             </form>
@@ -2737,6 +2936,14 @@ export const RequestEngine: React.FC = () => {
         designRequest={omnipostModalRequest || undefined}
         onClose={() => setOmnipostModalRequest(null)}
       />
+
+      {/* Visual Review & Pin Annotations Modal (Canva/Figma Workflow) */}
+      {visualReviewRequest && (
+        <VisualReviewModal
+          request={visualReviewRequest}
+          onClose={() => setVisualReviewRequest(null)}
+        />
+      )}
     </div>
   );
 };

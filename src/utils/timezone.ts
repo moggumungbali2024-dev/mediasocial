@@ -31,12 +31,14 @@ export interface OfficeTimeInfo {
   officeLocation: string; // e.g. "Bali, Indonesia"
   localTimeString: string; // e.g. "15:20:45"
   localTimeShort: string; // e.g. "15:20"
+  localDateString: string; // e.g. "27 Sep 2026"
   localTimezoneId: string; // e.g. "Asia/Jakarta"
   localLabel: string; // e.g. "WIB"
+  localCity: string; // e.g. "Jakarta"
   diffHours: number; // e.g. -1
   diffMinutes: number; // e.g. -60
   isDifferent: boolean; // true if viewer timezone != office timezone
-  diffDescription: string; // e.g. "-1 jam dari kantor" or "+1 hour from office"
+  diffDescription: string; // e.g. "+1 hour from office"
 }
 
 export function getOfficeTimeInfo(
@@ -45,7 +47,7 @@ export function getOfficeTimeInfo(
   officeLabelFallback: string = 'WITA',
   officeCity: string = 'Bali',
   officeCountry: string = 'Indonesia',
-  lang: 'id' | 'en' | 'ko' = 'id'
+  lang: 'en' | 'ko' | 'id' = 'en'
 ): OfficeTimeInfo {
   const safeOfficeTz = officeTz || 'Asia/Makassar';
 
@@ -56,7 +58,7 @@ export function getOfficeTimeInfo(
   let officeLabel = officeLabelFallback;
 
   try {
-    const formatterFull = new Intl.DateTimeFormat('id-ID', {
+    const formatterFull = new Intl.DateTimeFormat('en-GB', {
       timeZone: safeOfficeTz,
       hour: '2-digit',
       minute: '2-digit',
@@ -65,7 +67,7 @@ export function getOfficeTimeInfo(
     });
     officeTimeString = formatterFull.format(date);
 
-    const formatterShort = new Intl.DateTimeFormat('id-ID', {
+    const formatterShort = new Intl.DateTimeFormat('en-GB', {
       timeZone: safeOfficeTz,
       hour: '2-digit',
       minute: '2-digit',
@@ -73,7 +75,7 @@ export function getOfficeTimeInfo(
     });
     officeTimeShort = formatterShort.format(date);
 
-    const formatterDate = new Intl.DateTimeFormat('id-ID', {
+    const formatterDate = new Intl.DateTimeFormat(lang === 'ko' ? 'ko-KR' : 'en-US', {
       timeZone: safeOfficeTz,
       day: 'numeric',
       month: 'short',
@@ -82,7 +84,7 @@ export function getOfficeTimeInfo(
     officeDateString = formatterDate.format(date);
   } catch (err) {
     console.warn('Error formatting office time:', err);
-    officeTimeString = date.toLocaleTimeString('id-ID', { hour12: false });
+    officeTimeString = date.toLocaleTimeString('en-GB', { hour12: false });
     officeTimeShort = officeTimeString.slice(0, 5);
   }
 
@@ -100,12 +102,14 @@ export function getOfficeTimeInfo(
   // 2. User Local Time formatting
   let localTimeString = '00:00:00';
   let localTimeShort = '00:00';
+  let localDateString = '';
   let localTimezoneId = 'Local';
   let localLabel = 'Local';
+  let localCity = 'My Location';
 
   try {
     localTimezoneId = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local';
-    const localFormatterFull = new Intl.DateTimeFormat('id-ID', {
+    const localFormatterFull = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -113,27 +117,47 @@ export function getOfficeTimeInfo(
     });
     localTimeString = localFormatterFull.format(date);
 
-    const localFormatterShort = new Intl.DateTimeFormat('id-ID', {
+    const localFormatterShort = new Intl.DateTimeFormat('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
     });
     localTimeShort = localFormatterShort.format(date);
 
-    // Resolve user local label
-    if (localTimezoneId === 'Asia/Jakarta') localLabel = 'WIB';
-    else if (localTimezoneId === 'Asia/Makassar') localLabel = 'WITA';
-    else if (localTimezoneId === 'Asia/Jayapura') localLabel = 'WIT';
-    else if (localTimezoneId === 'Asia/Seoul') localLabel = 'KST';
-    else if (localTimezoneId === 'Asia/Singapore') localLabel = 'SGT';
-    else if (localTimezoneId === 'Asia/Tokyo') localLabel = 'JST';
-    else {
+    const localFormatterDate = new Intl.DateTimeFormat(lang === 'ko' ? 'ko-KR' : 'en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+    localDateString = localFormatterDate.format(date);
+
+    // Resolve user local label and city
+    if (localTimezoneId === 'Asia/Jakarta') {
+      localLabel = 'WIB';
+      localCity = 'Jakarta';
+    } else if (localTimezoneId === 'Asia/Makassar') {
+      localLabel = 'WITA';
+      localCity = 'Bali / Makassar';
+    } else if (localTimezoneId === 'Asia/Jayapura') {
+      localLabel = 'WIT';
+      localCity = 'Jayapura';
+    } else if (localTimezoneId === 'Asia/Seoul') {
+      localLabel = 'KST';
+      localCity = 'Seoul';
+    } else if (localTimezoneId === 'Asia/Singapore') {
+      localLabel = 'SGT';
+      localCity = 'Singapore';
+    } else if (localTimezoneId === 'Asia/Tokyo') {
+      localLabel = 'JST';
+      localCity = 'Tokyo';
+    } else {
       const parts = localTimezoneId.split('/');
-      localLabel = parts[parts.length - 1].replace(/_/g, ' ');
+      localCity = parts[parts.length - 1].replace(/_/g, ' ');
+      localLabel = parts[parts.length - 1].substring(0, 4).toUpperCase();
     }
   } catch (err) {
     console.warn('Error formatting local time:', err);
-    localTimeString = date.toLocaleTimeString('id-ID', { hour12: false });
+    localTimeString = date.toLocaleTimeString('en-GB', { hour12: false });
     localTimeShort = localTimeString.slice(0, 5);
   }
 
@@ -199,15 +223,12 @@ export function getOfficeTimeInfo(
     const sign = diffHours > 0 ? '+' : '';
     if (lang === 'ko') {
       diffDescription = `${sign}${diffHours}시간 (본사 기준)`;
-    } else if (lang === 'id') {
-      const formattedHours = `${sign}${diffHours} jam`;
-      diffDescription = `${formattedHours} dari kantor`;
     } else {
       const formattedHours = `${sign}${diffHours}h`;
       diffDescription = `${formattedHours} from office`;
     }
   } else {
-    diffDescription = lang === 'ko' ? '본사 시간과 동일' : lang === 'id' ? 'Sama dengan jam kantor' : 'Same as office time';
+    diffDescription = lang === 'ko' ? '본사 시간과 동일' : 'Same as office time';
   }
 
   const officeLocation = [officeCity, officeCountry].filter(Boolean).join(', ') || 'Headquarters';
@@ -220,8 +241,10 @@ export function getOfficeTimeInfo(
     officeLocation,
     localTimeString,
     localTimeShort,
+    localDateString,
     localTimezoneId,
     localLabel,
+    localCity,
     diffHours,
     diffMinutes,
     isDifferent,

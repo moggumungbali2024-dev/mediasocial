@@ -62,9 +62,13 @@ export const PlatformMasterConsole: React.FC = () => {
     platformUsers,
     addPlatformUser,
     updatePlatformUser,
+    deletePlatformUser,
+    language,
     changePassword,
     themeMode
   } = usePortal();
+
+  const isKo = language === 'ko';
 
   // Active Tab
   type PlatformTab = 'overview' | 'brands' | 'plans' | 'wallet' | 'reminders' | 'users';
@@ -374,7 +378,7 @@ export const PlatformMasterConsole: React.FC = () => {
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            Ringkasan Platform & MRR
+            <span>{isKo ? '플랫폼 및 MRR 개요' : 'Platform & MRR Overview'}</span>
           </button>
 
           <button
@@ -386,7 +390,7 @@ export const PlatformMasterConsole: React.FC = () => {
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            Daftar Brand & Tenant ({platformBrands.length})
+            <span>{isKo ? `브랜드 및 입점사 (${platformBrands.length})` : `Brands & Tenants (${platformBrands.length})`}</span>
           </button>
 
           <button
@@ -398,7 +402,7 @@ export const PlatformMasterConsole: React.FC = () => {
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
-            Reminder Jatuh Tempo
+            <span>{isKo ? '만료 예정 알림' : 'Due Date Reminders'}</span>
             {expiringBrands.length > 0 && (
               <span className="w-4 h-4 rounded-full bg-rose-500 text-[9px] font-bold text-white flex items-center justify-center">
                 {expiringBrands.length}
@@ -417,7 +421,7 @@ export const PlatformMasterConsole: React.FC = () => {
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                Paket Subscription ({subscriptionPlans.length})
+                <span>{isKo ? `구독 플랜 (${subscriptionPlans.length})` : `Subscription Plans (${subscriptionPlans.length})`}</span>
               </button>
 
               <button
@@ -429,7 +433,7 @@ export const PlatformMasterConsole: React.FC = () => {
                 }`}
               >
                 <Wallet className="w-3.5 h-3.5" />
-                Wallet & Tarik Dana
+                <span>{isKo ? '지갑 및 출금 관리' : 'Wallet & Withdrawals'}</span>
               </button>
 
               <button
@@ -441,7 +445,7 @@ export const PlatformMasterConsole: React.FC = () => {
                 }`}
               >
                 <Users className="w-3.5 h-3.5" />
-                Tim Platform & Akun ({platformUsers?.length || 1})
+                <span>{isKo ? `플랫폼 팀 및 계정 (${platformUsers?.length || 1})` : `Platform Team & Accounts (${platformUsers?.length || 1})`}</span>
               </button>
             </>
           )}
@@ -885,14 +889,14 @@ export const PlatformMasterConsole: React.FC = () => {
                             <button
                               onClick={() => handleOpenEditBrand(brand)}
                               className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition"
-                              title="Edit Brand Tenant"
+                              title={isKo ? "브랜드 테넌트 수정" : "Edit Brand Tenant"}
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setDeletingBrand(brand)}
                               className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 text-xs font-bold cursor-pointer transition"
-                              title="Hapus Brand dari Platform"
+                              title={isKo ? "플랫폼에서 브랜드 삭제" : "Delete Brand from Platform"}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -900,7 +904,7 @@ export const PlatformMasterConsole: React.FC = () => {
                               <button
                                 onClick={() => handleTriggerReminder(brand)}
                                 className="p-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer transition"
-                                title="Kirim Reminder WhatsApp"
+                                title={isKo ? "WhatsApp 알림 전송" : "Send WhatsApp Reminder"}
                               >
                                 <MessageSquare className="w-3.5 h-3.5" />
                               </button>
@@ -1205,9 +1209,13 @@ export const PlatformMasterConsole: React.FC = () => {
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>Platform Superadmin & Team RBAC</span>
                 </div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white">Kelola Pengguna Platform & Akun Superadmin</h2>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                  {isKo ? '플랫폼 사용자 및 슈퍼관리자 계정 관리' : 'Manage Platform Users & Superadmin Accounts'}
+                </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Atur kredensial Superadmin dan tambahkan anggota tim internal Platform Finance & Platform Admin.
+                  {isKo 
+                    ? '슈퍼관리자 인증 정보를 설정하고 플랫폼 파이낸스 및 플랫폼 관리자 팀원을 관리합니다.' 
+                    : 'Configure superadmin credentials and manage internal Platform Finance & Platform Admin team members.'}
                 </p>
               </div>
 
@@ -1225,7 +1233,7 @@ export const PlatformMasterConsole: React.FC = () => {
                 className="px-5 py-2.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-orange-500/20 transition cursor-pointer self-start sm:self-auto"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>Tambah Pengguna Platform</span>
+                <span>{isKo ? '새 플랫폼 사용자 추가' : 'Add Platform User'}</span>
               </button>
             </div>
 
@@ -1236,9 +1244,12 @@ export const PlatformMasterConsole: React.FC = () => {
                   🔒
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white">Ubah Password Superadmin / Platform Owner</h3>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                    {isKo ? '슈퍼관리자 / 플랫폼 소유자 비밀번호 변경' : 'Change Superadmin / Platform Owner Password'}
+                  </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Akun Superadmin Login: <span className="text-orange-600 dark:text-orange-400 font-mono font-bold">{currentUser.phone || '08159998757'}</span>
+                    {isKo ? '슈퍼관리자 로그인 계정:' : 'Superadmin Login Account:'}{' '}
+                    <span className="text-orange-600 dark:text-orange-400 font-mono font-bold">{currentUser.phone || '08159998757'}</span>
                   </p>
                 </div>
               </div>
@@ -1261,16 +1272,16 @@ export const PlatformMasterConsole: React.FC = () => {
                   e.preventDefault();
                   setPassMsg(null);
                   if (!adminNewPass.trim()) {
-                    setPassMsg({ type: 'error', text: 'Password baru tidak boleh kosong.' });
+                    setPassMsg({ type: 'error', text: isKo ? '새 비밀번호를 입력해주세요.' : 'New password cannot be empty.' });
                     return;
                   }
                   if (adminNewPass !== adminConfirmPass) {
-                    setPassMsg({ type: 'error', text: 'Konfirmasi password tidak cocok.' });
+                    setPassMsg({ type: 'error', text: isKo ? '비밀번호 확인이 일치하지 않습니다.' : 'Password confirmation does not match.' });
                     return;
                   }
                   const res = changePassword(currentUser.id, adminNewPass);
                   if (res.success) {
-                    setPassMsg({ type: 'success', text: 'Password Superadmin berhasil diperbarui dan tersimpan ke database!' });
+                    setPassMsg({ type: 'success', text: isKo ? '슈퍼관리자 비밀번호가 성공적으로 업데이트되었습니다!' : 'Superadmin password updated successfully!' });
                     setAdminNewPass('');
                     setAdminConfirmPass('');
                   } else {
@@ -1280,11 +1291,13 @@ export const PlatformMasterConsole: React.FC = () => {
                 className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-end"
               >
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Password Baru</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '새 비밀번호' : 'New Password'}
+                  </label>
                   <input
                     type="password"
                     required
-                    placeholder="Masukkan password baru"
+                    placeholder={isKo ? '새 비밀번호 입력' : 'Enter new password'}
                     value={adminNewPass}
                     onChange={(e) => setAdminNewPass(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -1292,11 +1305,13 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Ulangi Password Baru</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '새 비밀번호 확인' : 'Confirm New Password'}
+                  </label>
                   <input
                     type="password"
                     required
-                    placeholder="Konfirmasi password baru"
+                    placeholder={isKo ? '비밀번호 재입력' : 'Re-enter new password'}
                     value={adminConfirmPass}
                     onChange={(e) => setAdminConfirmPass(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -1307,7 +1322,7 @@ export const PlatformMasterConsole: React.FC = () => {
                   type="submit"
                   className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition shadow-md shadow-orange-500/20 cursor-pointer"
                 >
-                  Simpan Password Baru
+                  {isKo ? '비밀번호 변경 저장' : 'Save New Password'}
                 </button>
               </form>
             </div>
@@ -1316,8 +1331,12 @@ export const PlatformMasterConsole: React.FC = () => {
             <div className="bg-white dark:bg-[#14161f] border border-slate-200/80 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
               <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div>
-                  <h3 className="font-black text-sm text-slate-900 dark:text-white">Daftar Pengguna Platform</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Pengguna dengan akses ke Platform Master Console mediasocial.team</p>
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white">
+                    {isKo ? '플랫폼 사용자 목록' : 'Platform Users Registry'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {isKo ? 'mediasocial.team 플랫폼 마스터 콘솔 접근 권한 계정' : 'Authorized team accounts with access to Platform Master Console'}
+                  </p>
                 </div>
                 <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                   {platformUsers.length} Users
@@ -1328,12 +1347,13 @@ export const PlatformMasterConsole: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 dark:bg-[#181a24] text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200/80 dark:border-slate-800">
                     <tr>
-                      <th className="py-3.5 px-4">Nama Lengkap</th>
-                      <th className="py-3.5 px-4">Role Akses</th>
-                      <th className="py-3.5 px-4">Nomor HP (Login)</th>
-                      <th className="py-3.5 px-4">Email</th>
-                      <th className="py-3.5 px-4">Jabatan</th>
-                      <th className="py-3.5 px-4 text-right">Status</th>
+                      <th className="py-3.5 px-4">{isKo ? '이름' : 'Full Name'}</th>
+                      <th className="py-3.5 px-4">{isKo ? '접근 권한' : 'Role'}</th>
+                      <th className="py-3.5 px-4">{isKo ? '로그인 전화번호' : 'Phone (Login)'}</th>
+                      <th className="py-3.5 px-4">{isKo ? '이메일' : 'Email'}</th>
+                      <th className="py-3.5 px-4">{isKo ? '직책' : 'Job Title'}</th>
+                      <th className="py-3.5 px-4">{isKo ? '상태' : 'Status'}</th>
+                      <th className="py-3.5 px-4 text-right">{isKo ? '관리' : 'Action'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
@@ -1361,10 +1381,26 @@ export const PlatformMasterConsole: React.FC = () => {
                         <td className="py-3.5 px-4 font-mono text-orange-600 dark:text-orange-400 font-bold">{u.phone}</td>
                         <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400">{u.email}</td>
                         <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400">{u.job_title || '-'}</td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-3.5 px-4">
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            Aktif
+                            {isKo ? '활성' : 'Active'}
                           </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          {u.role !== 'platform_owner' && u.id !== currentUser.id && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(isKo ? `${u.full_name} 사용자를 삭제하시겠습니까?` : `Are you sure you want to delete ${u.full_name}?`)) {
+                                  deletePlatformUser(u.id);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
+                              title={isKo ? '사용자 삭제' : 'Delete user'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1384,9 +1420,11 @@ export const PlatformMasterConsole: React.FC = () => {
               <div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <Users className="w-5 h-5 text-orange-500" />
-                  Tambah Pengguna Platform Baru
+                  <span>{isKo ? '새 플랫폼 사용자 추가' : 'Add New Platform User'}</span>
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Buat akun untuk Platform Finance atau Platform Admin</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {isKo ? '플랫폼 파이낸스 또는 플랫폼 관리자 계정 생성' : 'Create account for Platform Finance or Platform Admin'}
+                </p>
               </div>
               <button
                 onClick={() => setShowAddUserModal(false)}
@@ -1414,7 +1452,7 @@ export const PlatformMasterConsole: React.FC = () => {
                 e.preventDefault();
                 setUserFormMsg(null);
                 if (!newUserName.trim() || !newUserPhone.trim()) {
-                  setUserFormMsg({ type: 'error', text: 'Nama dan Nomor HP wajib diisi.' });
+                  setUserFormMsg({ type: 'error', text: isKo ? '이름과 전화번호를 입력해주세요.' : 'Name and Phone are required.' });
                   return;
                 }
                 const res = addPlatformUser({
@@ -1439,7 +1477,9 @@ export const PlatformMasterConsole: React.FC = () => {
               className="space-y-3.5"
             >
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Role / Peran Platform *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '플랫폼 역할 *' : 'Platform Role *'}
+                </label>
                 <select
                   value={newUserRole}
                   onChange={(e) => setNewUserRole(e.target.value as any)}
@@ -1451,11 +1491,13 @@ export const PlatformMasterConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '이름 *' : 'Full Name *'}
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="Nama Lengkap User"
+                  placeholder={isKo ? '사용자 이름 입력' : 'User Full Name'}
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -1463,11 +1505,13 @@ export const PlatformMasterConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nomor Handphone (WhatsApp Login) *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '휴대폰 번호 (로그인 계정) *' : 'Phone Number (Login Account) *'}
+                </label>
                 <input
                   type="tel"
                   required
-                  placeholder="Contoh: 081234567890"
+                  placeholder={isKo ? '예: 081234567890' : 'e.g. 081234567890'}
                   value={newUserPhone}
                   onChange={(e) => setNewUserPhone(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -1475,10 +1519,12 @@ export const PlatformMasterConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email Platform</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '플랫폼 이메일' : 'Platform Email'}
+                </label>
                 <input
                   type="email"
-                  placeholder="nama@mediasocial.team"
+                  placeholder="name@mediasocial.team"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -1487,7 +1533,9 @@ export const PlatformMasterConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Jabatan / Job Title</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '직책' : 'Job Title'}
+                  </label>
                   <input
                     type="text"
                     placeholder="SaaS Ops Lead"
@@ -1497,7 +1545,9 @@ export const PlatformMasterConsole: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Password Awal</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '초기 비밀번호' : 'Initial Password'}
+                  </label>
                   <input
                     type="text"
                     placeholder="Media"
@@ -1514,13 +1564,13 @@ export const PlatformMasterConsole: React.FC = () => {
                   onClick={() => setShowAddUserModal(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold cursor-pointer"
                 >
-                  Batal
+                  {isKo ? '취소' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 cursor-pointer"
                 >
-                  Simpan User Platform
+                  {isKo ? '사용자 저장' : 'Save Platform User'}
                 </button>
               </div>
             </form>
@@ -1536,10 +1586,11 @@ export const PlatformMasterConsole: React.FC = () => {
               <div>
                 <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-orange-500" />
-                  Onboard & Undang Brand Baru
+                  <span>{isKo ? '새 브랜드 등록 및 초대' : 'Onboard & Invite New Brand'}</span>
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Daftarkan brand baru dan buat subdomain di <code>mediasocial.team/slug</code>
+                  {isKo ? '새 브랜드를 등록하고 서브도메인을 생성합니다:' : 'Register a new brand and create subdomain at'}{' '}
+                  <code>mediasocial.team/slug</code>
                 </p>
               </div>
               <button
@@ -1560,11 +1611,13 @@ export const PlatformMasterConsole: React.FC = () => {
             <form onSubmit={handleCreateBrand} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Brand *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '브랜드명 *' : 'Brand Name *'}
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Kopi Kulo, Moggumung"
+                    placeholder={isKo ? '예: Moggumung, Kopi Senja' : 'e.g. Moggumung, Artisan Roastery'}
                     value={newBrandName}
                     onChange={(e) => {
                       setNewBrandName(e.target.value);
@@ -1577,13 +1630,15 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Subdomain Slug *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '서브도메인 슬러그 *' : 'Subdomain Slug *'}
+                  </label>
                   <div className="flex items-center bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-500">
                     <span>mediasocial.team/</span>
                     <input
                       type="text"
                       required
-                      placeholder="kopikulo"
+                      placeholder="brandname"
                       value={newBrandSlug}
                       onChange={(e) => setNewBrandSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                       className="bg-transparent border-none text-slate-900 dark:text-white focus:outline-none flex-1 ml-0.5"
@@ -1593,10 +1648,12 @@ export const PlatformMasterConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tagline Brand</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '브랜드 슬로건' : 'Brand Tagline'}
+                </label>
                 <input
                   type="text"
-                  placeholder="Contoh: Artisan Coffee & Pastry Specialist"
+                  placeholder={isKo ? '예: Premium Artisan Dining & Coffee' : 'e.g. Premium Artisan Dining & Coffee'}
                   value={newBrandTagline}
                   onChange={(e) => setNewBrandTagline(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -1605,11 +1662,13 @@ export const PlatformMasterConsole: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama HQ Owner *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '본사 대표자명 *' : 'HQ Owner Name *'}
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Hendra Wijaya"
+                    placeholder={isKo ? '대표자 이름' : 'Owner Full Name'}
                     value={newOwnerName}
                     onChange={(e) => setNewOwnerName(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -1617,7 +1676,9 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">No. WhatsApp Owner *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '대표자 전화번호 *' : 'Owner Phone *'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -1629,7 +1690,9 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email Owner</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '대표자 이메일' : 'Owner Email'}
+                  </label>
                   <input
                     type="email"
                     placeholder="owner@brand.com"
@@ -1642,20 +1705,24 @@ export const PlatformMasterConsole: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Pilihan Paket *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '구독 플랜 *' : 'Select Plan *'}
+                  </label>
                   <select
                     value={newPlanId}
                     onChange={(e) => setNewPlanId(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    <option value="starter" className="text-black">Starter Franchise (Rp 2.49M/bln)</option>
-                    <option value="growth" className="text-black">Growth Network (Rp 4.89M/bln)</option>
-                    <option value="enterprise" className="text-black">Enterprise Fleet (Rp 8.99M/bln)</option>
+                    <option value="starter" className="text-black">Starter Franchise (Rp 2.49M/mo)</option>
+                    <option value="growth" className="text-black">Growth Network (Rp 4.89M/mo)</option>
+                    <option value="enterprise" className="text-black">Enterprise Fleet (Rp 8.99M/mo)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Jumlah Cabang Awal</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '초기 지점 수' : 'Initial Branches Count'}
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -1666,7 +1733,9 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Warna Brand (HEX)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '브랜드 테마 컬러 (HEX)' : 'Brand Color (HEX)'}
+                  </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -1690,13 +1759,13 @@ export const PlatformMasterConsole: React.FC = () => {
                   onClick={() => setShowAddBrandModal(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold cursor-pointer"
                 >
-                  Batal
+                  {isKo ? '취소' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 cursor-pointer"
                 >
-                  Daftarkan Brand Tenant
+                  {isKo ? '브랜드 등록 완료' : 'Register Brand Now'}
                 </button>
               </div>
             </form>
@@ -1712,10 +1781,11 @@ export const PlatformMasterConsole: React.FC = () => {
               <div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <Wallet className="w-5 h-5 text-amber-500" />
-                  Tarik Saldo Subscription Platform
+                  <span>{isKo ? '플랫폼 구독 잔액 출금' : 'Withdraw Platform Subscription Balance'}</span>
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Tersedia: <strong className="text-amber-600 dark:text-amber-400">Rp {platformWalletBalance.toLocaleString('id-ID')}</strong>
+                  {isKo ? '출금 가능:' : 'Available:'}{' '}
+                  <strong className="text-amber-600 dark:text-amber-400">Rp {platformWalletBalance.toLocaleString('id-ID')}</strong>
                 </p>
               </div>
               <button
@@ -1735,11 +1805,13 @@ export const PlatformMasterConsole: React.FC = () => {
 
             <form onSubmit={handleWithdrawalSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nominal Penarikan (Rp) *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '출금 요청 금액 (Rp) *' : 'Withdrawal Amount (Rp) *'}
+                </label>
                 <input
                   type="number"
                   required
-                  placeholder="Contoh: 10000000"
+                  placeholder={isKo ? '예: 10000000' : 'e.g. 10000000'}
                   value={wdAmount}
                   onChange={(e) => setWdAmount(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white font-black text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -1747,7 +1819,9 @@ export const PlatformMasterConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Bank Tujuan *</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '입금 은행 *' : 'Destination Bank *'}
+                </label>
                 <select
                   value={wdBank}
                   onChange={(e) => setWdBank(e.target.value)}
@@ -1763,22 +1837,26 @@ export const PlatformMasterConsole: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nomor Rekening *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '계좌번호 *' : 'Account Number *'}
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: 123-456-7890"
+                    placeholder="123-456-7890"
                     value={wdAccNo}
                     onChange={(e) => setWdAccNo(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Atas Nama Rekening *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '예금주 *' : 'Account Holder *'}
+                  </label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Nama Pemilik Rekening"
+                    placeholder={isKo ? '예금주 성명' : 'Account Holder Name'}
                     value={wdAccHolder}
                     onChange={(e) => setWdAccHolder(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -1787,10 +1865,12 @@ export const PlatformMasterConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Catatan</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '메모' : 'Notes'}
+                </label>
                 <input
                   type="text"
-                  placeholder="Keterangan penarikan (opsional)"
+                  placeholder={isKo ? '출금 메모 (선택)' : 'Withdrawal notes (optional)'}
                   value={wdNotes}
                   onChange={(e) => setWdNotes(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -1803,13 +1883,13 @@ export const PlatformMasterConsole: React.FC = () => {
                   onClick={() => setShowWithdrawModal(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold cursor-pointer"
                 >
-                  Batal
+                  {isKo ? '취소' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-black text-xs font-black shadow-md shadow-amber-500/20 cursor-pointer"
                 >
-                  Ajukan Payout
+                  {isKo ? '출금 신청' : 'Request Payout'}
                 </button>
               </div>
             </form>
@@ -1825,9 +1905,11 @@ export const PlatformMasterConsole: React.FC = () => {
               <div>
                 <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <Edit3 className="w-5 h-5 text-orange-500" />
-                  Edit {showEditPlanModal.name}
+                  {isKo ? `${showEditPlanModal.name} 요금제 수정` : `Edit ${showEditPlanModal.name}`}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Atur parameter kuota & harga langganan (tersimpan otomatis ke database)</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {isKo ? '할당량 및 구독료 매개변수 설정' : 'Configure quota and subscription pricing parameters'}
+                </p>
               </div>
               <button
                 onClick={() => setShowEditPlanModal(null)}
@@ -1839,7 +1921,9 @@ export const PlatformMasterConsole: React.FC = () => {
 
             <div className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Harga Bulanan (Rp)</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '월 구독료 (KRW/IDR)' : 'Monthly Price'}
+                </label>
                 <input
                   type="number"
                   value={editMonthlyPrice}
@@ -1850,7 +1934,9 @@ export const PlatformMasterConsole: React.FC = () => {
 
               <div className="grid grid-cols-3 gap-2.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Max Cabang</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '최대 지점' : 'Max Branches'}
+                  </label>
                   <input
                     type="number"
                     value={editMaxBranches}
@@ -1859,7 +1945,9 @@ export const PlatformMasterConsole: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Max Desain</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '최대 디자인' : 'Max Designs'}
+                  </label>
                   <input
                     type="number"
                     value={editMaxDesigns}
@@ -1868,7 +1956,9 @@ export const PlatformMasterConsole: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Max Promo</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '최대 프로모' : 'Max Promos'}
+                  </label>
                   <input
                     type="number"
                     value={editMaxPromos}
@@ -1884,14 +1974,14 @@ export const PlatformMasterConsole: React.FC = () => {
                   onClick={() => setShowEditPlanModal(null)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs cursor-pointer"
                 >
-                  Batal
+                  {isKo ? '취소' : 'Cancel'}
                 </button>
                 <button
                   type="button"
                   onClick={handleSavePlan}
                   className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-black text-xs cursor-pointer shadow-md shadow-orange-500/20"
                 >
-                  Simpan Perubahan
+                  {isKo ? '변경사항 저장' : 'Save Changes'}
                 </button>
               </div>
             </div>
@@ -1906,10 +1996,10 @@ export const PlatformMasterConsole: React.FC = () => {
               <div>
                 <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <Edit3 className="w-5 h-5 text-orange-500" />
-                  Edit Data Brand: {showEditBrandModal.name}
+                  {isKo ? `브랜드 정보 수정: ${showEditBrandModal.name}` : `Edit Brand: ${showEditBrandModal.name}`}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Perbarui profil brand, status langganan, kontak owner, atau kuota cabang.
+                  {isKo ? '브랜드 프로필, 구독 상태, 소유자 연락처 및 지점 할당량을 수정합니다.' : 'Update brand profile, subscription status, owner contacts, or branch quotas.'}
                 </p>
               </div>
               <button
@@ -1930,7 +2020,9 @@ export const PlatformMasterConsole: React.FC = () => {
             <form onSubmit={handleSaveEditBrand} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Brand *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '브랜드명 *' : 'Brand Name *'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -1941,7 +2033,9 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Slug / Subdomain URL *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '슬러그 / 서브도메인 URL *' : 'Slug / Subdomain URL *'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -1953,7 +2047,9 @@ export const PlatformMasterConsole: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tagline Brand</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKo ? '브랜드 슬로건' : 'Brand Tagline'}
+                </label>
                 <input
                   type="text"
                   value={editBrandTagline}
@@ -1964,7 +2060,9 @@ export const PlatformMasterConsole: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nama HQ Owner *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? 'HQ 대표자 이름 *' : 'HQ Owner Name *'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -1975,7 +2073,9 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">WhatsApp Owner *</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '소유자 WhatsApp *' : 'Owner WhatsApp *'}
+                  </label>
                   <input
                     type="text"
                     required
@@ -1986,7 +2086,9 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email Owner</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '소유자 이메일' : 'Owner Email'}
+                  </label>
                   <input
                     type="email"
                     value={editOwnerEmail}
@@ -1998,7 +2100,9 @@ export const PlatformMasterConsole: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Paket Langganan</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '구독 플랜' : 'Subscription Plan'}
+                  </label>
                   <select
                     value={editPlanId}
                     onChange={(e) => {
@@ -2017,7 +2121,9 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tagihan Bulanan (Rp)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '월 청구액' : 'Monthly Bill'}
+                  </label>
                   <input
                     type="number"
                     value={editMonthlyFee}
@@ -2027,7 +2133,9 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Jumlah Cabang</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '지점 수' : 'Branch Count'}
+                  </label>
                   <input
                     type="number"
                     min="1"
@@ -2040,20 +2148,24 @@ export const PlatformMasterConsole: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Status Langganan</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '구독 상태' : 'Subscription Status'}
+                  </label>
                   <select
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value as any)}
                     className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-orange-500"
                   >
-                    <option value="active" className="text-black">Active (Aktif)</option>
-                    <option value="expiring_soon" className="text-black">Expiring Soon (Segera Habis)</option>
-                    <option value="expired" className="text-black">Expired (Kedaluwarsa)</option>
+                    <option value="active" className="text-black">Active</option>
+                    <option value="expiring_soon" className="text-black">Expiring Soon</option>
+                    <option value="expired" className="text-black">Expired</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Masa Aktif Hingga</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '유효 기간' : 'Valid Until'}
+                  </label>
                   <input
                     type="date"
                     value={editEndDate}
@@ -2063,7 +2175,9 @@ export const PlatformMasterConsole: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Warna Brand (HEX)</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    {isKo ? '브랜드 컬러 (HEX)' : 'Brand Color (HEX)'}
+                  </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -2087,13 +2201,13 @@ export const PlatformMasterConsole: React.FC = () => {
                   onClick={() => setShowEditBrandModal(null)}
                   className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold cursor-pointer"
                 >
-                  Batal
+                  {isKo ? '취소' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 cursor-pointer"
                 >
-                  Simpan Perubahan
+                  {isKo ? '변경사항 저장' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -2111,10 +2225,14 @@ export const PlatformMasterConsole: React.FC = () => {
 
             <div className="text-center space-y-2">
               <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                Hapus Brand {deletingBrand.name}?
+                {isKo ? `${deletingBrand.name} 브랜드를 삭제하시겠습니까?` : `Delete Brand ${deletingBrand.name}?`}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Brand tenant <strong>{deletingBrand.name}</strong> ({deletingBrand.slug}) beserta konfigurasi dan datanya akan dihapus dari platform. Tindakan ini tidak dapat dibatalkan.
+                {isKo ? (
+                  <>브랜드 테넌트 <strong>{deletingBrand.name}</strong> ({deletingBrand.slug}) 및 관련 데이터가 플랫폼에서 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.</>
+                ) : (
+                  <>Brand tenant <strong>{deletingBrand.name}</strong> ({deletingBrand.slug}) and all its configurations will be permanently deleted from the platform. This action cannot be undone.</>
+                )}
               </p>
             </div>
 
@@ -2124,14 +2242,14 @@ export const PlatformMasterConsole: React.FC = () => {
                 onClick={() => setDeletingBrand(null)}
                 className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs cursor-pointer"
               >
-                Batal
+                {isKo ? '취소' : 'Cancel'}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDeleteBrand}
                 className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow-md shadow-rose-600/20 cursor-pointer"
               >
-                Ya, Hapus Brand
+                {isKo ? '예, 브랜드 삭제' : 'Yes, Delete Brand'}
               </button>
             </div>
           </div>

@@ -60,7 +60,7 @@ export const SupabaseSetupModal: React.FC<SupabaseSetupModalProps> = ({ isOpen, 
     const res = await SupabaseService.testConnection(supabaseConfig.url, supabaseConfig.anonKey);
     if (res.success) {
       setTestStatus('success');
-      setTestMessage('Koneksi Supabase aktif dan terverifikasi!');
+      setTestMessage(language === 'ko' ? 'Supabase 연결이 활성화되고 확인되었습니다!' : 'Supabase connection active and verified!');
       setSupabaseConfig(getSupabaseConfig());
     } else {
       setTestStatus('error');
@@ -79,9 +79,13 @@ export const SupabaseSetupModal: React.FC<SupabaseSetupModalProps> = ({ isOpen, 
         brand_slug: activeTenantSlug
       })));
 
-      setExportMessage(`Berhasil menyinkronkan data brand "${whitelabelConfig.brand_name}" (${branches.length} cabang, ${designRequests.length} request desain) ke Supabase!`);
+      setExportMessage(
+        language === 'ko'
+          ? `"${whitelabelConfig.brand_name}" 브랜드 데이터(${branches.length}개 지점, ${designRequests.length}개 디자인 요청)가 Supabase와 동기화되었습니다!`
+          : `Successfully synced brand "${whitelabelConfig.brand_name}" (${branches.length} branches, ${designRequests.length} design requests) to Supabase!`
+      );
     } catch (err: any) {
-      setExportMessage(`Gagal export: ${err.message}`);
+      setExportMessage(language === 'ko' ? `내보내기 실패: ${err.message}` : `Export failed: ${err.message}`);
     } finally {
       setIsExporting(false);
     }
@@ -455,10 +459,12 @@ create policy "Allow all public operations" on public.influencers for all using 
               <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 text-xs text-emerald-800 dark:text-emerald-200 space-y-1">
                 <div className="font-bold flex items-center gap-2 text-sm">
                   <Sparkles className="w-4 h-4 text-emerald-500" />
-                  <span>Siap Terhubung ke Supabase Cloud</span>
+                  <span>{language === 'ko' ? 'Supabase 클라우드 연결' : 'Connect to Supabase Cloud'}</span>
                 </div>
                 <p className="leading-relaxed">
-                  Masukkan <strong>Project URL</strong> dan <strong>Anon Public Key</strong> dari dashboard Supabase Anda. Semua data brand (Moggumung, Kopi Senja, dll.) dan riwayat auto-post media sosial akan tersinkronisasi otomatis.
+                  {language === 'ko'
+                    ? 'Supabase 대시보드에서 Project URL과 Anon Public Key를 입력하세요. 모든 브랜드 데이터와 소셜 미디어 자동 게시 내역이 동기화됩니다.'
+                    : 'Enter Project URL and Anon Public Key from your Supabase dashboard. All brand data and social auto-post history will automatically sync.'}
                 </p>
               </div>
 
@@ -474,7 +480,11 @@ create policy "Allow all public operations" on public.influencers for all using 
                     <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                   )}
                   <div>
-                    <strong className="block mb-0.5">{testStatus === 'success' ? 'Berhasil!' : 'Gagal Menghubungkan:'}</strong>
+                    <strong className="block mb-0.5">
+                      {testStatus === 'success'
+                        ? (language === 'ko' ? '성공!' : 'Connected!')
+                        : (language === 'ko' ? '연결 실패:' : 'Connection Failed:')}
+                    </strong>
                     <span>{testMessage}</span>
                   </div>
                 </div>
@@ -501,7 +511,7 @@ create policy "Allow all public operations" on public.influencers for all using 
                     className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
                   />
                   <span className="text-[10px] text-slate-400 mt-1 block">
-                    Dapatkan di: Supabase Dashboard &gt; Project Settings &gt; API &gt; Project URL
+                    {language === 'ko' ? '위치: Supabase Dashboard > Project Settings > API > Project URL' : 'Find at: Supabase Dashboard > Project Settings > API > Project URL'}
                   </span>
                 </div>
 
@@ -518,7 +528,7 @@ create policy "Allow all public operations" on public.influencers for all using 
                     className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
                   />
                   <span className="text-[10px] text-slate-400 mt-1 block">
-                    Dapatkan di: Supabase Dashboard &gt; Project Settings &gt; API &gt; anon / public key
+                    {language === 'ko' ? '위치: Supabase Dashboard > Project Settings > API > anon / public key' : 'Find at: Supabase Dashboard > Project Settings > API > anon / public key'}
                   </span>
                 </div>
 
@@ -531,12 +541,12 @@ create policy "Allow all public operations" on public.influencers for all using 
                     {testStatus === 'testing' ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Menguji Koneksi...</span>
+                        <span>{language === 'ko' ? '연결 테스트 중...' : 'Testing Connection...'}</span>
                       </>
                     ) : (
                       <>
                         <KeyRound className="w-4 h-4" />
-                        <span>Simpan & Tes Koneksi Supabase</span>
+                        <span>{language === 'ko' ? 'Supabase 연결 저장 및 테스트' : 'Save & Test Supabase Connection'}</span>
                       </>
                     )}
                   </button>
@@ -548,20 +558,20 @@ create policy "Allow all public operations" on public.influencers for all using 
                     className="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <UploadCloud className="w-4 h-4 text-emerald-400" />
-                    <span>Sinkronkan Data Sekarang</span>
+                    <span>{language === 'ko' ? '지금 데이터 동기화' : 'Sync Data Now'}</span>
                   </button>
                 </div>
               </form>
 
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                <span>Belum punya project Supabase?</span>
+                <span>{language === 'ko' ? '아직 Supabase 프로젝트가 없으신가요?' : "Don't have a Supabase project yet?"}</span>
                 <a
                   href="https://supabase.com"
                   target="_blank"
                   rel="noreferrer"
                   className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1"
                 >
-                  <span>Buka Supabase.com</span>
+                  <span>{language === 'ko' ? 'Supabase.com 열기' : 'Open Supabase.com'}</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
@@ -573,15 +583,19 @@ create policy "Allow all public operations" on public.influencers for all using 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500 dark:text-slate-400">
-                  Jalankan skrip ini di <strong>Supabase SQL Editor</strong> untuk membuat seluruh 12 tabel otomatis.
+                  {language === 'ko' ? 'Supabase SQL Editor에서 이 스크립트를 실행하여 12개 테이블을 자동 생성하세요.' : 'Run this script in Supabase SQL Editor to automatically create all 12 tables.'}
                 </span>
 
                 <button
-                  onClick={() => copyToClipboard(SQL_DDL)}
+                  onClick={() => {
+                    navigator.clipboard.writeText(SQL_DDL);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
                   className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
                 >
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? 'Tersalin!' : 'Salin SQL DDL'}</span>
+                  <span>{copied ? (language === 'ko' ? '복사됨!' : 'Copied!') : (language === 'ko' ? 'SQL DDL 복사' : 'Copy SQL DDL')}</span>
                 </button>
               </div>
 
@@ -597,7 +611,7 @@ create policy "Allow all public operations" on public.influencers for all using 
               <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200 space-y-1">
                 <strong>🛡️ Row Level Security (RLS) Multi-Tenant:</strong>
                 <p>
-                  Memastikan data setiap brand (Moggumung, Kopi Senja, dll.) dan cabang terisolasi total, sehingga branch manager hanya dapat membaca request milik cabangnya sendiri.
+                  {language === 'ko' ? '각 브랜드 및 지점 데이터를 완벽하게 격리하여 지점 관리자가 자신의 지점 요청만 볼 수 있도록 보장합니다.' : 'Ensures full data isolation across tenant brands and branches so branch managers can only access their branch data.'}
                 </p>
               </div>
 
@@ -624,25 +638,31 @@ using (
           {activeTab === 'storage' && (
             <div className="space-y-4">
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Buat 3 storage bucket di Supabase Storage untuk upload file:
+                {language === 'ko' ? 'Supabase Storage에서 파일 업로드를 위한 3개 스토리지 버킷을 생성하세요:' : 'Create 3 storage buckets in Supabase Storage for file uploads:'}
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 space-y-1.5">
                   <div className="font-bold text-slate-900 dark:text-white">📁 deliverables</div>
-                  <p className="text-[11px] text-slate-400">Penyimpanan hasil desain & video kreatif siap posting.</p>
+                  <p className="text-[11px] text-slate-400">
+                    {language === 'ko' ? '디자인 및 비디오 결과물 저장 버킷.' : 'Storage for final creative design and video deliverables.'}
+                  </p>
                   <span className="text-[10px] text-emerald-600 font-bold">Public Bucket</span>
                 </div>
 
                 <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 space-y-1.5">
                   <div className="font-bold text-slate-900 dark:text-white">📁 payment_proofs</div>
-                  <p className="text-[11px] text-slate-400">Bukti transfer invoice retainer franchise cabang.</p>
+                  <p className="text-[11px] text-slate-400">
+                    {language === 'ko' ? '가맹점 리테이너 결제 송장 증빙 저장 버킷.' : 'Storage for franchise branch invoice payment transfer proofs.'}
+                  </p>
                   <span className="text-[10px] text-amber-600 font-bold">Private Bucket</span>
                 </div>
 
                 <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 space-y-1.5">
                   <div className="font-bold text-slate-900 dark:text-white">📁 brand_assets</div>
-                  <p className="text-[11px] text-slate-400">Logo brand, banner, dan foto profil tim/influencer.</p>
+                  <p className="text-[11px] text-slate-400">
+                    {language === 'ko' ? '브랜드 로고, 배너, 팀 및 인플루언서 프로필.' : 'Brand logos, banners, team and influencer profiles.'}
+                  </p>
                   <span className="text-[10px] text-emerald-600 font-bold">Public Bucket</span>
                 </div>
               </div>
@@ -661,7 +681,7 @@ using (
             onClick={onClose}
             className="px-5 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold rounded-xl text-xs transition cursor-pointer"
           >
-            Tutup
+            {language === 'ko' ? '닫기' : 'Close'}
           </button>
         </div>
 
